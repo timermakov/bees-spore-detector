@@ -1,56 +1,57 @@
 import numpy as np
 from PIL import Image
 import cv2
+from bees import config
 
 def preprocess_image(image: Image.Image, debug_path=None):
-    # Переводим в оттенки серого
     gray = image.convert('L')
     arr = np.array(gray)
-    # Сглаживание для уменьшения шума
     blurred = cv2.GaussianBlur(arr, (5, 5), 2)
     if debug_path is not None:
         save_debug_image(blurred, [], debug_path + '_blur', is_mask=True)
-    # Локальное повышение контраста (CLAHE)
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
     arr = clahe.apply(blurred)
     if debug_path is not None:
-        save_debug_image(arr, [], debug_path, is_mask=True)
+        save_debug_image(arr, [], debug_path + '_clahe', is_mask=True)
     return arr
 
 def detect_spores(image_array: np.ndarray, min_area=10, max_area=500, debug_path=None):
-    # Адаптивная бинаризация
-    bin_img = cv2.adaptiveThreshold(
-        image_array, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 21, 2)
-    # Инвертируем, чтобы споры были белыми
-    bin_img = 255 - bin_img
+    # 1. Детектор границ (Canny)
+    edges = cv2.Canny(image_array, 40, 120)
     if debug_path is not None:
-        save_debug_image(bin_img, [], debug_path + '_adaptive', is_mask=True)
-    # Морфологическая обработка
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3,3))
-    clean = cv2.morphologyEx(bin_img, cv2.MORPH_OPEN, kernel, iterations=2)
-    clean = cv2.morphologyEx(clean, cv2.MORPH_CLOSE, kernel, iterations=1)
-    if debug_path is not None:
-        save_debug_image(clean, [], debug_path + '_morph', is_mask=True)
-    # Поиск контуров
-    contours, _ = cv2.findContours(clean, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    # Фильтрация по площади и форме
+        save_debug_image(edges, [], debug_path + '_edges', is_mask=True)
+    # 2. Поиск замкнутых контуров
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     spores = []
     for cnt in contours:
+        if len(cnt) < 5:
+            continue
         area = cv2.contourArea(cnt)
         if not (min_area < area < max_area):
-            continue
-        if len(cnt) < 5:
             continue
         ellipse = cv2.fitEllipse(cnt)
         (x, y), (MA, ma), angle = ellipse
         ratio = min(MA, ma) / max(MA, ma)
-        if ratio < 0.4:  # слишком вытянутые или слишком круглые
-            continue
-        # Эксцентриситет
+        #if ratio < 0.4 or ratio > 0.95:
+        #    continue
         ecc = np.sqrt(1 - (min(MA, ma) / max(MA, ma))**2)
-        if not (0.3 < ecc < 0.95):
+        #if not (0.3 < ecc < 0.95):
+        #    continue
+        # Проверка на "полость": средняя яркость внутри эллипса близка к фону
+        mask = np.zeros(image_array.shape, dtype=np.uint8)
+        cv2.ellipse(mask, (int(x), int(y)), (int(MA/2), int(ma/2)), angle, 0, 360, 255, -1)
+        mean_inside = cv2.mean(image_array, mask=mask)[0]
+        mean_total = np.mean(image_array)
+        if abs(mean_inside - mean_total) > 50:  # если внутри эллипса сильно отличается от фона, пропускаем
             continue
         spores.append(cnt)
+    # Debug: рисуем эллипсы
+    if debug_path is not None:
+        debug_img = cv2.cvtColor(image_array, cv2.COLOR_GRAY2BGR)
+        for cnt in spores:
+            ellipse = cv2.fitEllipse(cnt)
+            cv2.ellipse(debug_img, ellipse, (0,0,255), 2)
+        cv2.imwrite(debug_path + '_ellipses.jpg', debug_img)
     return spores
 
 def save_debug_image(image, spores, out_path, is_mask=False):
