@@ -6,9 +6,13 @@ def preprocess_image(image: Image.Image, debug_path=None):
     # Переводим в оттенки серого
     gray = image.convert('L')
     arr = np.array(gray)
+    # Сглаживание для уменьшения шума
+    blurred = cv2.GaussianBlur(arr, (5, 5), 2)
+    if debug_path is not None:
+        save_debug_image(blurred, [], debug_path + '_blur', is_mask=True)
     # Локальное повышение контраста (CLAHE)
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-    arr = clahe.apply(arr)
+    arr = clahe.apply(blurred)
     if debug_path is not None:
         save_debug_image(arr, [], debug_path, is_mask=True)
     return arr
