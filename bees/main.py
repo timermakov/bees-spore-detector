@@ -5,10 +5,10 @@ def process_image(image_path, xml_path, debug_prefix=None):
     image = io_utils.load_image(image_path)
     metadata = io_utils.load_metadata(xml_path)
     # Сохраняем grayscale/contrast debug
-    preproc_debug = debug_prefix + '_preproc.jpg' if debug_prefix else None
+    preproc_debug = debug_prefix + '_preproc' if debug_prefix else None
     img_arr = image_proc.preprocess_image(image, debug_path=preproc_debug)
     # Сохраняем бинаризацию/маску debug
-    mask_debug = debug_prefix + '_mask.jpg' if debug_prefix else None
+    mask_debug = debug_prefix + '_mask' if debug_prefix else None
     spore_objs = image_proc.detect_spores(img_arr, config.MIN_SPORE_AREA, config.MAX_SPORE_AREA, debug_path=mask_debug)
     count = spores.count_spores(spore_objs)
     t = titr.calculate_titr(count)
@@ -31,7 +31,7 @@ def main():
         base = os.path.splitext(os.path.basename(image_path))[0]
         md_path = os.path.join(res_dir, base + '.md')
         debug_prefix = os.path.join(res_dir, base)
-        debug_path = debug_prefix + '_debug.jpg'
+        debug_path = debug_prefix + '_debug'
         result = process_image(image_path, xml_path, debug_prefix=debug_prefix)
         md = f"""# Результаты анализа изображения {os.path.basename(image_path)}\n\n- Количество спор: {result['count']}\n- Титр (млн спор/мл): {result['titr']:.2f}\n"""
         io_utils.save_markdown(md_path, md)
