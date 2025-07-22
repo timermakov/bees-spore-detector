@@ -2,6 +2,7 @@ import numpy as np
 from PIL import Image
 import cv2
 from bees import config
+import torch
 
 def preprocess_image(image: Image.Image, debug_path=None):
     gray = image.convert('L')
@@ -52,6 +53,50 @@ def detect_spores(image_array: np.ndarray, min_area=10, max_area=500, debug_path
             ellipse = cv2.fitEllipse(cnt)
             cv2.ellipse(debug_img, ellipse, (0,0,255), 2)
         cv2.imwrite(debug_path + '_ellipses.jpg', debug_img)
+    return spores
+
+def ml_detect_spores(image_array, model_path, conf_threshold=0.5, device=None, debug_path=None):
+    """
+    ML-based spore detection using a YOLOv5/YOLOv8 PyTorch model.
+    image_array: np.ndarray (grayscale or RGB)
+    model_path: path to .pt model
+    conf_threshold: confidence threshold for detections
+    Returns: list of contours (like detect_spores)
+    """
+    if device is None:
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    # YOLOv5/YOLOv8 expects 3-channel images
+    if len(image_array.shape) == 2:
+        img = cv2.cvtColor(image_array, cv2.COLOR_GRAY2RGB)
+    else:
+        img = image_array
+    # Load model (cache for speed)
+    if not hasattr(ml_detect_spores, '_model') or ml_detect_spores._model_path != model_path:
+        ml_detect_spores._model = torch.hub.load('ultralytics/yolov5', 'custom', path=model_path, force_reload=False).to(device)
+        ml_detect_spores._model_path = model_path
+    model = ml_detect_spores._model
+    # Inference
+    results = model(img)
+    detections = results.xyxy[0].cpu().numpy()  # [x1, y1, x2, y2, conf, cls]
+    spores = []
+    for det in detections:
+        x1, y1, x2, y2, conf, cls = det
+        if conf < conf_threshold:
+            continue
+        # Convert box to contour (rectangle)
+        cnt = np.array([
+            [[int(x1), int(y1)]],
+            [[int(x2), int(y1)]],
+            [[int(x2), int(y2)]],
+            [[int(x1), int(y2)]]
+        ])
+        spores.append(cnt)
+    # Debug: draw boxes
+    if debug_path is not None:
+        debug_img = img.copy()
+        for cnt in spores:
+            cv2.polylines(debug_img, [cnt], isClosed=True, color=(0,0,255), thickness=2)
+        cv2.imwrite(debug_path + '_ml_boxes.jpg', debug_img)
     return spores
 
 def save_debug_image(image, spores, out_path, is_mask=False):

@@ -1,3 +1,4 @@
 Pillow
 numpy
 opencv-python 
+torch  # for ML-based spore detection (YOLOv5/YOLOv8) 
