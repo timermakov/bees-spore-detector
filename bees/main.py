@@ -9,7 +9,11 @@ def process_image(image_path, xml_path, debug_prefix=None):
     img_arr = image_proc.preprocess_image(image, debug_path=preproc_debug)
     # Сохраняем бинаризацию/маску debug
     mask_debug = debug_prefix + '_mask' if debug_prefix else None
-    spore_objs = image_proc.detect_spores(img_arr, config.MIN_SPORE_AREA, config.MAX_SPORE_AREA, debug_path=mask_debug)
+    spore_objs = image_proc.detect_spores(img_arr, 
+                                          config.MIN_SPORE_AREA, config.MAX_SPORE_AREA, 
+                                          config.CANNY_THRESHOLD1, config.CANNY_THRESHOLD2, 
+                                          config.MIN_SPORE_CONTOUR_LENGTH, 
+                                          debug_path=mask_debug)
     count = spores.count_spores(spore_objs)
     t = titr.calculate_titr(count)
     return {

@@ -11,3 +11,11 @@
 Apis cerana - https://en.wikipedia.org/wiki/Apis_cerana
 
 Определить оотношение 
+
+
+Порядок генерации файлов:
+1. blur
+2. lahe
+3. edges
+4. ellipses
+5. debug
