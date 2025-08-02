@@ -1,7 +1,7 @@
 # Конфигурация проекта Bees
 
 DATA_DIR = 'data'
-RESULTS_DIR = 'res'
+RESULTS_DIR = 'res_ellipse'
 SCALE_MICRONS = 20  # масштаб на изображении (микрометры)
 
 # Параметры обработки изображений (можно расширять)
