@@ -1,7 +1,7 @@
 # Путь к папке с изображениями. Файлы должны иметь формат <имя>_1.jpg, <имя>_2.jpg, <имя>_3.jpg
-data_dir: dataset3
+data_dir: dataset3_EXAMPLE
 # Папка для результатов (.md, debug изображения, отчёт Excel)
-results_dir: results3
+results_dir: results3_EXAMPLE
 
 # Параметры обработки (влияние на детекцию см. bees/image_proc.py)
 # Минимальная/максимальная площадь эллиптического контура споры (пиксели)
