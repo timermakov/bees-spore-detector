@@ -53,6 +53,9 @@ def make_cvat_export(task_name, image_files, spore_objs_list, output_dir):
     # Use the first meta (or merge if needed)
     if metas:
         root.insert(1, metas[0])
+    # Pretty-print XML before saving
+    from bees.io_utils import indent_xml
+    indent_xml(root)
     merged_xml_path = os.path.join(export_dir, 'annotations.xml')
     ET.ElementTree(root).write(merged_xml_path, encoding='utf-8', xml_declaration=True)
     # Zip the folder

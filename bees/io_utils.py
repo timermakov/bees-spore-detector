@@ -55,7 +55,7 @@ def export_cvat_xml_elements(image_path, spore_objs, image_id=0, label_name='spo
             # fitEllipse requires at least 5 points, skip or fallback to polygon if needed
             continue
         ellipse = cv2.fitEllipse(cnt)
-        (cx, cy), (major, minor), angle = ellipse
+        (cx, cy), (major, minor), rotation = ellipse
         ellipse_elem = ET.SubElement(image_elem, 'ellipse', {
             'label': label_name,
             'occluded': '0',
@@ -64,10 +64,9 @@ def export_cvat_xml_elements(image_path, spore_objs, image_id=0, label_name='spo
             'cy': f"{float(cy):.2f}",
             'rx': f"{float(major/2):.2f}",
             'ry': f"{float(minor/2):.2f}",
-            'angle': f"{float(angle):.2f}",
+            'rotation': f"{float(rotation):.2f}",
             'z_order': '0',
             'group_id': str(idx),
-            'outside': '0',
         })
     # Create <meta> (minimal, for merging)
     meta = ET.Element('meta')
@@ -85,3 +84,19 @@ def export_cvat_xml_elements(image_path, spore_objs, image_id=0, label_name='spo
     ET.SubElement(original_size, 'width').text = str(width)
     ET.SubElement(original_size, 'height').text = str(height)
     return meta, image_elem 
+
+# Add pretty-print utility for XML
+
+def indent_xml(elem, level=0):
+    """Recursively pretty-print XML with indentation."""
+    i = "\n" + level * "  "
+    if len(elem):
+        if not elem.text or not elem.text.strip():
+            elem.text = i + "  "
+        for child in elem:
+            indent_xml(child, level + 1)
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+    else:
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = i 

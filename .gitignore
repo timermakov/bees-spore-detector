@@ -1,4 +1,4 @@
 venv/
 __pycache__/
 res*/
-new_res*/
+results*/

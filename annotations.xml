@@ -1,0 +1,1851 @@
+<?xml version="1.0" encoding="utf-8"?>
+<annotations>
+  <version>1.1</version>
+  <meta>
+    <task>
+      <id>1542574</id>
+      <name>Ellipses - Bees Spores Detection dataset #2</name>
+      <size>44</size>
+      <mode>annotation</mode>
+      <overlap>0</overlap>
+      <bugtracker></bugtracker>
+      <created>2025-08-02 10:36:05.666583+00:00</created>
+      <updated>2025-08-12 22:46:07.682798+00:00</updated>
+      <subset>default</subset>
+      <start_frame>0</start_frame>
+      <stop_frame>43</stop_frame>
+      <frame_filter></frame_filter>
+      <segments>
+        <segment>
+          <id>2808930</id>
+          <start>0</start>
+          <stop>43</stop>
+          <url>https://app.cvat.ai/api/jobs/2807041</url>
+        </segment>
+      </segments>
+      <owner>
+        <username>timhq</username>
+        <email>vokamre.st@gmail.com</email>
+      </owner>
+      <assignee></assignee>
+      <labels>
+        <label>
+          <name>spore</name>
+          <color>#d72d2d</color>
+          <type>ellipse</type>
+          <attributes>
+          </attributes>
+        </label>
+      </labels>
+    </task>
+    <dumped>2025-08-12 22:48:44.238737+00:00</dumped>
+  </meta>
+  <image id="0" name="new_data/CN1_try.jpg" width="1388" height="1040">
+    <ellipse label="spore" source="manual" occluded="0" cx="1113.15" cy="638.05" rx="5.78" ry="11.08" rotation="269.10" z_order="0" group_id="49">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1318.45" cy="932.00" rx="6.55" ry="9.40" z_order="0" group_id="7">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="496.17" cy="620.24" rx="6.04" ry="10.33" rotation="57.70" z_order="0" group_id="54">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1269.91" cy="987.97" rx="5.25" ry="10.52" rotation="308.50" z_order="0" group_id="3">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="556.41" cy="424.67" rx="5.67" ry="9.44" rotation="40.20" z_order="0" group_id="76">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1099.04" cy="421.71" rx="5.72" ry="10.83" rotation="42.10" z_order="0" group_id="77">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="199.58" cy="415.36" rx="5.93" ry="11.06" rotation="267.90" z_order="0" group_id="79">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="147.86" cy="407.97" rx="6.13" ry="8.60" rotation="274.80" z_order="0" group_id="80">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="207.47" cy="395.68" rx="5.34" ry="11.11" rotation="300.40" z_order="0" group_id="83">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="609.02" cy="1033.97" rx="4.85" ry="9.16" rotation="98.90" z_order="0">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="927.13" cy="390.91" rx="5.90" ry="10.17" rotation="309.60" z_order="0" group_id="84">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="228.57" cy="386.65" rx="5.88" ry="9.30" rotation="97.40" z_order="0" group_id="85">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="994.09" cy="380.00" rx="4.27" ry="8.38" rotation="336.60" z_order="0" group_id="86">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="998.57" cy="357.84" rx="5.75" ry="9.69" rotation="306.80" z_order="0" group_id="89">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1181.25" cy="330.44" rx="5.88" ry="10.22" rotation="42.30" z_order="0" group_id="90">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="972.50" cy="306.39" rx="6.68" ry="10.56" rotation="339.50" z_order="0" group_id="94">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1087.71" cy="288.00" rx="5.94" ry="9.31" rotation="97.30" z_order="0" group_id="96">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="479.39" cy="286.48" rx="5.49" ry="9.32" rotation="68.90" z_order="0" group_id="97">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1177.47" cy="269.60" rx="4.60" ry="9.27" rotation="260.80" z_order="0" group_id="101">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="54.78" cy="269.53" rx="6.17" ry="10.15" rotation="319.10" z_order="0" group_id="102">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="427.64" cy="261.67" rx="5.92" ry="11.40" rotation="334.20" z_order="0" group_id="103">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="552.31" cy="252.48" rx="5.87" ry="8.58" rotation="106.60" z_order="0" group_id="104">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1291.01" cy="234.53" rx="5.85" ry="8.68" rotation="341.70" z_order="0" group_id="106">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1320.92" cy="198.28" rx="5.88" ry="10.18" rotation="329.00" z_order="0" group_id="112">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1196.03" cy="152.38" rx="5.11" ry="7.65" rotation="69.70" z_order="0" group_id="114">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1332.00" cy="1005.84" rx="5.82" ry="11.17" rotation="72.30" z_order="0" group_id="2">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1020.44" cy="156.60" rx="6.43" ry="11.37" rotation="298.80" z_order="0" group_id="115">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="688.76" cy="152.41" rx="6.02" ry="8.99" rotation="301.40" z_order="0" group_id="116">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1182.47" cy="146.20" rx="5.25" ry="11.50" rotation="328.80" z_order="0" group_id="118">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1251.01" cy="135.53" rx="5.38" ry="9.70" rotation="54.60" z_order="0" group_id="120">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="355.47" cy="122.37" rx="5.71" ry="9.38" rotation="91.30" z_order="0" group_id="121">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1131.53" cy="115.10" rx="5.18" ry="10.85" z_order="0" group_id="122">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="261.90" cy="108.75" rx="5.53" ry="9.81" rotation="61.10" z_order="0" group_id="123">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="541.45" cy="101.97" rx="5.57" ry="8.79" rotation="78.20" z_order="0" group_id="124">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1108.59" cy="65.00" rx="6.30" ry="10.84" rotation="328.70" z_order="0" group_id="127">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="975.67" cy="42.09" rx="6.28" ry="10.20" rotation="63.90" z_order="0" group_id="130">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="605.66" cy="11.14" rx="5.80" ry="8.54" rotation="320.50" z_order="0" group_id="131">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="605.35" cy="929.76" rx="5.54" ry="9.33" rotation="57.80" z_order="0" group_id="8">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="721.39" cy="619.00" rx="5.96" ry="10.91" rotation="347.80" z_order="0" group_id="55">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="966.67" cy="597.91" rx="5.46" ry="9.90" rotation="259.30" z_order="0" group_id="58">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="446.60" cy="559.60" rx="6.67" ry="10.27" rotation="319.30" z_order="0" group_id="62">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="562.90" cy="546.76" rx="5.87" ry="11.50" rotation="78.30" z_order="0" group_id="63">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="386.08" cy="471.31" rx="5.94" ry="8.91" rotation="333.10" z_order="0" group_id="69">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="136.36" cy="465.05" rx="5.15" ry="9.50" rotation="263.20" z_order="0" group_id="70">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="502.59" cy="914.11" rx="6.21" ry="11.27" rotation="56.00" z_order="0" group_id="11">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="235.53" cy="853.75" rx="6.32" ry="10.52" rotation="57.00" z_order="0" group_id="15">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1336.85" cy="852.14" rx="5.71" ry="9.50" rotation="313.90" z_order="0" group_id="17">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="538.63" cy="833.52" rx="6.10" ry="11.07" rotation="296.30" z_order="0" group_id="19">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1141.95" cy="798.92" rx="5.67" ry="11.03" rotation="338.20" z_order="0" group_id="25">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="319.18" cy="792.09" rx="6.39" ry="10.46" rotation="9.50" z_order="0" group_id="28">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="635.41" cy="786.09" rx="5.99" ry="9.55" rotation="33.90" z_order="0" group_id="29">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="998.29" cy="986.72" rx="5.16" ry="11.64" rotation="327.50" z_order="0" group_id="4">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1262.26" cy="759.59" rx="5.75" ry="8.38" rotation="251.80" z_order="0" group_id="34">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="217.23" cy="941.34" rx="6.37" ry="9.49" rotation="308.50" z_order="0" group_id="6">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="488.44" cy="658.69" rx="5.64" ry="7.61" rotation="10.20" z_order="0" group_id="44">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="276.63" cy="325.11" rx="5.02" ry="5.52" z_order="0" group_id="91">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="434.16" cy="820.07" rx="7.06" ry="10.48" z_order="0" group_id="23">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="750.65" cy="520.34" rx="4.76" ry="6.76" rotation="317.60" z_order="0" group_id="65">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="803.92" cy="531.32" rx="5.37" ry="7.51" rotation="303.10" z_order="0" group_id="64">
+    </ellipse>
+  </image>
+  <image id="1" name="new_data/GOR_USSR_SQR.jpg" width="1388" height="1040">
+    <ellipse label="spore" source="manual" occluded="0" cx="340.10" cy="445.50" rx="5.80" ry="11.40" z_order="0">
+    </ellipse>
+  </image>
+  <image id="2" name="new_data/Vcer_22_CN_1(1).jpg" width="1388" height="1040">
+    <ellipse label="spore" source="manual" occluded="0" cx="1088.75" cy="294.25" rx="5.71" ry="8.75" rotation="352.90" z_order="0" group_id="538">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1232.60" cy="281.32" rx="5.90" ry="10.21" rotation="56.90" z_order="0" group_id="537">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="392.40" cy="307.01" rx="5.50" ry="8.58" rotation="309.30" z_order="0" group_id="534">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="976.56" cy="358.65" rx="5.89" ry="9.74" rotation="66.70" z_order="0" group_id="531">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="768.48" cy="313.67" rx="5.72" ry="9.74" rotation="266.10" z_order="0" group_id="528">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="108.03" cy="314.17" rx="4.36" ry="8.35" rotation="340.20" z_order="0" group_id="526">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="459.05" cy="320.72" rx="5.25" ry="10.17" z_order="0" group_id="525">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1248.74" cy="325.04" rx="4.03" ry="7.30" rotation="64.10" z_order="0" group_id="521">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="580.28" cy="318.04" rx="4.70" ry="9.58" rotation="330.00" z_order="0" group_id="519">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="562.24" cy="318.99" rx="4.25" ry="7.30" rotation="310.20" z_order="0" group_id="518">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1113.96" cy="328.97" rx="5.38" ry="9.69" rotation="337.00" z_order="0" group_id="516">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1323.66" cy="395.21" rx="4.53" ry="9.14" rotation="43.00" z_order="0" group_id="515">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="890.05" cy="276.62" rx="5.64" ry="6.79" rotation="74.90" z_order="0" group_id="509">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="400.67" cy="342.66" rx="6.04" ry="10.06" rotation="84.20" z_order="0" group_id="503">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1230.15" cy="350.63" rx="5.15" ry="9.28" z_order="0" group_id="502">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="630.17" cy="356.37" rx="5.13" ry="8.89" rotation="341.70" z_order="0" group_id="501">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="654.00" cy="349.87" rx="5.12" ry="8.72" rotation="47.30" z_order="0" group_id="500">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="344.88" cy="352.61" rx="5.37" ry="8.85" rotation="22.40" z_order="0" group_id="499">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="153.58" cy="347.31" rx="4.64" ry="9.88" rotation="62.10" z_order="0" group_id="494">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="727.94" cy="378.86" rx="5.42" ry="9.05" rotation="35.70" z_order="0" group_id="493">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="356.58" cy="361.43" rx="5.05" ry="6.64" rotation="318.90" z_order="0" group_id="492">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="792.34" cy="352.97" rx="6.24" ry="8.48" rotation="287.70" z_order="0" group_id="491">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="361.51" cy="378.44" rx="4.78" ry="7.88" rotation="297.80" z_order="0" group_id="490">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="627.35" cy="414.43" rx="4.20" ry="8.82" rotation="21.90" z_order="0" group_id="489">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="948.60" cy="371.40" rx="5.90" ry="9.70" z_order="0" group_id="488">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="759.09" cy="395.67" rx="5.47" ry="9.38" rotation="299.30" z_order="0" group_id="487">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1210.18" cy="370.04" rx="5.08" ry="9.57" rotation="326.90" z_order="0" group_id="486">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="645.24" cy="383.89" rx="5.96" ry="9.38" rotation="350.80" z_order="0" group_id="483">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="868.67" cy="377.15" rx="5.15" ry="9.97" rotation="65.40" z_order="0" group_id="482">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="757.87" cy="375.83" rx="4.62" ry="10.48" z_order="0" group_id="480">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="881.80" cy="173.53" rx="5.03" ry="9.02" rotation="45.50" z_order="0" group_id="479">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="344.47" cy="373.91" rx="4.98" ry="7.55" rotation="215.80" z_order="0" group_id="476">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1218.05" cy="404.13" rx="5.03" ry="9.93" rotation="53.10" z_order="0" group_id="473">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="807.33" cy="389.25" rx="5.61" ry="10.05" z_order="0" group_id="470">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1307.50" cy="396.43" rx="4.52" ry="9.44" rotation="9.60" z_order="0" group_id="467">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="650.76" cy="305.80" rx="6.02" ry="10.65" rotation="339.70" z_order="0" group_id="465">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="378.82" cy="382.05" rx="5.63" ry="7.80" rotation="321.10" z_order="0" group_id="464">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="59.60" cy="400.81" rx="4.49" ry="8.34" rotation="39.30" z_order="0" group_id="462">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1274.77" cy="400.43" rx="5.05" ry="8.80" rotation="281.40" z_order="0" group_id="461">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="740.58" cy="398.78" rx="5.11" ry="9.07" rotation="128.60" z_order="0" group_id="459">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="792.75" cy="404.79" rx="5.25" ry="9.25" rotation="326.10" z_order="0" group_id="458">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="893.47" cy="404.69" rx="5.52" ry="10.13" rotation="80.20" z_order="0" group_id="457">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1245.77" cy="482.78" rx="5.52" ry="9.07" rotation="330.60" z_order="0" group_id="456">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="641.27" cy="418.63" rx="5.54" ry="9.12" rotation="47.00" z_order="0" group_id="453">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="906.78" cy="415.57" rx="4.62" ry="9.00" rotation="59.10" z_order="0" group_id="452">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="923.23" cy="420.75" rx="5.74" ry="9.17" rotation="70.10" z_order="0" group_id="445">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="858.28" cy="437.01" rx="6.33" ry="8.42" rotation="13.90" z_order="0" group_id="444">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1162.13" cy="440.82" rx="4.73" ry="10.33" rotation="6.80" z_order="0" group_id="436">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="77.21" cy="466.78" rx="4.87" ry="9.42" rotation="313.30" z_order="0" group_id="433">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="888.50" cy="444.63" rx="5.61" ry="9.36" rotation="12.40" z_order="0" group_id="432">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1177.12" cy="438.90" rx="4.15" ry="8.23" rotation="340.50" z_order="0" group_id="431">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="825.26" cy="446.53" rx="5.24" ry="9.58" rotation="280.70" z_order="0" group_id="430">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1003.74" cy="454.36" rx="5.27" ry="9.81" rotation="30.10" z_order="0" group_id="429">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="660.78" cy="451.61" rx="5.16" ry="8.83" rotation="53.90" z_order="0" group_id="426">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1299.07" cy="459.33" rx="5.59" ry="6.71" rotation="73.10" z_order="0" group_id="424">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="49.32" cy="459.15" rx="5.53" ry="9.23" rotation="282.10" z_order="0" group_id="422">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1262.92" cy="466.06" rx="4.21" ry="6.28" rotation="351.10" z_order="0" group_id="419">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="988.82" cy="469.18" rx="5.02" ry="10.20" rotation="333.20" z_order="0" group_id="418">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="97.47" cy="456.13" rx="5.42" ry="9.50" rotation="314.30" z_order="0" group_id="417">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1076.09" cy="910.98" rx="3.92" ry="8.00" rotation="348.70" z_order="0" group_id="69">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="396.16" cy="921.61" rx="5.16" ry="10.39" rotation="302.60" z_order="0" group_id="70">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1227.34" cy="929.62" rx="3.55" ry="9.82" rotation="60.10" z_order="0" group_id="64">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="908.10" cy="925.44" rx="5.28" ry="9.90" rotation="347.00" z_order="0" group_id="65">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1284.42" cy="932.01" rx="5.22" ry="11.91" z_order="0" group_id="66">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="494.23" cy="922.55" rx="4.25" ry="10.36" rotation="267.80" z_order="0" group_id="67">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1005.80" cy="937.69" rx="6.18" ry="10.63" rotation="15.80" z_order="0" group_id="68">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1250.86" cy="922.43" rx="5.91" ry="10.67" z_order="0" group_id="71">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="169.24" cy="917.50" rx="5.08" ry="9.66" rotation="60.80" z_order="0" group_id="72">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="278.56" cy="915.82" rx="6.43" ry="7.85" rotation="33.50" z_order="0" group_id="74">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="530.83" cy="910.56" rx="4.27" ry="8.88" rotation="244.30" z_order="0" group_id="75">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1039.28" cy="900.17" rx="4.72" ry="8.83" z_order="0" group_id="76">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1058.36" cy="904.52" rx="4.40" ry="8.35" rotation="39.80" z_order="0" group_id="78">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="130.12" cy="911.48" rx="5.56" ry="10.50" rotation="344.10" z_order="0" group_id="79">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="313.13" cy="906.38" rx="6.33" ry="8.49" rotation="37.80" z_order="0" group_id="80">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="837.10" cy="820.31" rx="5.86" ry="10.32" rotation="125.20" z_order="0" group_id="82">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="545.07" cy="897.35" rx="3.26" ry="9.40" rotation="69.40" z_order="0" group_id="83">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="776.22" cy="894.37" rx="4.62" ry="10.55" rotation="59.00" z_order="0" group_id="84">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="910.61" cy="985.58" rx="5.55" ry="9.76" rotation="70.10" z_order="0" group_id="85">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1245.65" cy="897.84" rx="4.88" ry="9.44" rotation="318.60" z_order="0" group_id="89">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="210.90" cy="902.07" rx="5.21" ry="9.07" rotation="329.80" z_order="0" group_id="90">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1197.41" cy="899.29" rx="4.98" ry="9.59" rotation="338.50" z_order="0" group_id="91">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="330.19" cy="908.10" rx="5.93" ry="9.00" rotation="43.10" z_order="0" group_id="92">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="744.28" cy="877.45" rx="5.33" ry="9.80" rotation="17.60" z_order="0" group_id="93">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="197.54" cy="910.84" rx="4.79" ry="9.73" rotation="6.80" z_order="0" group_id="94">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1044.06" cy="872.46" rx="5.20" ry="10.15" rotation="35.70" z_order="0" group_id="97">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="843.94" cy="835.54" rx="4.94" ry="9.85" rotation="116.90" z_order="0" group_id="98">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="847.04" cy="887.90" rx="5.30" ry="10.66" rotation="340.80" z_order="0" group_id="100">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1101.38" cy="882.84" rx="5.47" ry="8.94" rotation="49.50" z_order="0" group_id="101">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1147.74" cy="883.86" rx="5.83" ry="11.62" rotation="39.20" z_order="0" group_id="103">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="494.71" cy="911.70" rx="4.77" ry="9.14" rotation="90.50" z_order="0" group_id="104">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="514.72" cy="933.03" rx="4.77" ry="8.98" rotation="26.40" z_order="0" group_id="105">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="676.49" cy="844.01" rx="5.00" ry="10.13" rotation="336.40" z_order="0" group_id="106">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="662.12" cy="878.21" rx="5.59" ry="11.67" rotation="65.70" z_order="0" group_id="107">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1124.49" cy="945.99" rx="4.89" ry="8.59" rotation="324.10" z_order="0" group_id="108">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="283.83" cy="1006.91" rx="5.72" ry="8.52" rotation="349.90" z_order="0" group_id="110">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="828.45" cy="866.61" rx="3.92" ry="7.64" rotation="327.70" z_order="0" group_id="114">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="722.40" cy="873.31" rx="5.85" ry="11.83" rotation="309.10" z_order="0" group_id="115">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="314.01" cy="875.19" rx="6.24" ry="9.60" rotation="266.30" z_order="0" group_id="116">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="557.29" cy="906.58" rx="4.89" ry="8.26" rotation="310.70" z_order="0" group_id="117">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1088.59" cy="868.40" rx="5.08" ry="8.42" rotation="92.00" z_order="0" group_id="119">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="751.04" cy="865.83" rx="4.66" ry="9.55" rotation="35.10" z_order="0" group_id="121">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1221.18" cy="855.29" rx="5.89" ry="9.46" rotation="291.60" z_order="0" group_id="126">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1036.63" cy="855.14" rx="5.91" ry="11.07" rotation="76.60" z_order="0" group_id="127">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="396.46" cy="896.44" rx="5.09" ry="8.00" rotation="56.90" z_order="0" group_id="128">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="540.98" cy="837.96" rx="4.39" ry="7.61" rotation="43.90" z_order="0" group_id="134">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="302.41" cy="840.03" rx="5.22" ry="9.85" rotation="37.60" z_order="0" group_id="135">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1075.83" cy="835.01" rx="5.38" ry="8.84" rotation="3.90" z_order="0" group_id="137">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="414.39" cy="884.96" rx="5.31" ry="9.81" rotation="73.20" z_order="0" group_id="143">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="267.94" cy="829.21" rx="5.51" ry="10.05" rotation="334.50" z_order="0" group_id="144">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="774.20" cy="877.52" rx="4.08" ry="9.31" rotation="106.30" z_order="0" group_id="145">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="878.03" cy="126.02" rx="4.81" ry="9.48" rotation="284.20" z_order="0" group_id="659">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="539.82" cy="816.68" rx="5.43" ry="9.88" z_order="0" group_id="148">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="812.86" cy="860.96" rx="4.50" ry="10.66" rotation="12.50" z_order="0" group_id="149">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1312.35" cy="849.09" rx="4.40" ry="7.39" z_order="0" group_id="150">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1220.05" cy="814.47" rx="6.12" ry="11.58" rotation="296.30" z_order="0" group_id="153">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1288.35" cy="822.10" rx="4.15" ry="9.80" z_order="0" group_id="154">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="558.72" cy="807.35" rx="5.08" ry="9.33" rotation="82.90" z_order="0" group_id="155">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="436.98" cy="810.61" rx="6.79" ry="9.08" rotation="29.00" z_order="0" group_id="158">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1066.43" cy="872.97" rx="4.59" ry="10.53" rotation="89.40" z_order="0" group_id="159">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="377.54" cy="791.07" rx="5.16" ry="10.19" rotation="85.40" z_order="0" group_id="163">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="177.87" cy="792.63" rx="5.78" ry="10.10" rotation="313.80" z_order="0" group_id="164">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="646.63" cy="790.72" rx="5.99" ry="10.92" rotation="97.60" z_order="0" group_id="167">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1045.63" cy="894.66" rx="4.63" ry="7.86" z_order="0" group_id="169">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="946.02" cy="791.30" rx="6.52" ry="8.72" rotation="284.90" z_order="0" group_id="170">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1062.34" cy="859.16" rx="4.80" ry="7.69" rotation="80.20" z_order="0" group_id="174">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="304.40" cy="789.23" rx="5.63" ry="9.16" rotation="308.40" z_order="0" group_id="175">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="383.36" cy="778.04" rx="4.89" ry="8.21" rotation="292.80" z_order="0" group_id="178">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="313.41" cy="770.04" rx="4.36" ry="7.69" rotation="88.00" z_order="0" group_id="182">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="497.40" cy="769.68" rx="4.39" ry="9.62" rotation="21.60" z_order="0" group_id="183">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1300.59" cy="776.57" rx="4.43" ry="9.54" rotation="15.50" z_order="0" group_id="184">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1074.43" cy="773.20" rx="5.63" ry="9.06" rotation="297.10" z_order="0" group_id="185">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="637.48" cy="772.72" rx="5.85" ry="8.75" z_order="0" group_id="186">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="170.98" cy="767.57" rx="5.33" ry="10.01" rotation="25.80" z_order="0" group_id="187">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1354.19" cy="753.69" rx="4.97" ry="8.15" rotation="28.20" z_order="0" group_id="191">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="308.02" cy="750.64" rx="5.05" ry="9.59" z_order="0" group_id="194">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="424.27" cy="747.79" rx="5.61" ry="10.64" rotation="299.40" z_order="0" group_id="196">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="787.46" cy="746.73" rx="4.37" ry="7.49" rotation="67.50" z_order="0" group_id="198">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1128.46" cy="749.88" rx="3.94" ry="8.74" rotation="347.60" z_order="0" group_id="199">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1104.66" cy="720.48" rx="4.52" ry="8.89" rotation="322.50" z_order="0" group_id="200">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="493.16" cy="605.02" rx="4.23" ry="8.76" rotation="112.60" z_order="0" group_id="201">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="918.35" cy="686.26" rx="4.34" ry="7.90" rotation="49.30" z_order="0" group_id="202">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="620.74" cy="805.65" rx="6.59" ry="9.83" rotation="16.50" z_order="0" group_id="205">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="522.54" cy="738.16" rx="5.48" ry="9.43" rotation="296.50" z_order="0" group_id="206">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="728.90" cy="739.91" rx="5.25" ry="8.00" rotation="321.00" z_order="0" group_id="209">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="671.53" cy="742.85" rx="6.04" ry="9.91" rotation="38.00" z_order="0" group_id="210">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="797.95" cy="776.53" rx="4.57" ry="7.80" rotation="291.00" z_order="0" group_id="211">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1112.21" cy="705.98" rx="4.92" ry="8.29" rotation="14.70" z_order="0" group_id="213">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="596.15" cy="643.58" rx="5.60" ry="9.12" rotation="297.90" z_order="0" group_id="215">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="131.36" cy="723.31" rx="4.62" ry="10.24" rotation="315.80" z_order="0" group_id="216">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="414.68" cy="721.78" rx="6.44" ry="11.44" rotation="308.60" z_order="0" group_id="218">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="579.64" cy="710.59" rx="5.86" ry="9.61" rotation="88.50" z_order="0" group_id="222">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="97.90" cy="712.20" rx="6.09" ry="11.12" rotation="27.50" z_order="0" group_id="224">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1121.35" cy="621.16" rx="4.55" ry="8.43" rotation="263.20" z_order="0" group_id="297">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="134.31" cy="628.73" rx="5.00" ry="10.36" rotation="9.10" z_order="0" group_id="300">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="698.53" cy="616.40" rx="4.22" ry="8.72" rotation="71.20" z_order="0" group_id="301">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="701.40" cy="457.91" rx="5.08" ry="9.32" rotation="18.40" z_order="0" group_id="302">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="392.70" cy="622.93" rx="5.00" ry="9.29" rotation="349.60" z_order="0" group_id="303">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="299.26" cy="619.18" rx="6.46" ry="10.35" rotation="55.60" z_order="0" group_id="305">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="847.02" cy="586.75" rx="5.57" ry="9.49" rotation="319.20" z_order="0" group_id="307">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1145.56" cy="601.04" rx="4.27" ry="8.05" rotation="49.70" z_order="0" group_id="308">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="35.91" cy="586.11" rx="3.98" ry="7.81" rotation="60.10" z_order="0" group_id="311">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1254.29" cy="626.44" rx="4.75" ry="7.22" rotation="43.20" z_order="0" group_id="312">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="620.05" cy="618.36" rx="4.86" ry="9.28" rotation="68.60" z_order="0" group_id="313">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="608.91" cy="606.24" rx="4.35" ry="8.42" rotation="6.40" z_order="0" group_id="314">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1346.28" cy="602.13" rx="5.97" ry="10.06" rotation="339.30" z_order="0" group_id="315">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="691.23" cy="605.00" rx="4.44" ry="7.69" rotation="51.90" z_order="0" group_id="317">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="338.44" cy="601.64" rx="5.65" ry="8.35" rotation="310.30" z_order="0" group_id="319">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1259.05" cy="602.20" rx="4.83" ry="9.44" rotation="51.30" z_order="0" group_id="320">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="638.72" cy="580.92" rx="5.95" ry="8.11" rotation="99.30" z_order="0" group_id="322">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="66.68" cy="593.57" rx="4.78" ry="9.73" rotation="325.70" z_order="0" group_id="323">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="740.21" cy="590.63" rx="5.33" ry="9.46" rotation="122.50" z_order="0" group_id="324">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="165.84" cy="590.58" rx="4.57" ry="8.96" rotation="31.00" z_order="0" group_id="326">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1135.18" cy="587.23" rx="5.41" ry="8.44" rotation="337.20" z_order="0" group_id="327">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="578.12" cy="591.45" rx="5.46" ry="9.81" rotation="308.00" z_order="0" group_id="328">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="360.23" cy="585.46" rx="6.08" ry="9.61" rotation="90.20" z_order="0" group_id="329">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="130.25" cy="590.75" rx="5.85" ry="11.18" rotation="298.40" z_order="0" group_id="330">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="777.37" cy="585.22" rx="5.28" ry="10.13" z_order="0" group_id="332">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="809.44" cy="557.98" rx="5.58" ry="9.42" rotation="312.90" z_order="0" group_id="333">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="7.28" cy="583.61" rx="4.61" ry="8.76" rotation="77.40" z_order="0" group_id="334">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="681.04" cy="562.29" rx="4.02" ry="9.00" rotation="282.40" z_order="0" group_id="335">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="444.04" cy="583.88" rx="4.88" ry="10.22" rotation="333.10" z_order="0" group_id="337">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="6.08" cy="596.54" rx="4.20" ry="6.89" rotation="88.70" z_order="0" group_id="339">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="836.03" cy="311.72" rx="5.72" ry="10.38" rotation="349.60" z_order="0" group_id="340">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1115.48" cy="575.56" rx="4.94" ry="9.55" rotation="84.40" z_order="0" group_id="341">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1162.85" cy="571.46" rx="4.66" ry="7.22" rotation="326.20" z_order="0" group_id="343">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1259.47" cy="569.15" rx="4.59" ry="7.74" rotation="48.90" z_order="0" group_id="344">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="708.31" cy="563.76" rx="4.49" ry="9.20" rotation="338.20" z_order="0" group_id="345">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="64.39" cy="564.18" rx="6.07" ry="9.66" rotation="44.90" z_order="0" group_id="346">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1224.22" cy="592.64" rx="6.10" ry="9.54" rotation="309.20" z_order="0" group_id="349">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="37.43" cy="559.70" rx="5.75" ry="10.98" rotation="308.60" z_order="0" group_id="350">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="722.19" cy="556.67" rx="5.40" ry="8.60" rotation="7.30" z_order="0" group_id="351">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1249.07" cy="559.19" rx="4.84" ry="9.32" rotation="66.50" z_order="0" group_id="353">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="641.71" cy="553.31" rx="4.97" ry="10.83" rotation="91.30" z_order="0" group_id="354">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="796.91" cy="567.62" rx="5.69" ry="9.14" rotation="337.50" z_order="0" group_id="355">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1286.02" cy="583.30" rx="6.14" ry="10.23" rotation="70.20" z_order="0" group_id="357">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="605.77" cy="576.12" rx="5.33" ry="9.80" rotation="52.00" z_order="0" group_id="359">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="692.12" cy="439.31" rx="4.98" ry="10.46" rotation="326.50" z_order="0" group_id="362">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1297.31" cy="561.06" rx="5.07" ry="9.19" rotation="16.80" z_order="0" group_id="364">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="603.15" cy="544.15" rx="5.97" ry="9.84" rotation="39.80" z_order="0" group_id="365">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="38.02" cy="537.53" rx="5.29" ry="7.41" rotation="48.50" z_order="0" group_id="368">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="841.08" cy="539.02" rx="5.74" ry="10.22" rotation="27.00" z_order="0" group_id="370">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="685.70" cy="454.90" rx="4.10" ry="8.45" z_order="0" group_id="371">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="591.87" cy="529.79" rx="5.67" ry="10.19" z_order="0" group_id="373">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="83.12" cy="518.21" rx="5.50" ry="9.13" rotation="284.90" z_order="0" group_id="379">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="671.62" cy="518.15" rx="4.47" ry="7.19" rotation="292.10" z_order="0" group_id="381">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1123.65" cy="522.12" rx="4.85" ry="9.17" z_order="0" group_id="382">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="87.65" cy="530.10" rx="5.64" ry="8.55" rotation="326.20" z_order="0" group_id="383">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="483.24" cy="520.59" rx="5.36" ry="9.82" rotation="81.30" z_order="0" group_id="386">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="798.23" cy="515.36" rx="4.97" ry="11.17" rotation="353.30" z_order="0" group_id="387">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1342.86" cy="558.41" rx="4.99" ry="8.23" rotation="33.60" z_order="0" group_id="388">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="723.35" cy="504.73" rx="5.83" ry="10.23" rotation="305.50" z_order="0" group_id="390">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1165.90" cy="500.30" rx="5.44" ry="9.24" rotation="65.20" z_order="0" group_id="391">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="414.76" cy="522.80" rx="4.57" ry="8.73" rotation="349.20" z_order="0" group_id="392">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="701.44" cy="503.42" rx="5.54" ry="9.14" rotation="57.60" z_order="0" group_id="393">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="74.82" cy="496.50" rx="3.90" ry="7.45" rotation="349.50" z_order="0" group_id="397">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="272.06" cy="491.57" rx="5.36" ry="10.53" rotation="288.30" z_order="0" group_id="399">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="778.14" cy="503.90" rx="5.52" ry="9.57" rotation="318.20" z_order="0" group_id="400">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1003.10" cy="498.76" rx="5.81" ry="11.29" rotation="297.90" z_order="0" group_id="403">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="102.57" cy="487.84" rx="5.20" ry="10.27" rotation="314.60" z_order="0" group_id="404">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="87.16" cy="490.42" rx="5.22" ry="7.64" rotation="326.30" z_order="0" group_id="405">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="225.90" cy="481.34" rx="5.60" ry="7.17" rotation="329.10" z_order="0" group_id="409">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="466.29" cy="484.76" rx="4.79" ry="8.54" rotation="333.30" z_order="0" group_id="410">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="304.09" cy="478.25" rx="5.11" ry="10.23" rotation="291.70" z_order="0" group_id="411">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="566.67" cy="819.44" rx="4.79" ry="9.48" rotation="73.90" z_order="0" group_id="147">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="870.51" cy="133.71" rx="4.99" ry="8.43" rotation="306.80" z_order="0" group_id="652">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="624.83" cy="141.35" rx="4.34" ry="8.92" rotation="70.70" z_order="0" group_id="648">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="895.77" cy="142.56" rx="4.62" ry="8.07" rotation="314.40" z_order="0" group_id="647">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1234.80" cy="150.45" rx="4.12" ry="9.08" rotation="55.50" z_order="0" group_id="646">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="421.96" cy="148.65" rx="4.60" ry="8.20" rotation="268.40" z_order="0" group_id="644">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="526.02" cy="150.42" rx="5.64" ry="10.88" rotation="101.80" z_order="0" group_id="643">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1107.21" cy="177.65" rx="4.90" ry="11.23" rotation="64.50" z_order="0" group_id="642">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="789.92" cy="156.47" rx="5.34" ry="10.22" rotation="12.20" z_order="0" group_id="640">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="16.66" cy="158.12" rx="5.45" ry="10.33" rotation="4.90" z_order="0" group_id="638">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="378.04" cy="159.97" rx="6.02" ry="10.28" rotation="318.90" z_order="0" group_id="635">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="842.24" cy="82.00" rx="6.32" ry="8.74" rotation="10.70" z_order="0" group_id="634">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="653.45" cy="157.63" rx="4.23" ry="8.17" rotation="320.80" z_order="0" group_id="632">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="860.99" cy="88.47" rx="5.10" ry="9.63" rotation="61.70" z_order="0" group_id="631">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="985.80" cy="226.75" rx="4.59" ry="9.61" rotation="286.50" z_order="0" group_id="628">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="35.10" cy="164.90" rx="5.49" ry="9.09" rotation="6.90" z_order="0" group_id="627">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="460.62" cy="175.94" rx="5.53" ry="10.00" rotation="336.90" z_order="0" group_id="625">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="943.76" cy="179.37" rx="5.16" ry="9.88" rotation="68.00" z_order="0" group_id="624">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="854.39" cy="34.72" rx="4.86" ry="9.64" rotation="24.30" z_order="0" group_id="620">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="903.45" cy="130.38" rx="4.54" ry="7.19" rotation="302.50" z_order="0" group_id="618">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1133.10" cy="190.31" rx="4.79" ry="10.05" rotation="349.60" z_order="0" group_id="615">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1248.09" cy="193.45" rx="4.89" ry="9.10" rotation="78.60" z_order="0" group_id="609">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="340.18" cy="235.42" rx="4.70" ry="9.83" rotation="343.00" z_order="0" group_id="608">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="617.61" cy="197.20" rx="3.94" ry="7.58" rotation="70.50" z_order="0" group_id="605">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="677.21" cy="199.28" rx="5.45" ry="9.30" z_order="0" group_id="604">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="916.51" cy="214.08" rx="6.04" ry="9.51" rotation="328.70" z_order="0" group_id="602">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="919.96" cy="91.75" rx="5.89" ry="8.36" rotation="285.40" z_order="0" group_id="601">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="862.51" cy="210.05" rx="5.53" ry="10.27" rotation="319.50" z_order="0" group_id="599">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="251.20" cy="205.81" rx="5.71" ry="8.83" rotation="315.10" z_order="0" group_id="598">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="580.05" cy="237.10" rx="4.00" ry="7.39" rotation="70.70" z_order="0" group_id="597">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1121.37" cy="217.00" rx="5.16" ry="10.05" rotation="16.00" z_order="0" group_id="596">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1242.83" cy="213.81" rx="5.32" ry="9.18" rotation="76.10" z_order="0" group_id="595">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="988.75" cy="214.78" rx="4.90" ry="8.58" rotation="289.20" z_order="0" group_id="594">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="939.09" cy="194.89" rx="5.26" ry="8.71" rotation="68.00" z_order="0" group_id="593">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="431.14" cy="221.87" rx="5.50" ry="10.55" rotation="19.40" z_order="0" group_id="592">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="573.65" cy="258.26" rx="3.98" ry="6.11" rotation="319.30" z_order="0" group_id="588">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="762.04" cy="228.75" rx="5.53" ry="8.22" rotation="292.40" z_order="0" group_id="586">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="533.01" cy="227.61" rx="5.38" ry="8.95" rotation="344.90" z_order="0" group_id="583">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="245.73" cy="220.21" rx="5.15" ry="7.98" rotation="337.60" z_order="0" group_id="580">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1162.90" cy="235.83" rx="6.10" ry="9.74" rotation="352.30" z_order="0" group_id="579">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="353.95" cy="235.42" rx="5.35" ry="10.00" rotation="9.60" z_order="0" group_id="577">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1142.00" cy="238.58" rx="5.08" ry="10.73" rotation="41.70" z_order="0" group_id="575">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1256.73" cy="242.53" rx="5.30" ry="8.85" rotation="303.10" z_order="0" group_id="573">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1003.02" cy="242.73" rx="5.62" ry="10.57" rotation="354.60" z_order="0" group_id="572">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="459.65" cy="248.91" rx="5.92" ry="8.56" rotation="274.90" z_order="0" group_id="570">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="720.40" cy="263.94" rx="5.41" ry="8.22" rotation="285.10" z_order="0" group_id="564">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="400.48" cy="260.87" rx="5.96" ry="11.21" rotation="89.10" z_order="0" group_id="563">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="456.13" cy="271.98" rx="5.59" ry="9.92" rotation="15.30" z_order="0" group_id="561">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1005.87" cy="265.20" rx="4.57" ry="10.19" rotation="274.00" z_order="0" group_id="557">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="473.51" cy="272.68" rx="4.92" ry="5.77" rotation="110.30" z_order="0" group_id="555">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="696.38" cy="274.31" rx="4.06" ry="7.31" rotation="321.30" z_order="0" group_id="554">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="780.69" cy="294.80" rx="6.46" ry="11.07" rotation="335.80" z_order="0" group_id="552">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="592.10" cy="295.97" rx="5.09" ry="7.04" rotation="303.20" z_order="0" group_id="549">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="990.88" cy="277.88" rx="5.23" ry="9.80" z_order="0" group_id="547">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="975.06" cy="249.37" rx="5.25" ry="10.54" rotation="333.90" z_order="0" group_id="546">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1179.28" cy="306.82" rx="5.85" ry="10.38" rotation="289.60" z_order="0" group_id="545">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="152.73" cy="288.38" rx="5.02" ry="8.75" rotation="338.10" z_order="0" group_id="544">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1021.32" cy="212.08" rx="5.04" ry="10.12" rotation="71.50" z_order="0" group_id="542">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1214.01" cy="267.53" rx="4.77" ry="10.69" rotation="29.40" z_order="0" group_id="540">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="539.74" cy="959.09" rx="6.11" ry="10.47" rotation="17.60" z_order="0" group_id="56">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="33.20" cy="932.37" rx="5.69" ry="8.83" rotation="79.00" z_order="0" group_id="57">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1331.98" cy="933.56" rx="5.77" ry="9.55" rotation="91.40" z_order="0" group_id="58">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="223.97" cy="914.13" rx="5.22" ry="8.27" rotation="29.20" z_order="0" group_id="59">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="487.92" cy="954.42" rx="5.33" ry="10.92" z_order="0" group_id="60">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="121.22" cy="931.93" rx="5.77" ry="9.16" rotation="307.90" z_order="0" group_id="61">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="538.81" cy="930.49" rx="4.69" ry="8.89" rotation="10.20" z_order="0" group_id="62">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1313.42" cy="923.66" rx="5.25" ry="9.79" rotation="75.50" z_order="0" group_id="63">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="688.84" cy="995.53" rx="5.87" ry="9.18" rotation="273.20" z_order="0" group_id="15">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1239.88" cy="16.79" rx="6.04" ry="10.93" z_order="0" group_id="742">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1381.79" cy="58.36" rx="3.17" ry="5.40" z_order="0" group_id="715">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1193.23" cy="91.16" rx="6.58" ry="11.19" z_order="0" group_id="687">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="229.13" cy="119.50" rx="5.63" ry="6.90" z_order="0" group_id="670">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1203.51" cy="133.36" rx="7.16" ry="11.01" z_order="0" group_id="661">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1292.17" cy="226.04" rx="4.66" ry="6.98" z_order="0" group_id="587">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="879.82" cy="310.57" rx="4.32" ry="4.69" z_order="0" group_id="527">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="921.74" cy="320.81" rx="5.84" ry="8.68" z_order="0" group_id="522">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="897.65" cy="324.24" rx="3.56" ry="4.23" z_order="0" group_id="514">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1079.10" cy="382.48" rx="6.76" ry="10.71" z_order="0" group_id="477">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1248.50" cy="433.51" rx="4.30" ry="9.72" z_order="0" group_id="443">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1322.15" cy="427.25" rx="3.58" ry="5.16" z_order="0" group_id="442">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1216.71" cy="430.68" rx="5.84" ry="7.87" z_order="0" group_id="439">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1276.69" cy="519.70" rx="3.75" ry="4.24" z_order="0" group_id="377">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1003.44" cy="590.61" rx="7.26" ry="11.54" z_order="0" group_id="331">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="79.63" cy="613.55" rx="6.20" ry="12.26" z_order="0" group_id="309">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="755.29" cy="616.63" rx="3.55" ry="4.50" z_order="0" group_id="304">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="368.97" cy="731.99" rx="6.55" ry="11.41" z_order="0" group_id="212">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1040.35" cy="738.38" rx="4.38" ry="5.86" z_order="0" group_id="207">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="892.26" cy="738.44" rx="3.45" ry="4.19" z_order="0" group_id="204">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1046.57" cy="754.08" rx="4.70" ry="6.36" z_order="0" group_id="192">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1102.94" cy="784.61" rx="6.81" ry="15.12" z_order="0" group_id="177">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="970.99" cy="790.63" rx="5.96" ry="8.96" z_order="0" group_id="172">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="252.51" cy="891.16" rx="7.17" ry="10.37" z_order="0" group_id="95">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1309.36" cy="970.71" rx="4.15" ry="4.39" z_order="0" group_id="30">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1240.99" cy="983.78" rx="6.59" ry="11.25" z_order="0" group_id="25">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="867.43" cy="699.62" rx="3.48" ry="5.54" z_order="0" group_id="233">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1241.96" cy="702.26" rx="5.09" ry="5.35" z_order="0" group_id="230">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1237.91" cy="940.45" rx="5.42" ry="9.63" rotation="76.90" z_order="0" group_id="55">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="791.48" cy="942.48" rx="5.47" ry="10.34" rotation="88.60" z_order="0" group_id="52">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="271.28" cy="958.60" rx="4.73" ry="8.44" rotation="31.80" z_order="0" group_id="51">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1283.10" cy="967.09" rx="4.23" ry="8.38" rotation="326.50" z_order="0" group_id="48">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="742.49" cy="949.52" rx="5.80" ry="9.98" rotation="83.90" z_order="0" group_id="46">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="173.56" cy="1008.63" rx="5.34" ry="9.56" rotation="305.10" z_order="0" group_id="44">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="254.58" cy="961.06" rx="5.16" ry="9.17" rotation="323.30" z_order="0" group_id="42">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1295.47" cy="1007.97" rx="5.31" ry="9.08" rotation="77.30" z_order="0" group_id="41">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1235.61" cy="908.52" rx="4.28" ry="6.34" rotation="53.40" z_order="0" group_id="40">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="297.15" cy="963.39" rx="5.61" ry="8.82" z_order="0" group_id="39">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="749.83" cy="964.73" rx="5.30" ry="10.28" rotation="88.50" z_order="0" group_id="37">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1260.33" cy="953.98" rx="4.74" ry="7.37" rotation="59.00" z_order="0" group_id="36">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1377.15" cy="1012.55" rx="4.20" ry="7.79" rotation="313.60" z_order="0" group_id="35">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="832.83" cy="991.04" rx="5.80" ry="9.81" rotation="326.00" z_order="0" group_id="34">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1256.67" cy="968.11" rx="3.37" ry="9.35" rotation="281.60" z_order="0" group_id="32">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="575.85" cy="1001.26" rx="6.61" ry="9.80" rotation="308.90" z_order="0" group_id="31">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1138.78" cy="980.10" rx="4.93" ry="10.19" rotation="342.70" z_order="0" group_id="29">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="502.47" cy="953.10" rx="4.76" ry="9.31" rotation="147.70" z_order="0" group_id="28">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1059.35" cy="983.70" rx="5.93" ry="9.46" rotation="333.60" z_order="0" group_id="27">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1110.95" cy="984.16" rx="4.64" ry="8.59" rotation="344.60" z_order="0" group_id="26">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1271.88" cy="979.64" rx="4.76" ry="9.61" rotation="10.40" z_order="0" group_id="24">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="190.83" cy="978.30" rx="4.96" ry="8.37" rotation="313.10" z_order="0" group_id="23">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="92.68" cy="988.14" rx="6.08" ry="12.50" rotation="331.60" z_order="0" group_id="22">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1288.14" cy="985.02" rx="4.84" ry="8.93" rotation="293.80" z_order="0" group_id="21">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1180.73" cy="994.59" rx="5.41" ry="10.24" rotation="329.40" z_order="0" group_id="19">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="372.86" cy="1003.77" rx="5.30" ry="8.35" rotation="299.80" z_order="0" group_id="13">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1110.55" cy="1006.99" rx="5.83" ry="9.74" rotation="325.80" z_order="0" group_id="11">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="97.13" cy="1012.45" rx="6.04" ry="8.64" rotation="331.70" z_order="0" group_id="9">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="855.68" cy="1016.42" rx="4.22" ry="10.44" rotation="79.20" z_order="0" group_id="3">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1206.55" cy="1024.26" rx="4.86" ry="8.31" rotation="321.20" z_order="0" group_id="1">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1152.81" cy="623.44" rx="5.23" ry="11.49" rotation="298.80" z_order="0" group_id="296">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="951.18" cy="632.14" rx="4.96" ry="9.83" rotation="335.30" z_order="0" group_id="295">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="892.93" cy="640.85" rx="3.69" ry="6.31" rotation="51.10" z_order="0" group_id="294">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="879.41" cy="635.30" rx="3.55" ry="7.91" rotation="22.20" z_order="0" group_id="293">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="364.03" cy="626.93" rx="4.88" ry="7.82" rotation="286.70" z_order="0" group_id="292">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="992.57" cy="620.74" rx="4.50" ry="7.90" rotation="55.30" z_order="0" group_id="289">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="48.80" cy="629.35" rx="3.20" ry="6.45" rotation="281.60" z_order="0" group_id="288">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="675.26" cy="640.74" rx="5.15" ry="10.14" rotation="82.40" z_order="0" group_id="287">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1011.40" cy="637.79" rx="4.60" ry="9.98" rotation="352.70" z_order="0" group_id="286">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1289.76" cy="717.19" rx="4.31" ry="7.79" rotation="27.70" z_order="0" group_id="284">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1023.90" cy="595.30" rx="5.43" ry="8.99" rotation="294.20" z_order="0" group_id="283">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="922.74" cy="643.32" rx="5.24" ry="8.60" rotation="28.60" z_order="0" group_id="282">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="536.58" cy="578.03" rx="5.75" ry="9.95" rotation="57.90" z_order="0" group_id="280">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="804.34" cy="639.35" rx="3.98" ry="10.40" rotation="107.70" z_order="0" group_id="278">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="973.62" cy="655.57" rx="5.33" ry="9.58" rotation="354.60" z_order="0" group_id="277">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="608.77" cy="657.70" rx="5.99" ry="9.47" rotation="343.30" z_order="0" group_id="276">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1111.72" cy="650.25" rx="2.98" ry="8.03" rotation="325.80" z_order="0" group_id="275">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="381.72" cy="644.67" rx="5.82" ry="11.01" rotation="270.80" z_order="0" group_id="273">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="785.51" cy="659.96" rx="4.45" ry="9.60" rotation="41.10" z_order="0" group_id="272">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="37.83" cy="654.12" rx="5.54" ry="10.47" rotation="269.30" z_order="0" group_id="271">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="875.71" cy="652.84" rx="4.31" ry="9.00" rotation="69.10" z_order="0" group_id="270">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="378.44" cy="670.40" rx="5.97" ry="9.29" rotation="59.20" z_order="0" group_id="269">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1100.30" cy="658.23" rx="4.80" ry="8.29" rotation="343.10" z_order="0" group_id="267">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="994.97" cy="636.52" rx="5.46" ry="9.14" rotation="60.50" z_order="0" group_id="265">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="798.30" cy="685.15" rx="5.83" ry="10.53" rotation="101.50" z_order="0" group_id="264">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="515.94" cy="658.56" rx="4.73" ry="9.15" rotation="72.60" z_order="0" group_id="262">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1033.89" cy="667.97" rx="4.59" ry="9.21" rotation="337.00" z_order="0" group_id="260">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1299.21" cy="663.25" rx="5.19" ry="9.23" z_order="0" group_id="259">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="460.48" cy="666.90" rx="5.39" ry="9.25" rotation="63.00" z_order="0" group_id="257">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="675.02" cy="654.86" rx="5.35" ry="9.88" rotation="237.90" z_order="0" group_id="255">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="935.09" cy="691.67" rx="5.16" ry="10.78" rotation="69.70" z_order="0" group_id="252">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1246.82" cy="676.84" rx="4.88" ry="7.58" rotation="52.40" z_order="0" group_id="251">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="502.51" cy="691.77" rx="4.93" ry="8.87" rotation="20.40" z_order="0" group_id="250">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="893.97" cy="677.16" rx="4.49" ry="9.77" rotation="29.80" z_order="0" group_id="249">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="34.67" cy="681.14" rx="5.95" ry="8.01" rotation="310.30" z_order="0" group_id="248">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="939.90" cy="675.90" rx="4.12" ry="8.76" rotation="78.90" z_order="0" group_id="247">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="490.64" cy="683.01" rx="4.68" ry="8.02" rotation="64.50" z_order="0" group_id="245">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="675.16" cy="716.88" rx="5.30" ry="8.71" rotation="52.70" z_order="0" group_id="244">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="412.27" cy="694.82" rx="5.89" ry="10.61" rotation="325.10" z_order="0" group_id="243">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="920.53" cy="669.31" rx="4.87" ry="8.74" rotation="301.30" z_order="0" group_id="242">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1280.54" cy="693.97" rx="5.39" ry="10.22" rotation="343.00" z_order="0" group_id="240">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="213.43" cy="701.36" rx="3.82" ry="8.68" rotation="58.80" z_order="0" group_id="238">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="767.19" cy="691.45" rx="5.23" ry="9.50" rotation="39.80" z_order="0" group_id="237">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="903.71" cy="694.22" rx="4.31" ry="8.89" rotation="329.30" z_order="0" group_id="236">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="533.56" cy="702.49" rx="5.27" ry="10.99" rotation="4.90" z_order="0" group_id="235">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="824.52" cy="1009.29" rx="5.60" ry="9.08" rotation="61.10" z_order="0" group_id="232">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="323.99" cy="703.96" rx="5.05" ry="9.48" rotation="33.10" z_order="0" group_id="229">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="775.77" cy="704.59" rx="5.59" ry="8.84" rotation="29.00" z_order="0" group_id="228">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1260.04" cy="708.10" rx="4.92" ry="8.01" rotation="92.40" z_order="0" group_id="227">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1060.67" cy="600.53" rx="4.39" ry="9.59" rotation="56.90" z_order="0" group_id="225">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="241.82" cy="17.63" rx="6.21" ry="9.27" rotation="47.00" z_order="0" group_id="749">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="881.40" cy="57.23" rx="4.75" ry="8.22" z_order="0" group_id="747">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1226.10" cy="13.28" rx="4.46" ry="8.97" rotation="16.10" z_order="0" group_id="746">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1203.48" cy="157.64" rx="5.27" ry="7.83" rotation="291.60" z_order="0" group_id="745">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="976.62" cy="25.98" rx="5.35" ry="9.89" rotation="338.00" z_order="0" group_id="741">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1187.64" cy="153.79" rx="4.73" ry="9.68" rotation="42.70" z_order="0" group_id="740">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="74.22" cy="44.08" rx="5.00" ry="9.64" rotation="11.30" z_order="0" group_id="739">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1034.50" cy="11.21" rx="5.43" ry="9.85" rotation="274.40" z_order="0" group_id="738">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1213.06" cy="13.74" rx="5.21" ry="8.09" z_order="0" group_id="737">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="105.33" cy="49.38" rx="4.79" ry="7.26" rotation="70.50" z_order="0" group_id="736">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="843.27" cy="14.67" rx="5.02" ry="8.77" rotation="60.70" z_order="0" group_id="735">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="871.13" cy="45.60" rx="4.30" ry="9.14" rotation="65.40" z_order="0" group_id="734">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1175.39" cy="17.10" rx="4.94" ry="9.25" rotation="38.90" z_order="0" group_id="733">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="139.42" cy="19.88" rx="5.46" ry="9.57" rotation="45.30" z_order="0" group_id="732">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="828.09" cy="20.69" rx="3.94" ry="8.79" rotation="349.90" z_order="0" group_id="731">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1075.97" cy="26.70" rx="5.00" ry="9.82" rotation="346.10" z_order="0" group_id="730">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="698.00" cy="40.98" rx="6.51" ry="9.50" rotation="42.00" z_order="0" group_id="726">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="128.19" cy="35.90" rx="4.31" ry="7.81" rotation="333.50" z_order="0" group_id="725">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="115.98" cy="42.29" rx="4.89" ry="8.27" rotation="327.40" z_order="0" group_id="722">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="518.26" cy="49.27" rx="5.04" ry="10.26" rotation="4.80" z_order="0" group_id="721">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="64.64" cy="319.86" rx="4.82" ry="8.73" rotation="89.90" z_order="0" group_id="720">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="965.68" cy="52.14" rx="4.75" ry="8.58" rotation="57.90" z_order="0" group_id="719">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="983.90" cy="54.63" rx="4.66" ry="8.69" rotation="350.40" z_order="0" group_id="718">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1121.35" cy="51.88" rx="4.63" ry="10.27" rotation="282.50" z_order="0" group_id="717">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1284.43" cy="22.82" rx="5.19" ry="8.45" rotation="32.80" z_order="0" group_id="716">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="97.10" cy="61.86" rx="5.38" ry="7.88" rotation="335.30" z_order="0" group_id="714">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1285.48" cy="85.38" rx="4.73" ry="7.99" rotation="56.10" z_order="0" group_id="713">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="119.36" cy="73.98" rx="5.31" ry="10.16" rotation="322.90" z_order="0" group_id="712">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="835.24" cy="64.23" rx="5.40" ry="9.17" rotation="40.70" z_order="0" group_id="711">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1030.28" cy="70.40" rx="5.25" ry="9.05" rotation="45.70" z_order="0" group_id="709">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1161.58" cy="20.88" rx="4.02" ry="8.47" rotation="0.30" z_order="0" group_id="707">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="136.83" cy="73.82" rx="5.58" ry="9.99" rotation="307.90" z_order="0" group_id="705">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1169.77" cy="82.28" rx="4.22" ry="8.62" rotation="334.50" z_order="0" group_id="704">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="813.91" cy="76.70" rx="5.89" ry="9.05" rotation="307.80" z_order="0" group_id="702">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1045.88" cy="32.03" rx="5.78" ry="12.36" rotation="336.40" z_order="0" group_id="701">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1100.61" cy="83.16" rx="4.77" ry="9.71" rotation="342.50" z_order="0" group_id="699">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="715.89" cy="83.04" rx="5.08" ry="9.64" rotation="316.00" z_order="0" group_id="695">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1332.53" cy="82.96" rx="5.41" ry="10.05" rotation="64.60" z_order="0" group_id="693">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="880.89" cy="90.26" rx="5.66" ry="9.81" rotation="336.30" z_order="0" group_id="691">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="877.03" cy="160.94" rx="4.22" ry="7.80" rotation="57.90" z_order="0" group_id="685">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="311.36" cy="120.58" rx="5.70" ry="9.96" rotation="353.40" z_order="0" group_id="684">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="18.16" cy="68.84" rx="4.38" ry="10.03" rotation="21.60" z_order="0" group_id="683">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="105.57" cy="95.93" rx="5.36" ry="8.94" rotation="317.00" z_order="0" group_id="682">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="766.61" cy="103.95" rx="5.30" ry="11.05" rotation="4.60" z_order="0" group_id="680">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="438.52" cy="102.79" rx="5.19" ry="10.34" rotation="352.40" z_order="0" group_id="679">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="286.75" cy="101.87" rx="5.72" ry="10.94" rotation="271.80" z_order="0" group_id="678">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="852.77" cy="60.36" rx="4.83" ry="9.78" rotation="23.90" z_order="0" group_id="677">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1152.22" cy="199.12" rx="3.73" ry="7.43" rotation="277.60" z_order="0" group_id="676">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="345.24" cy="116.77" rx="5.78" ry="10.55" rotation="61.00" z_order="0" group_id="673">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1061.23" cy="120.16" rx="6.24" ry="10.66" rotation="268.80" z_order="0" group_id="671">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="138.01" cy="139.30" rx="5.38" ry="8.04" rotation="254.00" z_order="0" group_id="669">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="158.45" cy="121.09" rx="5.38" ry="8.92" rotation="31.20" z_order="0" group_id="667">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="6.83" cy="121.62" rx="5.48" ry="8.86" rotation="294.90" z_order="0" group_id="665">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="290.88" cy="114.27" rx="5.28" ry="10.36" rotation="288.60" z_order="0" group_id="664">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="452.05" cy="140.14" rx="5.45" ry="8.67" rotation="2.90" z_order="0" group_id="662">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="340.10" cy="445.50" rx="5.80" ry="11.40" z_order="0">
+    </ellipse>
+  </image>
+  <image id="3" name="new_data/Vcer_22_US_1(1).jpg" width="1388" height="1040">
+    <ellipse label="spore" source="manual" occluded="0" cx="786.00" cy="687.81" rx="5.27" ry="8.86" rotation="327.60" z_order="0" group_id="198">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="331.87" cy="683.46" rx="5.07" ry="8.64" rotation="284.80" z_order="0" group_id="200">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="977.17" cy="684.50" rx="5.03" ry="10.56" rotation="34.30" z_order="0" group_id="201">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="292.49" cy="593.97" rx="5.02" ry="9.96" rotation="325.30" z_order="0" group_id="202">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="608.10" cy="682.37" rx="5.20" ry="9.37" z_order="0" group_id="204">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1132.54" cy="691.02" rx="5.10" ry="9.29" rotation="65.20" z_order="0" group_id="206">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="93.86" cy="669.40" rx="4.62" ry="9.29" rotation="87.70" z_order="0" group_id="209">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="391.31" cy="727.53" rx="3.80" ry="7.58" rotation="48.20" z_order="0" group_id="211">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="456.68" cy="671.66" rx="4.66" ry="8.86" rotation="31.70" z_order="0" group_id="214">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1325.89" cy="670.23" rx="5.21" ry="9.39" rotation="322.80" z_order="0" group_id="215">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="504.51" cy="665.44" rx="4.55" ry="10.39" rotation="16.80" z_order="0" group_id="216">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="327.26" cy="664.34" rx="5.22" ry="9.16" rotation="277.10" z_order="0" group_id="217">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1179.99" cy="633.51" rx="4.44" ry="9.54" rotation="79.70" z_order="0" group_id="218">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="552.33" cy="662.69" rx="5.27" ry="10.34" rotation="54.90" z_order="0" group_id="219">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="114.25" cy="660.58" rx="5.12" ry="9.13" rotation="44.60" z_order="0" group_id="220">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="756.23" cy="581.31" rx="5.11" ry="8.96" rotation="49.60" z_order="0" group_id="221">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="550.62" cy="617.88" rx="5.45" ry="9.44" rotation="102.30" z_order="0" group_id="222">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1360.40" cy="645.76" rx="5.13" ry="9.38" rotation="346.90" z_order="0" group_id="223">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1217.96" cy="647.85" rx="4.03" ry="8.30" rotation="356.70" z_order="0" group_id="224">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="83.36" cy="641.06" rx="3.40" ry="6.00" rotation="326.20" z_order="0" group_id="227">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1031.62" cy="638.23" rx="4.84" ry="9.40" rotation="278.00" z_order="0" group_id="228">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="60.38" cy="638.80" rx="5.79" ry="8.86" rotation="284.60" z_order="0" group_id="229">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="354.22" cy="646.59" rx="5.53" ry="9.12" rotation="75.90" z_order="0" group_id="230">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1182.76" cy="650.30" rx="5.09" ry="9.17" rotation="348.30" z_order="0" group_id="231">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="267.22" cy="634.10" rx="4.51" ry="8.25" rotation="20.00" z_order="0" group_id="232">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1366.82" cy="636.22" rx="4.72" ry="10.51" rotation="333.40" z_order="0" group_id="233">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1064.53" cy="626.93" rx="4.75" ry="8.45" rotation="54.30" z_order="0" group_id="234">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="692.86" cy="633.20" rx="5.01" ry="9.47" rotation="35.90" z_order="0" group_id="235">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="58.23" cy="736.43" rx="5.01" ry="9.10" rotation="345.30" z_order="0" group_id="236">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="338.32" cy="614.14" rx="4.81" ry="7.09" rotation="84.70" z_order="0" group_id="238">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="384.18" cy="619.70" rx="5.16" ry="8.68" rotation="34.20" z_order="0" group_id="239">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="247.39" cy="622.02" rx="5.89" ry="9.16" rotation="17.90" z_order="0" group_id="240">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="996.17" cy="616.95" rx="4.92" ry="9.75" rotation="293.00" z_order="0" group_id="241">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1351.29" cy="611.43" rx="4.26" ry="7.12" rotation="36.90" z_order="0" group_id="244">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="870.76" cy="629.41" rx="5.51" ry="8.03" rotation="348.70" z_order="0" group_id="245">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="217.55" cy="605.36" rx="5.08" ry="9.26" rotation="334.30" z_order="0" group_id="248">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="278.95" cy="598.44" rx="4.93" ry="7.95" rotation="314.30" z_order="0" group_id="249">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1032.33" cy="596.97" rx="4.82" ry="9.90" rotation="38.50" z_order="0" group_id="252">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="920.04" cy="593.91" rx="5.13" ry="8.62" rotation="75.40" z_order="0" group_id="253">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="713.27" cy="588.19" rx="4.94" ry="9.89" rotation="300.70" z_order="0" group_id="255">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="687.21" cy="590.50" rx="5.40" ry="10.11" rotation="7.70" z_order="0" group_id="256">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1024.21" cy="41.45" rx="4.71" ry="7.99" z_order="0" group_id="548">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="672.43" cy="43.52" rx="3.30" ry="6.30" z_order="0" group_id="547">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="840.01" cy="69.99" rx="3.74" ry="8.79" z_order="0" group_id="530">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1115.63" cy="80.42" rx="5.69" ry="10.47" z_order="0" group_id="524">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1088.22" cy="117.18" rx="3.26" ry="7.11" z_order="0" group_id="500">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1056.95" cy="124.25" rx="3.30" ry="9.68" z_order="0" group_id="496">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1380.13" cy="245.85" rx="4.75" ry="7.89" z_order="0" group_id="441">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="56.09" cy="288.28" rx="6.65" ry="7.83" z_order="0" group_id="410">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="16.82" cy="548.71" rx="7.44" ry="8.64" z_order="0" group_id="277">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="1175.72" cy="579.89" rx="3.42" ry="7.74" z_order="0" group_id="259">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="978.51" cy="644.29" rx="2.93" ry="7.11" z_order="0" group_id="226">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="932.72" cy="796.81" rx="5.17" ry="9.50" z_order="0" group_id="141">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="749.12" cy="829.21" rx="6.55" ry="9.26" z_order="0" group_id="132">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="652.82" cy="865.91" rx="6.62" ry="10.91" z_order="0" group_id="99">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="42.42" cy="932.85" rx="4.11" ry="8.52" z_order="0" group_id="57">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="385.02" cy="959.24" rx="3.97" ry="8.30" z_order="0" group_id="38">
+    </ellipse>
+    <ellipse label="spore" source="file" occluded="0" cx="879.97" cy="1023.97" rx="5.94" ry="9.29" z_order="0" group_id="5">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="495.43" cy="195.02" rx="5.23" ry="9.16" rotation="53.60" z_order="0" group_id="468">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="737.20" cy="195.09" rx="4.54" ry="9.84" rotation="25.70" z_order="0" group_id="470">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="138.44" cy="187.11" rx="4.02" ry="7.88" rotation="34.40" z_order="0" group_id="472">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="671.08" cy="183.55" rx="4.77" ry="9.45" z_order="0" group_id="473">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="579.32" cy="176.65" rx="5.96" ry="10.56" rotation="53.00" z_order="0" group_id="475">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="983.04" cy="179.19" rx="5.07" ry="9.84" rotation="334.70" z_order="0" group_id="476">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="846.28" cy="169.95" rx="4.08" ry="8.40" rotation="350.50" z_order="0" group_id="478">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1092.88" cy="167.43" rx="5.37" ry="10.17" rotation="72.00" z_order="0" group_id="479">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="656.22" cy="171.87" rx="6.24" ry="10.15" rotation="304.50" z_order="0" group_id="480">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="623.48" cy="167.89" rx="5.24" ry="8.36" rotation="28.60" z_order="0" group_id="481">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1135.04" cy="133.18" rx="3.65" ry="9.86" rotation="329.20" z_order="0" group_id="482">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="856.72" cy="159.55" rx="4.47" ry="9.10" z_order="0" group_id="484">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="65.46" cy="164.75" rx="5.74" ry="8.50" z_order="0" group_id="485">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="378.36" cy="155.84" rx="4.68" ry="9.36" rotation="297.90" z_order="0" group_id="486">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="500.20" cy="158.25" rx="5.55" ry="9.43" rotation="30.40" z_order="0" group_id="487">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="369.53" cy="188.53" rx="5.39" ry="9.44" rotation="37.60" z_order="0" group_id="488">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1237.58" cy="145.23" rx="5.65" ry="9.36" rotation="24.50" z_order="0" group_id="489">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="541.07" cy="109.94" rx="5.68" ry="10.89" rotation="58.90" z_order="0" group_id="507">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1253.06" cy="169.81" rx="5.25" ry="10.45" rotation="322.50" z_order="0" group_id="490">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="59.30" cy="147.01" rx="5.34" ry="7.11" rotation="83.70" z_order="0" group_id="491">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1383.13" cy="105.39" rx="4.98" ry="9.06" rotation="16.90" z_order="0" group_id="492">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="892.01" cy="133.43" rx="4.35" ry="8.51" rotation="325.70" z_order="0" group_id="494">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="507.38" cy="133.11" rx="4.86" ry="11.07" rotation="346.20" z_order="0" group_id="495">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="628.53" cy="50.47" rx="4.83" ry="9.43" rotation="298.30" z_order="0" group_id="497">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="552.52" cy="121.75" rx="5.86" ry="9.96" rotation="30.80" z_order="0" group_id="499">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="610.07" cy="114.35" rx="4.70" ry="9.69" rotation="81.80" z_order="0" group_id="501">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1017.18" cy="115.22" rx="5.88" ry="9.63" rotation="314.80" z_order="0" group_id="503">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1261.90" cy="108.46" rx="5.15" ry="9.84" rotation="288.70" z_order="0" group_id="504">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="854.93" cy="98.06" rx="5.18" ry="11.89" rotation="282.30" z_order="0" group_id="505">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="470.59" cy="582.81" rx="4.81" ry="10.02" rotation="287.70" z_order="0" group_id="257">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1007.06" cy="588.14" rx="5.09" ry="8.11" rotation="339.30" z_order="0" group_id="258">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="100.79" cy="587.43" rx="5.15" ry="9.94" rotation="15.10" z_order="0" group_id="260">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="388.76" cy="585.67" rx="4.44" ry="9.25" rotation="353.10" z_order="0" group_id="261">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="422.38" cy="573.16" rx="4.07" ry="9.70" rotation="345.80" z_order="0" group_id="262">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="58.25" cy="570.45" rx="4.64" ry="9.79" rotation="351.80" z_order="0" group_id="264">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="278.35" cy="612.77" rx="4.71" ry="9.12" rotation="274.00" z_order="0" group_id="265">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1292.19" cy="585.58" rx="5.04" ry="9.89" rotation="316.00" z_order="0" group_id="267">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="805.42" cy="561.22" rx="4.48" ry="10.17" rotation="314.60" z_order="0" group_id="268">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1245.25" cy="563.97" rx="4.75" ry="9.38" rotation="319.50" z_order="0" group_id="269">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1009.08" cy="555.10" rx="4.69" ry="7.30" rotation="265.00" z_order="0" group_id="272">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="740.89" cy="526.49" rx="4.05" ry="8.58" rotation="298.40" z_order="0" group_id="273">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="872.84" cy="557.03" rx="4.89" ry="9.95" rotation="330.30" z_order="0" group_id="274">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1137.33" cy="552.95" rx="4.75" ry="10.35" rotation="320.90" z_order="0" group_id="275">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="816.16" cy="552.38" rx="4.11" ry="5.76" rotation="27.50" z_order="0" group_id="278">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="831.10" cy="551.52" rx="4.88" ry="9.85" rotation="18.20" z_order="0" group_id="279">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="869.95" cy="507.99" rx="4.28" ry="10.45" rotation="323.50" z_order="0" group_id="284">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="716.60" cy="556.53" rx="4.50" ry="10.33" z_order="0" group_id="285">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="268.54" cy="532.90" rx="3.83" ry="6.96" rotation="345.30" z_order="0" group_id="287">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="460.13" cy="524.45" rx="4.70" ry="9.67" rotation="25.80" z_order="0" group_id="289">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="751.03" cy="517.29" rx="5.31" ry="10.09" rotation="305.90" z_order="0" group_id="290">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1354.03" cy="505.20" rx="4.64" ry="9.65" rotation="53.70" z_order="0" group_id="294">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="524.85" cy="503.48" rx="5.25" ry="9.55" rotation="317.10" z_order="0" group_id="295">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="616.63" cy="504.09" rx="3.42" ry="9.34" rotation="312.40" z_order="0" group_id="296">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="985.27" cy="501.29" rx="4.78" ry="7.64" rotation="36.50" z_order="0" group_id="297">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="357.24" cy="497.47" rx="4.63" ry="9.40" rotation="318.90" z_order="0" group_id="298">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="847.95" cy="468.92" rx="3.61" ry="9.78" rotation="300.00" z_order="0" group_id="301">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="376.83" cy="491.32" rx="5.23" ry="8.44" rotation="343.70" z_order="0" group_id="303">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1073.63" cy="448.02" rx="5.18" ry="7.63" rotation="52.30" z_order="0" group_id="304">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="847.46" cy="482.84" rx="3.93" ry="9.37" rotation="312.70" z_order="0" group_id="306">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1266.64" cy="482.65" rx="5.60" ry="9.10" rotation="7.10" z_order="0" group_id="307">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1061.07" cy="489.48" rx="4.70" ry="10.13" rotation="39.40" z_order="0" group_id="308">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1275.99" cy="475.67" rx="5.67" ry="10.34" rotation="325.50" z_order="0" group_id="311">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1141.92" cy="472.49" rx="5.16" ry="10.33" rotation="337.10" z_order="0" group_id="313">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="775.00" cy="540.67" rx="4.70" ry="11.07" rotation="351.50" z_order="0" group_id="314">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="968.59" cy="488.41" rx="4.85" ry="8.52" rotation="308.30" z_order="0" group_id="316">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="66.23" cy="464.14" rx="3.49" ry="10.89" rotation="330.20" z_order="0" group_id="317">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1169.21" cy="460.04" rx="4.96" ry="9.51" rotation="81.70" z_order="0" group_id="318">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="937.18" cy="470.07" rx="4.22" ry="7.67" rotation="352.00" z_order="0" group_id="319">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1277.64" cy="503.88" rx="4.82" ry="9.53" rotation="347.50" z_order="0" group_id="320">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="183.00" cy="456.81" rx="6.07" ry="9.74" rotation="26.80" z_order="0" group_id="321">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1144.45" cy="451.06" rx="4.75" ry="7.79" rotation="22.40" z_order="0" group_id="323">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="353.93" cy="431.31" rx="4.71" ry="10.04" rotation="285.30" z_order="0" group_id="324">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1044.15" cy="447.04" rx="4.25" ry="7.53" rotation="350.20" z_order="0" group_id="326">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="431.52" cy="441.85" rx="5.28" ry="9.07" rotation="56.10" z_order="0" group_id="327">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="285.91" cy="449.25" rx="5.31" ry="9.65" rotation="5.30" z_order="0" group_id="328">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1183.00" cy="464.86" rx="3.60" ry="6.50" rotation="38.90" z_order="0" group_id="331">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="705.95" cy="438.79" rx="4.74" ry="9.99" rotation="11.00" z_order="0" group_id="333">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="197.37" cy="445.33" rx="4.92" ry="9.06" rotation="29.80" z_order="0" group_id="334">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="860.98" cy="437.34" rx="4.13" ry="7.72" rotation="295.80" z_order="0" group_id="335">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="678.01" cy="432.68" rx="4.76" ry="9.27" rotation="323.20" z_order="0" group_id="336">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="572.42" cy="115.26" rx="5.70" ry="9.62" rotation="62.00" z_order="0" group_id="506">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="821.04" cy="434.26" rx="5.13" ry="8.74" rotation="83.60" z_order="0" group_id="337">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="360.94" cy="417.81" rx="5.00" ry="8.06" rotation="68.80" z_order="0" group_id="340">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="516.92" cy="426.89" rx="5.16" ry="10.41" rotation="14.30" z_order="0" group_id="341">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1198.11" cy="425.71" rx="5.10" ry="9.41" rotation="356.80" z_order="0" group_id="342">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1127.80" cy="431.58" rx="5.62" ry="9.81" rotation="294.80" z_order="0" group_id="343">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1114.25" cy="450.75" rx="4.64" ry="9.05" rotation="336.10" z_order="0" group_id="344">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="384.30" cy="424.90" rx="5.61" ry="9.38" rotation="337.00" z_order="0" group_id="346">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="607.40" cy="417.80" rx="4.10" ry="8.95" rotation="324.60" z_order="0" group_id="349">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="639.50" cy="413.72" rx="4.65" ry="10.02" rotation="306.00" z_order="0" group_id="351">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="574.93" cy="423.84" rx="3.27" ry="8.03" rotation="330.00" z_order="0" group_id="355">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="799.04" cy="401.45" rx="4.92" ry="8.45" rotation="350.00" z_order="0" group_id="356">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="196.62" cy="405.52" rx="4.28" ry="9.29" rotation="43.50" z_order="0" group_id="357">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="504.52" cy="388.61" rx="4.56" ry="8.97" rotation="340.00" z_order="0" group_id="358">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="992.78" cy="381.57" rx="4.75" ry="9.73" rotation="295.90" z_order="0" group_id="359">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="273.91" cy="394.92" rx="5.16" ry="8.97" rotation="313.40" z_order="0" group_id="360">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1165.24" cy="384.23" rx="5.32" ry="9.63" rotation="21.20" z_order="0" group_id="361">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="958.77" cy="356.45" rx="4.73" ry="9.50" z_order="0" group_id="362">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="628.44" cy="376.27" rx="5.04" ry="9.98" rotation="102.70" z_order="0" group_id="364">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1326.12" cy="372.70" rx="6.02" ry="10.74" rotation="39.90" z_order="0" group_id="369">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1118.50" cy="381.74" rx="5.17" ry="9.88" rotation="17.20" z_order="0" group_id="371">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="667.36" cy="366.23" rx="4.50" ry="10.08" rotation="316.00" z_order="0" group_id="372">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="27.09" cy="360.93" rx="4.70" ry="9.64" rotation="41.10" z_order="0" group_id="373">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1088.14" cy="419.11" rx="5.17" ry="8.63" rotation="282.00" z_order="0" group_id="374">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="838.42" cy="351.24" rx="4.71" ry="8.65" rotation="31.90" z_order="0" group_id="376">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="242.07" cy="347.39" rx="5.44" ry="7.84" rotation="288.00" z_order="0" group_id="378">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="395.04" cy="346.44" rx="5.28" ry="9.08" rotation="302.40" z_order="0" group_id="380">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1201.39" cy="337.93" rx="5.29" ry="8.50" rotation="279.70" z_order="0" group_id="384">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1195.94" cy="312.64" rx="3.66" ry="8.47" rotation="342.40" z_order="0" group_id="386">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="82.05" cy="318.52" rx="5.03" ry="9.94" rotation="246.30" z_order="0" group_id="389">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1015.76" cy="310.75" rx="4.71" ry="9.16" rotation="72.40" z_order="0" group_id="391">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="394.99" cy="322.92" rx="4.91" ry="9.15" rotation="323.20" z_order="0" group_id="392">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="614.00" cy="309.19" rx="4.30" ry="8.01" rotation="323.30" z_order="0" group_id="393">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="358.49" cy="312.03" rx="5.06" ry="10.04" rotation="21.90" z_order="0" group_id="394">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="865.09" cy="309.24" rx="4.68" ry="9.79" rotation="336.50" z_order="0" group_id="395">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="460.04" cy="312.83" rx="4.02" ry="8.32" rotation="270.00" z_order="0" group_id="396">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="718.87" cy="264.43" rx="4.52" ry="8.72" rotation="102.60" z_order="0" group_id="397">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="404.97" cy="302.04" rx="5.25" ry="10.08" rotation="89.70" z_order="0" group_id="398">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="877.40" cy="297.01" rx="4.77" ry="7.68" rotation="25.30" z_order="0" group_id="400">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1356.35" cy="298.68" rx="4.95" ry="8.92" rotation="11.40" z_order="0" group_id="401">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="120.12" cy="296.27" rx="4.31" ry="7.89" rotation="312.40" z_order="0" group_id="402">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="366.46" cy="291.99" rx="3.58" ry="7.41" rotation="288.10" z_order="0" group_id="404">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1028.95" cy="297.25" rx="6.05" ry="11.15" z_order="0" group_id="405">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="833.63" cy="298.67" rx="4.48" ry="10.17" rotation="310.00" z_order="0" group_id="406">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="335.43" cy="296.30" rx="4.85" ry="10.22" rotation="23.00" z_order="0" group_id="407">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="629.28" cy="286.70" rx="4.58" ry="7.40" z_order="0" group_id="409">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="971.79" cy="305.93" rx="4.71" ry="9.74" rotation="344.10" z_order="0" group_id="413">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="202.51" cy="280.83" rx="5.43" ry="9.24" rotation="36.60" z_order="0" group_id="414">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="652.22" cy="278.94" rx="4.55" ry="7.17" rotation="41.30" z_order="0" group_id="415">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="181.78" cy="275.31" rx="4.52" ry="8.98" rotation="92.70" z_order="0" group_id="417">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="130.66" cy="278.11" rx="4.47" ry="10.48" rotation="30.70" z_order="0" group_id="418">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="702.61" cy="274.61" rx="4.26" ry="7.62" rotation="51.50" z_order="0" group_id="421">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="267.77" cy="273.95" rx="3.69" ry="8.53" rotation="45.20" z_order="0" group_id="422">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="79.45" cy="251.05" rx="4.56" ry="9.48" rotation="90.40" z_order="0" group_id="425">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="975.44" cy="286.38" rx="4.35" ry="7.56" rotation="50.30" z_order="0" group_id="426">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="580.96" cy="265.32" rx="4.87" ry="9.02" rotation="61.10" z_order="0" group_id="429">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="237.24" cy="260.58" rx="5.02" ry="8.49" rotation="276.30" z_order="0" group_id="430">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="838.78" cy="275.46" rx="4.62" ry="8.25" rotation="357.80" z_order="0" group_id="432">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1363.68" cy="362.11" rx="3.99" ry="9.05" rotation="286.10" z_order="0" group_id="433">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="852.94" cy="266.67" rx="4.33" ry="8.31" rotation="22.00" z_order="0" group_id="435">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="237.88" cy="215.93" rx="4.65" ry="10.41" rotation="300.80" z_order="0" group_id="436">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="961.01" cy="273.41" rx="5.38" ry="8.41" z_order="0" group_id="437">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="757.10" cy="251.04" rx="5.24" ry="9.39" rotation="17.20" z_order="0" group_id="438">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="715.81" cy="250.92" rx="5.02" ry="10.33" rotation="311.30" z_order="0" group_id="439">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="16.59" cy="227.90" rx="4.99" ry="10.70" rotation="295.30" z_order="0" group_id="440">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="887.75" cy="241.37" rx="5.96" ry="8.85" rotation="20.30" z_order="0" group_id="442">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="786.44" cy="234.18" rx="5.06" ry="9.19" rotation="296.00" z_order="0" group_id="443">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="83.02" cy="238.54" rx="4.79" ry="9.58" rotation="59.90" z_order="0" group_id="444">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="686.55" cy="239.16" rx="4.50" ry="8.96" z_order="0" group_id="445">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="588.64" cy="236.03" rx="4.96" ry="10.24" rotation="318.70" z_order="0" group_id="447">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="455.95" cy="238.64" rx="4.45" ry="10.94" z_order="0" group_id="448">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="11.29" cy="249.40" rx="5.12" ry="7.62" rotation="294.10" z_order="0" group_id="449">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="808.00" cy="161.08" rx="4.07" ry="6.22" rotation="38.60" z_order="0" group_id="451">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="18.57" cy="215.19" rx="5.39" ry="7.18" rotation="312.30" z_order="0" group_id="452">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1376.05" cy="127.50" rx="5.29" ry="10.71" rotation="27.60" z_order="0" group_id="511">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="845.36" cy="111.92" rx="4.53" ry="9.44" rotation="343.70" z_order="0" group_id="512">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="870.04" cy="109.80" rx="4.65" ry="9.52" rotation="56.70" z_order="0" group_id="513">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1317.94" cy="94.00" rx="4.55" ry="10.92" rotation="280.30" z_order="0" group_id="514">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1246.03" cy="100.82" rx="4.17" ry="8.58" rotation="53.60" z_order="0" group_id="515">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="881.08" cy="115.34" rx="4.51" ry="8.94" rotation="51.50" z_order="0" group_id="517">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="511.04" cy="88.37" rx="4.93" ry="8.69" rotation="56.90" z_order="0" group_id="518">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="333.50" cy="84.73" rx="5.49" ry="10.35" rotation="348.50" z_order="0" group_id="519">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="960.10" cy="103.93" rx="4.74" ry="10.86" rotation="96.80" z_order="0" group_id="520">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="253.43" cy="83.04" rx="4.48" ry="11.57" rotation="333.30" z_order="0" group_id="522">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1250.62" cy="73.12" rx="4.87" ry="9.08" rotation="79.20" z_order="0" group_id="525">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1091.88" cy="75.05" rx="5.40" ry="10.64" rotation="294.60" z_order="0" group_id="526">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="159.75" cy="84.90" rx="4.75" ry="10.41" rotation="338.40" z_order="0" group_id="528">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="529.42" cy="69.60" rx="4.34" ry="9.21" rotation="90.80" z_order="0" group_id="531">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="879.92" cy="54.87" rx="3.61" ry="6.61" rotation="58.20" z_order="0" group_id="535">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="98.22" cy="4.94" rx="4.70" ry="10.09" rotation="33.10" z_order="0" group_id="536">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="864.90" cy="54.31" rx="4.54" ry="9.91" rotation="49.00" z_order="0" group_id="537">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="173.37" cy="51.29" rx="3.91" ry="9.84" rotation="18.20" z_order="0" group_id="538">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1066.39" cy="49.26" rx="5.12" ry="9.42" rotation="54.90" z_order="0" group_id="539">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="923.39" cy="107.52" rx="5.15" ry="8.30" rotation="280.30" z_order="0" group_id="541">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="453.60" cy="50.36" rx="4.98" ry="8.65" rotation="329.30" z_order="0" group_id="544">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="721.51" cy="51.81" rx="5.13" ry="9.31" rotation="328.50" z_order="0" group_id="545">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1052.50" cy="22.01" rx="4.80" ry="10.66" rotation="46.30" z_order="0" group_id="546">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="226.01" cy="35.95" rx="5.19" ry="10.49" rotation="288.60" z_order="0" group_id="549">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="331.64" cy="8.26" rx="5.14" ry="9.08" rotation="331.10" z_order="0" group_id="550">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="780.37" cy="32.61" rx="5.60" ry="9.26" rotation="290.70" z_order="0" group_id="551">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="304.84" cy="30.08" rx="5.88" ry="8.04" rotation="328.60" z_order="0" group_id="553">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1374.17" cy="149.11" rx="4.67" ry="10.90" rotation="340.70" z_order="0" group_id="554">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="256.13" cy="23.36" rx="3.87" ry="7.10" rotation="35.60" z_order="0" group_id="556">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="145.81" cy="28.37" rx="5.39" ry="10.27" rotation="321.90" z_order="0" group_id="557">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="830.65" cy="21.60" rx="5.24" ry="7.65" rotation="287.90" z_order="0" group_id="558">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1259.35" cy="12.23" rx="4.80" ry="9.96" rotation="357.40" z_order="0" group_id="562">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="931.15" cy="9.88" rx="5.45" ry="9.77" z_order="0" group_id="564">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="242.61" cy="22.92" rx="4.80" ry="8.68" rotation="53.20" z_order="0" group_id="565">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="351.38" cy="1030.59" rx="4.17" ry="8.80" rotation="331.00" z_order="0" group_id="1">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1278.28" cy="116.44" rx="4.48" ry="8.69" rotation="330.20" z_order="0" group_id="510">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="790.44" cy="106.18" rx="5.38" ry="10.21" rotation="60.60" z_order="0" group_id="509">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="812.43" cy="840.72" rx="5.67" ry="8.52" rotation="44.90" z_order="0" group_id="121">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1302.80" cy="224.75" rx="5.14" ry="8.56" rotation="73.70" z_order="0" group_id="453">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1103.02" cy="246.80" rx="3.72" ry="8.75" rotation="55.90" z_order="0" group_id="454">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="915.48" cy="220.53" rx="6.02" ry="9.08" rotation="36.70" z_order="0" group_id="455">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="264.82" cy="227.18" rx="4.70" ry="8.71" rotation="282.30" z_order="0" group_id="456">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="229.01" cy="201.02" rx="4.60" ry="10.00" rotation="284.10" z_order="0" group_id="460">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="656.51" cy="217.53" rx="4.97" ry="9.46" rotation="95.10" z_order="0" group_id="461">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="640.95" cy="225.04" rx="4.75" ry="9.74" z_order="0" group_id="462">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1105.00" cy="172.71" rx="4.57" ry="10.13" rotation="44.80" z_order="0" group_id="465">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1358.17" cy="463.39" rx="5.18" ry="7.81" rotation="356.50" z_order="0" group_id="467">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="324.88" cy="941.00" rx="4.78" ry="9.31" rotation="69.90" z_order="0" group_id="49">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="665.32" cy="943.69" rx="4.86" ry="10.10" rotation="62.80" z_order="0" group_id="50">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="763.54" cy="1030.09" rx="4.95" ry="8.58" rotation="305.30" z_order="0" group_id="2">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="569.22" cy="1026.31" rx="4.08" ry="10.14" rotation="314.50" z_order="0" group_id="3">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1187.37" cy="1039.91" rx="4.74" ry="8.24" rotation="31.10" z_order="0" group_id="4">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="959.90" cy="1019.65" rx="5.59" ry="10.74" rotation="39.20" z_order="0" group_id="7">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1208.48" cy="1015.73" rx="5.63" ry="10.40" rotation="274.40" z_order="0" group_id="9">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="662.91" cy="1007.58" rx="3.78" ry="7.04" rotation="315.20" z_order="0" group_id="10">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="986.37" cy="1006.90" rx="3.07" ry="7.76" z_order="0" group_id="13">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="487.57" cy="1007.43" rx="4.63" ry="9.52" rotation="30.70" z_order="0" group_id="14">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="617.98" cy="1014.49" rx="4.63" ry="8.21" rotation="310.00" z_order="0" group_id="17">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="164.77" cy="998.02" rx="5.49" ry="9.36" rotation="333.40" z_order="0" group_id="19">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="721.38" cy="990.28" rx="3.56" ry="8.75" rotation="286.60" z_order="0" group_id="20">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="486.22" cy="988.89" rx="4.56" ry="9.59" rotation="86.80" z_order="0" group_id="21">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="892.03" cy="988.58" rx="5.54" ry="8.14" rotation="57.60" z_order="0" group_id="26">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="205.04" cy="983.81" rx="5.31" ry="9.21" rotation="52.50" z_order="0" group_id="28">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="87.48" cy="1011.63" rx="4.33" ry="7.96" rotation="82.10" z_order="0" group_id="29">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1091.84" cy="932.25" rx="4.39" ry="9.77" rotation="334.20" z_order="0" group_id="31">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1317.33" cy="970.45" rx="4.25" ry="9.49" rotation="80.50" z_order="0" group_id="32">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="130.78" cy="1025.52" rx="4.47" ry="10.33" rotation="331.50" z_order="0" group_id="33">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="898.81" cy="956.32" rx="4.00" ry="8.51" rotation="76.20" z_order="0" group_id="34">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="363.53" cy="965.22" rx="4.38" ry="8.32" rotation="345.40" z_order="0" group_id="35">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="847.87" cy="962.22" rx="5.73" ry="9.69" rotation="61.50" z_order="0" group_id="36">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="456.04" cy="968.25" rx="5.23" ry="8.43" rotation="88.40" z_order="0" group_id="37">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="313.48" cy="961.40" rx="5.13" ry="10.38" rotation="33.00" z_order="0" group_id="40">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1143.40" cy="950.34" rx="4.55" ry="8.25" rotation="353.30" z_order="0" group_id="42">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1163.27" cy="898.38" rx="5.20" ry="9.00" rotation="36.60" z_order="0" group_id="43">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="197.24" cy="958.88" rx="5.40" ry="9.85" rotation="46.00" z_order="0" group_id="44">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="448.75" cy="952.24" rx="4.72" ry="8.92" rotation="319.20" z_order="0" group_id="46">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1315.64" cy="946.38" rx="4.32" ry="8.88" rotation="63.50" z_order="0" group_id="47">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1222.68" cy="102.03" rx="4.71" ry="7.72" rotation="319.40" z_order="0" group_id="508">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="496.63" cy="941.15" rx="4.63" ry="8.30" z_order="0" group_id="51">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1239.75" cy="938.03" rx="5.22" ry="9.87" rotation="297.40" z_order="0" group_id="53">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1338.69" cy="932.19" rx="4.02" ry="7.08" rotation="304.20" z_order="0" group_id="54">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1260.57" cy="936.12" rx="5.55" ry="10.13" rotation="285.80" z_order="0" group_id="55">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1361.08" cy="928.26" rx="4.62" ry="8.49" rotation="349.50" z_order="0" group_id="58">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1245.21" cy="924.50" rx="3.61" ry="7.47" rotation="254.90" z_order="0" group_id="59">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="691.84" cy="929.99" rx="4.82" ry="8.85" rotation="17.30" z_order="0" group_id="60">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="422.62" cy="899.57" rx="5.55" ry="8.49" rotation="35.50" z_order="0" group_id="61">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1056.75" cy="919.88" rx="5.31" ry="7.27" rotation="65.40" z_order="0" group_id="63">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="491.58" cy="919.00" rx="5.24" ry="9.22" rotation="49.30" z_order="0" group_id="65">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="24.86" cy="906.15" rx="4.85" ry="9.26" rotation="78.00" z_order="0" group_id="67">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="843.30" cy="903.93" rx="5.11" ry="10.04" rotation="344.30" z_order="0" group_id="69">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="91.23" cy="904.14" rx="4.93" ry="10.05" rotation="323.60" z_order="0" group_id="70">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="138.22" cy="902.42" rx="4.88" ry="9.07" z_order="0" group_id="71">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1068.23" cy="1039.86" rx="5.38" ry="12.98" rotation="16.50" z_order="0" group_id="72">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="759.96" cy="898.79" rx="5.52" ry="9.62" rotation="47.00" z_order="0" group_id="73">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="636.13" cy="901.45" rx="5.37" ry="8.78" rotation="82.10" z_order="0" group_id="74">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="162.35" cy="900.74" rx="5.27" ry="9.66" rotation="307.70" z_order="0" group_id="75">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="828.28" cy="896.46" rx="5.35" ry="9.26" rotation="38.70" z_order="0" group_id="76">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1148.90" cy="895.85" rx="5.15" ry="8.48" rotation="80.80" z_order="0" group_id="77">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="528.43" cy="896.87" rx="4.89" ry="8.48" rotation="45.30" z_order="0" group_id="78">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1120.66" cy="893.86" rx="4.21" ry="8.18" rotation="29.60" z_order="0" group_id="79">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="391.86" cy="890.80" rx="5.38" ry="9.04" rotation="39.20" z_order="0" group_id="80">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1366.63" cy="886.31" rx="4.59" ry="8.91" rotation="48.90" z_order="0" group_id="81">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="23.16" cy="946.83" rx="6.57" ry="11.70" z_order="0" group_id="82">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1019.54" cy="888.92" rx="4.91" ry="8.67" rotation="329.40" z_order="0" group_id="83">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1344.47" cy="881.06" rx="4.25" ry="9.49" z_order="0" group_id="84">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="377.90" cy="878.70" rx="3.86" ry="6.80" rotation="78.90" z_order="0" group_id="87">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1180.59" cy="877.20" rx="4.81" ry="8.78" rotation="338.40" z_order="0" group_id="89">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="973.88" cy="871.13" rx="3.33" ry="7.08" rotation="92.40" z_order="0" group_id="91">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="693.80" cy="870.74" rx="5.00" ry="8.57" rotation="107.30" z_order="0" group_id="92">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1332.70" cy="890.48" rx="5.10" ry="9.78" z_order="0" group_id="95">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1085.28" cy="871.90" rx="5.18" ry="9.61" rotation="315.90" z_order="0" group_id="96">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="39.77" cy="867.72" rx="5.71" ry="9.99" rotation="63.70" z_order="0" group_id="100">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1275.11" cy="857.66" rx="4.68" ry="9.28" rotation="348.30" z_order="0" group_id="103">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1241.65" cy="859.03" rx="5.50" ry="10.35" rotation="325.90" z_order="0" group_id="104">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="610.23" cy="857.62" rx="4.96" ry="8.90" rotation="18.30" z_order="0" group_id="105">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="594.39" cy="862.05" rx="5.40" ry="11.75" rotation="345.20" z_order="0" group_id="106">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="542.07" cy="856.62" rx="5.08" ry="9.50" rotation="256.60" z_order="0" group_id="107">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="234.63" cy="855.27" rx="4.87" ry="10.20" rotation="21.10" z_order="0" group_id="109">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="508.24" cy="849.95" rx="4.76" ry="8.38" rotation="316.00" z_order="0" group_id="110">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1167.79" cy="859.08" rx="5.92" ry="11.52" rotation="299.70" z_order="0" group_id="111">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1009.82" cy="858.12" rx="4.95" ry="6.41" rotation="306.80" z_order="0" group_id="112">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="89.95" cy="846.57" rx="3.34" ry="6.70" rotation="344.60" z_order="0" group_id="113">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1371.28" cy="872.61" rx="3.86" ry="7.97" rotation="9.20" z_order="0" group_id="116">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1069.14" cy="888.65" rx="5.38" ry="9.15" rotation="346.20" z_order="0" group_id="117">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="481.94" cy="850.33" rx="4.62" ry="9.96" rotation="36.60" z_order="0" group_id="118">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="191.97" cy="848.97" rx="5.28" ry="9.42" rotation="293.90" z_order="0" group_id="119">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="581.64" cy="842.34" rx="5.25" ry="8.64" rotation="49.00" z_order="0" group_id="122">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1275.11" cy="829.62" rx="4.81" ry="10.28" rotation="80.90" z_order="0" group_id="128">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="284.23" cy="837.27" rx="4.70" ry="9.64" rotation="25.30" z_order="0" group_id="129">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="354.73" cy="831.03" rx="5.57" ry="8.92" rotation="327.20" z_order="0" group_id="131">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="484.40" cy="815.02" rx="4.55" ry="7.69" rotation="277.70" z_order="0" group_id="136">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="421.21" cy="820.83" rx="3.45" ry="6.12" rotation="24.40" z_order="0" group_id="137">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1284.62" cy="809.86" rx="5.11" ry="10.69" rotation="340.40" z_order="0" group_id="138">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1133.98" cy="803.94" rx="6.15" ry="9.33" rotation="298.40" z_order="0" group_id="139">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="398.70" cy="810.70" rx="4.97" ry="8.65" rotation="350.90" z_order="0" group_id="140">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1072.73" cy="792.71" rx="5.33" ry="10.14" rotation="333.90" z_order="0" group_id="143">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="314.26" cy="785.56" rx="5.50" ry="11.22" rotation="262.10" z_order="0" group_id="147">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="482.77" cy="752.83" rx="4.38" ry="9.34" rotation="64.70" z_order="0" group_id="149">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1250.60" cy="780.84" rx="5.76" ry="10.74" rotation="38.60" z_order="0" group_id="150">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1302.35" cy="826.14" rx="4.99" ry="9.26" rotation="305.00" z_order="0" group_id="151">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="366.32" cy="783.91" rx="4.79" ry="10.06" rotation="336.30" z_order="0" group_id="152">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="881.55" cy="775.90" rx="4.55" ry="8.80" z_order="0" group_id="153">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="576.51" cy="768.69" rx="5.23" ry="8.58" rotation="298.60" z_order="0" group_id="157">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="968.07" cy="752.25" rx="4.87" ry="8.92" rotation="62.80" z_order="0" group_id="158">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1269.33" cy="755.32" rx="4.33" ry="10.18" rotation="89.00" z_order="0" group_id="161">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="278.20" cy="758.70" rx="5.53" ry="9.47" rotation="295.60" z_order="0" group_id="163">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="506.15" cy="766.27" rx="5.06" ry="9.09" rotation="20.50" z_order="0" group_id="164">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="125.80" cy="753.86" rx="5.50" ry="9.28" rotation="62.70" z_order="0" group_id="166">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="986.20" cy="741.37" rx="5.49" ry="9.84" rotation="27.10" z_order="0" group_id="167">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="463.70" cy="755.03" rx="5.75" ry="9.46" rotation="29.80" z_order="0" group_id="168">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="886.64" cy="746.08" rx="6.05" ry="9.35" rotation="77.50" z_order="0" group_id="169">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="188.18" cy="746.63" rx="5.31" ry="9.10" rotation="51.10" z_order="0" group_id="170">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1157.98" cy="753.74" rx="5.64" ry="10.43" rotation="56.80" z_order="0" group_id="173">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1311.07" cy="732.38" rx="4.84" ry="11.55" rotation="79.10" z_order="0" group_id="174">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1049.26" cy="731.59" rx="4.05" ry="7.38" rotation="30.70" z_order="0" group_id="175">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="790.72" cy="728.23" rx="4.75" ry="8.47" rotation="58.70" z_order="0" group_id="176">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="558.58" cy="721.37" rx="4.43" ry="7.55" rotation="46.50" z_order="0" group_id="179">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1212.15" cy="730.61" rx="4.14" ry="8.33" rotation="285.10" z_order="0" group_id="180">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1064.17" cy="723.26" rx="5.36" ry="9.92" rotation="15.30" z_order="0" group_id="181">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1036.70" cy="719.09" rx="4.56" ry="9.79" rotation="283.80" z_order="0" group_id="182">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1133.71" cy="720.72" rx="4.54" ry="9.33" rotation="327.30" z_order="0" group_id="184">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="286.82" cy="655.44" rx="4.66" ry="9.15" z_order="0" group_id="185">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="60.71" cy="704.96" rx="5.08" ry="8.01" rotation="286.90" z_order="0" group_id="186">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="571.90" cy="724.97" rx="5.33" ry="8.65" rotation="320.50" z_order="0" group_id="187">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="235.80" cy="701.33" rx="5.01" ry="9.60" rotation="26.60" z_order="0" group_id="189">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1205.88" cy="694.17" rx="4.73" ry="8.07" z_order="0" group_id="190">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="282.38" cy="694.29" rx="4.95" ry="9.16" rotation="296.40" z_order="0" group_id="191">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="597.83" cy="736.80" rx="3.31" ry="9.79" rotation="307.70" z_order="0" group_id="192">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="1139.36" cy="701.16" rx="5.01" ry="8.97" rotation="18.70" z_order="0" group_id="193">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="382.55" cy="676.14" rx="5.02" ry="9.64" rotation="316.20" z_order="0" group_id="194">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="560.62" cy="690.69" rx="5.44" ry="8.68" rotation="284.80" z_order="0" group_id="195">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="11.34" cy="683.05" rx="3.23" ry="8.20" rotation="79.10" z_order="0" group_id="197">
+    </ellipse>
+    <ellipse label="spore" source="manual" occluded="0" cx="340.10" cy="445.50" rx="5.80" ry="11.40" z_order="0">
+    </ellipse>
+  </image>
+</annotations>
