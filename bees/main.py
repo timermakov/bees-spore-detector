@@ -1,9 +1,13 @@
 import os
-from bees import config, io_utils, image_proc, spores, titr
+import argparse
+from bees import io_utils, image_proc, spores, titr
+from bees.config_loader import load_config, get_param
+from bees.grouping import list_grouped_images
+from bees.reporting import write_markdown_report, export_excel
 import shutil
 import zipfile
 
-def process_image(image_path, xml_path, debug_prefix=None):
+def process_image(image_path, xml_path, params, debug_prefix=None):
     image = io_utils.load_image(image_path)
     metadata = io_utils.load_metadata(xml_path)
     # Сохраняем grayscale/contrast debug
@@ -11,11 +15,16 @@ def process_image(image_path, xml_path, debug_prefix=None):
     img_arr = image_proc.preprocess_image(image, debug_path=preproc_debug)
     # Сохраняем бинаризацию/маску debug
     mask_debug = debug_prefix + '_mask' if debug_prefix else None
-    spore_objs = image_proc.detect_spores(img_arr, 
-                                          config.MIN_SPORE_AREA, config.MAX_SPORE_AREA, 
-                                          config.CANNY_THRESHOLD1, config.CANNY_THRESHOLD2, 
-                                          config.MIN_SPORE_CONTOUR_LENGTH, 
-                                          debug_path=mask_debug)
+    spore_objs = image_proc.detect_spores(
+        img_arr,
+        min_area=params.get('min_spore_area'),
+        max_area=params.get('max_spore_area'),
+        canny_threshold1=params.get('canny_threshold1'),
+        canny_threshold2=params.get('canny_threshold2'), 
+        min_spore_contour_length=params.get('min_spore_contour_length'),
+        intensity_threshold=params.get('intensity_threshold'),
+        debug_path=mask_debug
+    )
     count = spores.count_spores(spore_objs)
     t = titr.calculate_titr(count)
     return {
@@ -69,29 +78,72 @@ def make_cvat_export(task_name, image_files, spore_objs_list, output_dir):
     return zip_path
 
 def main():
-    data_dir = config.DATA_DIR
-    res_dir = config.RESULTS_DIR
+    parser = argparse.ArgumentParser(description='Bees Spore Counter CLI')
+    parser.add_argument('-c', '--config', required=False, default='config.yaml', help='Path to YAML config')
+    parser.add_argument('-d', '--data', required=False, help='Override data directory (images)')
+    parser.add_argument('-o', '--output', required=False, help='Override results directory')
+    parser.add_argument('--export-cvat-zip', action='store_true', help='Export CVAT 1.1 ZIP with ellipses')
+    args = parser.parse_args()
+
+    cfg = load_config(args.config)
+    data_dir = args.data or get_param(cfg, 'data_dir', 'dataset2')
+    res_dir = args.output or get_param(cfg, 'results_dir', 'results2')
+    params = {
+        'min_spore_area': get_param(cfg, 'min_spore_area', 25),
+        'max_spore_area': get_param(cfg, 'max_spore_area', 500),
+        'canny_threshold1': get_param(cfg, 'canny_threshold1', 40),
+        'canny_threshold2': get_param(cfg, 'canny_threshold2', 125),
+        'min_spore_contour_length': get_param(cfg, 'min_spore_contour_length', 5),
+        'intensity_threshold': get_param(cfg, 'intensity_threshold', 50),
+    }
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
     if not os.path.exists(res_dir):
         os.makedirs(res_dir)
-    pairs = io_utils.list_image_pairs(data_dir)
+    # Validate and group images
+    groups, errors = list_grouped_images(data_dir)
+    if errors:
+        print("\n".join(errors))
+        if not groups:
+            return
+
+    # Process images and collect results per group
+    groups_results = {}
     image_files = []
     spore_objs_list = []
-    for image_path, xml_path in pairs:
-        base = os.path.splitext(os.path.basename(image_path))[0]
-        md_path = os.path.join(res_dir, base + '.md')
-        debug_prefix = os.path.join(res_dir, base)
-        debug_path = debug_prefix + '_debug'
-        result = process_image(image_path, xml_path, debug_prefix=debug_prefix)
-        md = f"""# Результаты анализа изображения {os.path.basename(image_path)}\n\n- Количество спор: {result['count']}\n- Титр (млн спор/мл): {result['titr']:.2f}\n"""
-        io_utils.save_markdown(md_path, md)
-        image_proc.save_debug_image(result['image'], result['spore_objs'], debug_path)
-        image_files.append(image_path)
-        spore_objs_list.append(result['spore_objs'])
-    # After all images processed, make CVAT export
-    task_name = 'bees_task'
-    make_cvat_export(task_name, image_files, spore_objs_list, res_dir)
+    for prefix, image_paths in groups.items():
+        group_counts = []
+        md_records = []  # (md_path, image_path, count)
+        for idx, image_path in enumerate(image_paths, start=1):
+            xml_path = image_path + '_meta.xml'
+            if not os.path.exists(xml_path):
+                print(f"Не найден мета-файл: {os.path.basename(image_path)}_meta.xml")
+                continue
+            base = os.path.splitext(os.path.basename(image_path))[0]
+            md_path = os.path.join(res_dir, base + '.md')
+            debug_prefix = os.path.join(res_dir, base)
+            debug_path = debug_prefix + '_debug'
+            result = process_image(image_path, xml_path, params, debug_prefix=debug_prefix)
+            # defer markdown until group titr is known
+            md_records.append((md_path, image_path, result['count']))
+            image_proc.save_debug_image(result['image'], result['spore_objs'], debug_path)
+            image_files.append(image_path)
+            spore_objs_list.append(result['spore_objs'])
+            group_counts.append(result['count'])
+        # store rows as (count, group_titr placeholder)
+        group_titr = titr.calculate_titr(group_counts)
+        groups_results[prefix] = [(c, group_titr) for c in group_counts]
+        # write markdown for each image in the group using group titr
+        for md_path, image_path, count in md_records:
+            write_markdown_report(md_path, image_path, count, group_titr)
+
+    # Excel report
+    export_excel(groups_results, os.path.join(res_dir, 'report.xlsx'))
+
+    # Optional CVAT export
+    if args.export_cvat_zip and image_files:
+        task_name = 'bees_task'
+        make_cvat_export(task_name, image_files, spore_objs_list, res_dir)
 
 if __name__ == '__main__':
     main() 

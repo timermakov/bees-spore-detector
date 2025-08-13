@@ -1,7 +1,6 @@
 import numpy as np
 from PIL import Image
 import cv2
-from bees import config
 
 def preprocess_image(image: Image.Image, debug_path=None):
     gray = image.convert('L')
@@ -15,13 +14,13 @@ def preprocess_image(image: Image.Image, debug_path=None):
         save_debug_image(arr, [], debug_path + '_clahe', is_mask=True)
     return arr
 
-def detect_spores(image_array: np.ndarray, 
-                  min_area=config.MIN_SPORE_AREA, 
-                  max_area=config.MAX_SPORE_AREA, 
-                  canny_threshold1=config.CANNY_THRESHOLD1, 
-                  canny_threshold2=config.CANNY_THRESHOLD2, 
-                  min_spore_contour_length=config.MIN_SPORE_CONTOUR_LENGTH, 
-                  intensity_threshold=config.INTENSITY_THRESHOLD,
+def detect_spores(image_array: np.ndarray,
+                  min_area: int,
+                  max_area: int,
+                  canny_threshold1: int,
+                  canny_threshold2: int,
+                  min_spore_contour_length: int,
+                  intensity_threshold: int,
                   debug_path=None):
     # 1. Детектор границ (Canny)
     edges = cv2.Canny(image_array, canny_threshold1, canny_threshold2)
