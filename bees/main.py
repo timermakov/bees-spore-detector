@@ -6,6 +6,7 @@ from bees.grouping import list_grouped_images
 from bees.reporting import write_markdown_report, export_excel
 import shutil
 import zipfile
+from datetime import datetime
 
 def process_image(image_path, xml_path, params, debug_prefix=None):
     image = io_utils.load_image(image_path)
@@ -88,6 +89,14 @@ def main():
     cfg = load_config(args.config)
     data_dir = args.data or get_param(cfg, 'data_dir', 'dataset2')
     res_dir = args.output or get_param(cfg, 'results_dir', 'results2')
+    
+    # Создаём папки, если не существуют
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+    if not os.path.exists(res_dir):
+        os.makedirs(res_dir)
+        
+    # Загружаем параметры из конфига
     params = {
         'min_spore_area': get_param(cfg, 'min_spore_area', 25),
         'max_spore_area': get_param(cfg, 'max_spore_area', 500),
@@ -96,10 +105,34 @@ def main():
         'min_spore_contour_length': get_param(cfg, 'min_spore_contour_length', 5),
         'intensity_threshold': get_param(cfg, 'intensity_threshold', 50),
     }
-    if not os.path.exists(data_dir):
-        os.makedirs(data_dir)
-    if not os.path.exists(res_dir):
-        os.makedirs(res_dir)
+    # Debug: print config, paths, and parameters in a clear, readable format
+    print("\n===== Bees Spore Counter Run Info =====")
+    print(f"Config file:   {os.path.abspath(args.config)}")
+    print(f"Data dir:      {os.path.abspath(data_dir)} (exists: {os.path.isdir(data_dir)})")
+    print(f"Results dir:   {os.path.abspath(res_dir)}")
+    print("Parameters:")
+    for k, v in params.items():
+        print(f"  {k}: {v}")
+    print("=======================================\n")
+
+    # Save run parameters to results directory for reproducibility
+    params_txt = os.path.join(res_dir, 'params_used.txt')
+    log_lines = [
+        "--------------------------------",
+        f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        f"Config file:   {os.path.abspath(args.config)}",
+        f"Data dir:      {os.path.abspath(data_dir)} (exists: {os.path.isdir(data_dir)})",
+        f"Results dir:   {os.path.abspath(res_dir)}",
+        "Parameters:"
+    ] + [f"  {k}: {v}" for k, v in params.items()] + [
+        "--------------------------------"
+    ]
+    try:
+        with open(params_txt, 'a', encoding='utf-8') as f:
+            f.write('\n'.join(log_lines) + '\n')
+    except Exception as e:
+        print(f"Warning: Could not write params log: {e}")
+
     # Validate and group images
     groups, errors = list_grouped_images(data_dir)
     if errors:
