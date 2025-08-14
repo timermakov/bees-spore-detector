@@ -10,10 +10,6 @@ def load_metadata(xml_path):
     tree = ET.parse(xml_path)
     return tree.getroot()
 
-def save_markdown(result_path, content):
-    with open(result_path, 'w', encoding='utf-8') as f:
-        f.write(content)
-
 def list_image_pairs(data_dir):
     """
     Возвращает список пар (image_path, xml_path) для всех .jpg файлов с соответствующими .jpg_meta.xml

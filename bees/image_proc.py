@@ -1,7 +1,6 @@
 import numpy as np
 from PIL import Image
 import cv2
-from bees import config
 
 def preprocess_image(image: Image.Image, debug_path=None):
     gray = image.convert('L')
@@ -15,18 +14,32 @@ def preprocess_image(image: Image.Image, debug_path=None):
         save_debug_image(arr, [], debug_path + '_clahe', is_mask=True)
     return arr
 
-def detect_spores(image_array: np.ndarray, 
-                  min_area=config.MIN_SPORE_AREA, 
-                  max_area=config.MAX_SPORE_AREA, 
-                  canny_threshold1=config.CANNY_THRESHOLD1, 
-                  canny_threshold2=config.CANNY_THRESHOLD2, 
-                  min_spore_contour_length=config.MIN_SPORE_CONTOUR_LENGTH, 
-                  intensity_threshold=config.INTENSITY_THRESHOLD,
+def detect_spores(image_array: np.ndarray,
+                  min_area: int,
+                  max_area: int,
+                  canny_threshold1: int,
+                  canny_threshold2: int,
+                  min_spore_contour_length: int,
+                  intensity_threshold: int,
                   debug_path=None):
     # 1. Детектор границ (Canny)
     edges = cv2.Canny(image_array, canny_threshold1, canny_threshold2)
     if debug_path is not None:
         save_debug_image(edges, [], debug_path + '_edges', is_mask=True)
+    # 1.1. Лёгкая морфологическая очистка шума
+    #kernel = np.ones((3, 3), np.uint8)
+    #edges = cv2.morphologyEx(edges, cv2.MORPH_OPEN, kernel)
+    #if debug_path is not None:
+    #    save_debug_image(edges, [], debug_path + '_edges_morph', is_mask=True)
+    # 1.2. Попытка убрать длинные линии (волоски/границы)
+    #lines = cv2.HoughLinesP(edges, 1, np.pi/180, 120, minLineLength=60, maxLineGap=8)
+    #if lines is not None:
+    #    for line in lines:
+    #        x1, y1, x2, y2 = line[0]
+    #        cv2.line(edges, (x1, y1), (x2, y2), 0, 2)
+    #if debug_path is not None:
+    #    save_debug_image(edges, [], debug_path + '_edges_nolines', is_mask=True)
+    
     # 2. Поиск замкнутых контуров
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     spores = []
@@ -41,14 +54,22 @@ def detect_spores(image_array: np.ndarray,
             continue
         
         # 2.3. Определение эллипса (нужно настроить)
-        ellipse = cv2.fitEllipse(cnt)
+        if len(cnt) < 5:
+            continue
+        try:
+            ellipse = cv2.fitEllipse(cnt)
+        except Exception:
+            # Невалидный контур для эллипса
+            continue
+        
         (x, y), (MA, ma), angle = ellipse
         ratio = min(MA, ma) / max(MA, ma)
-        #if ratio < 0.4 or ratio > 0.95:
-        #    continue
+        # Фильтр по отношению осей и эксцентриситету (под споры)
+        if ratio < 0.5 or ratio > 0.9:
+            continue
         ecc = np.sqrt(1 - (min(MA, ma) / max(MA, ma))**2)
-        #if not (0.3 < ecc < 0.95):
-        #    continue
+        if not (0.5 < ecc < 0.92):
+            continue
         
         # 2.4. Проверка на "полость": средняя яркость внутри эллипса близка к фону
         mask = np.zeros(image_array.shape, dtype=np.uint8)

@@ -1,0 +1,8 @@
+Using config: C:\Users\admin\Documents\Bees\config.yaml
+Data dir: C:\Users\admin\Documents\Bees\dataset3_EXAMPLE  -> exists: True
+Results dir: C:\Users\admin\Documents\Bees\results3_EXAMPLE2
+Params: {'min_spore_area': 60, 'max_spore_area': 450, 'canny_threshold1': 70, 'canny_threshold2': 170, 'min_spore_contour_length': 9, 'intensity_threshold': 30}
+Using config: C:\Users\admin\Documents\Bees\config.yaml
+Data dir: C:\Users\admin\Documents\Bees\dataset3_EXAMPLE  -> exists: True
+Results dir: C:\Users\admin\Documents\Bees\results3_EXAMPLE2
+Params: {'min_spore_area': 60, 'max_spore_area': 450, 'canny_threshold1': 70, 'canny_threshold2': 170, 'min_spore_contour_length': 9, 'intensity_threshold': 30}
