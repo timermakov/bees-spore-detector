@@ -30,24 +30,32 @@ def detect_spores(image_array: np.ndarray,
         save_debug_image(edges, [], debug_path + '_edges', is_mask=True)
     
     # 1.1. Лёгкая морфологическая очистка шума
-    kernel = np.ones((2, 2), np.uint8)  # Smaller, gentler kernel
+    kernel = np.ones((2, 2), np.uint8)  # gentler kernel
     edges_morph = cv2.morphologyEx(edges, cv2.MORPH_OPEN, kernel)
-    
-        
+    # Всегда сохраняем результат морфологии отдельным файлом
     if debug_path is not None:
-        save_debug_image(edges, [], debug_path + '_edges_morph', is_mask=True)
+        save_debug_image(edges_morph, [], debug_path + '_edges_morph', is_mask=True)
+    # Если морфология слишком агрессивна — используем исходные края дальше
+    use_fallback = False
+    sum_edges = float(np.count_nonzero(edges)) + 1e-9
+    sum_morph = float(np.count_nonzero(edges_morph))
+    if sum_morph < 0.1 * sum_edges:
+        use_fallback = True
+        if debug_path is not None:
+            print("DEBUG: Morph too aggressive → fallback to raw edges")
+    edges_working = edges if use_fallback else edges_morph
     
     # 1.2. Попытка убрать длинные линии (волоски/границы)
-    lines = cv2.HoughLinesP(edges, 1, np.pi/180, 150, minLineLength=80, maxLineGap=5)  # More conservative
+    lines = cv2.HoughLinesP(edges_working, 1, np.pi/180, 150, minLineLength=80, maxLineGap=5)  # conservative
     if lines is not None:
         for line in lines:
             x1, y1, x2, y2 = line[0]
-            cv2.line(edges, (x1, y1), (x2, y2), 0, 2)
+            cv2.line(edges_working, (x1, y1), (x2, y2), 0, 2)
     if debug_path is not None:
-        save_debug_image(edges, [], debug_path + '_edges_nolines', is_mask=True)
+        save_debug_image(edges_working, [], debug_path + '_edges_nolines', is_mask=True)
     
     # 2. Поиск замкнутых контуров
-    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, _ = cv2.findContours(edges_working, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     print(f"DEBUG {debug_path}: Found {len(contours)} total contours")
     spores = []
     contour_count = 0
