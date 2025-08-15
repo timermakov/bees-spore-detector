@@ -1,0 +1,50 @@
+name: Build and Release (Windows EXE)
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+jobs:
+  build-and-release-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build EXE with PyInstaller
+        run: |
+          pyinstaller --noconfirm --onefile --name bees-spore-counter ^
+            --hidden-import cv2 ^
+            --collect-all cv2 ^
+            --collect-all PIL ^
+            --collect-all openpyxl ^
+            --collect-all et_xmlfile ^
+            bees/main.py
+
+      - name: Upload artifact (for CI debugging)
+        uses: actions/upload-artifact@v4
+        with:
+          name: bees-spore-counter-windows
+          path: dist/bees-spore-counter.exe
+
+      - name: Create GitHub Release and upload EXE
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/bees-spore-counter.exe

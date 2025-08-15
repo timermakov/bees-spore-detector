@@ -18,8 +18,10 @@ def process_image(image_path, xml_path, params, debug_prefix=None):
     mask_debug = debug_prefix + '_mask' if debug_prefix else None
     spore_objs = image_proc.detect_spores(
         img_arr,
-        min_area=params.get('min_spore_area'),
-        max_area=params.get('max_spore_area'),
+        min_contour_area=params.get('min_contour_area'),
+        max_contour_area=params.get('max_contour_area'),
+        min_ellipse_area=params.get('min_ellipse_area'),
+        max_ellipse_area=params.get('max_ellipse_area'),
         canny_threshold1=params.get('canny_threshold1'),
         canny_threshold2=params.get('canny_threshold2'), 
         min_spore_contour_length=params.get('min_spore_contour_length'),
@@ -98,8 +100,10 @@ def main():
         
     # Загружаем параметры из конфига
     params = {
-        'min_spore_area': get_param(cfg, 'min_spore_area', 25),
-        'max_spore_area': get_param(cfg, 'max_spore_area', 500),
+        'min_contour_area': get_param(cfg, 'min_contour_area', 25),
+        'max_contour_area': get_param(cfg, 'max_contour_area', 500),
+        'min_ellipse_area': get_param(cfg, 'min_ellipse_area', 25),
+        'max_ellipse_area': get_param(cfg, 'max_ellipse_area', 500),
         'canny_threshold1': get_param(cfg, 'canny_threshold1', 40),
         'canny_threshold2': get_param(cfg, 'canny_threshold2', 125),
         'min_spore_contour_length': get_param(cfg, 'min_spore_contour_length', 5),

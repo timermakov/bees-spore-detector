@@ -15,8 +15,10 @@ def preprocess_image(image: Image.Image, debug_path=None):
     return arr
 
 def detect_spores(image_array: np.ndarray,
-                  min_area: int,
-                  max_area: int,
+                  min_contour_area: int,
+                  max_contour_area: int,
+                  min_ellipse_area: int,
+                  max_ellipse_area: int,
                   canny_threshold1: int,
                   canny_threshold2: int,
                   min_spore_contour_length: int,
@@ -26,61 +28,80 @@ def detect_spores(image_array: np.ndarray,
     edges = cv2.Canny(image_array, canny_threshold1, canny_threshold2)
     if debug_path is not None:
         save_debug_image(edges, [], debug_path + '_edges', is_mask=True)
+    
     # 1.1. Лёгкая морфологическая очистка шума
-    #kernel = np.ones((3, 3), np.uint8)
-    #edges = cv2.morphologyEx(edges, cv2.MORPH_OPEN, kernel)
-    #if debug_path is not None:
-    #    save_debug_image(edges, [], debug_path + '_edges_morph', is_mask=True)
+    kernel = np.ones((2, 2), np.uint8)  # Smaller, gentler kernel
+    edges_morph = cv2.morphologyEx(edges, cv2.MORPH_OPEN, kernel)
+    
+        
+    if debug_path is not None:
+        save_debug_image(edges, [], debug_path + '_edges_morph', is_mask=True)
+    
     # 1.2. Попытка убрать длинные линии (волоски/границы)
-    #lines = cv2.HoughLinesP(edges, 1, np.pi/180, 120, minLineLength=60, maxLineGap=8)
-    #if lines is not None:
-    #    for line in lines:
-    #        x1, y1, x2, y2 = line[0]
-    #        cv2.line(edges, (x1, y1), (x2, y2), 0, 2)
-    #if debug_path is not None:
-    #    save_debug_image(edges, [], debug_path + '_edges_nolines', is_mask=True)
+    lines = cv2.HoughLinesP(edges, 1, np.pi/180, 150, minLineLength=80, maxLineGap=5)  # More conservative
+    if lines is not None:
+        for line in lines:
+            x1, y1, x2, y2 = line[0]
+            cv2.line(edges, (x1, y1), (x2, y2), 0, 2)
+    if debug_path is not None:
+        save_debug_image(edges, [], debug_path + '_edges_nolines', is_mask=True)
     
     # 2. Поиск замкнутых контуров
     contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    print(f"DEBUG {debug_path}: Found {len(contours)} total contours")
     spores = []
+    contour_count = 0
     for cnt in contours:
+        contour_count += 1
         # 2.1. Ограничение длины контура споры (по количеству точек)
         if len(cnt) < min_spore_contour_length:
             continue
         
-        # 2.2. Ограничение размеров (по площади) споры
+        # 2.2. Ограничение размеров (по площади) контура
         area = cv2.contourArea(cnt)
-        if not (min_area < area < max_area):
+        if not (min_contour_area < area < max_contour_area):
             continue
         
-        # 2.3. Определение эллипса (нужно настроить)
-        if len(cnt) < 5:
+        # 2.3. Определение эллипса и геометрические фильтры
+        if len(cnt) < 5:  # fitEllipse requires at least 5 points
             continue
         try:
             ellipse = cv2.fitEllipse(cnt)
         except Exception:
             # Невалидный контур для эллипса
             continue
-        
+
+        # Параметры эллипса
         (x, y), (MA, ma), angle = ellipse
-        ratio = min(MA, ma) / max(MA, ma)
-        # Фильтр по отношению осей и эксцентриситету (под споры)
-        if ratio < 0.5 or ratio > 0.9:
-            continue
-        ecc = np.sqrt(1 - (min(MA, ma) / max(MA, ma))**2)
-        if not (0.5 < ecc < 0.92):
-            continue
         
-        # 2.4. Проверка на "полость": средняя яркость внутри эллипса близка к фону
+        # 2.4. Ограничение размеров (по площади) эллипса
+        ellipse_area = np.pi * (MA / 2.0) * (ma / 2.0)
+        if not (min_ellipse_area < ellipse_area < max_ellipse_area):
+            continue 
+
+        # 2.5. Фильтр по отношению осей и эксцентриситету (под споры)
+        ratio = min(MA, ma) / max(MA, ma)
+        # Temporarily disabled for debugging
+        #if ratio < 0.5 or ratio > 0.9:
+        #    continue
+        ecc = np.sqrt(1 - (min(MA, ma) / max(MA, ma))**2)
+        # Temporarily disabled for debugging
+        #if not (0.5 < ecc < 0.92):
+        #    continue
+        
+        # 2.6. Проверка на "полость": средняя яркость внутри эллипса близка к фону
         mask = np.zeros(image_array.shape, dtype=np.uint8)
         cv2.ellipse(mask, (int(x), int(y)), (int(MA/2), int(ma/2)), angle, 0, 360, 255, -1)
         mean_inside = cv2.mean(image_array, mask=mask)[0]
         mean_total = np.mean(image_array)
-        if abs(mean_inside - mean_total) > intensity_threshold:  # если внутри эллипса сильно отличается от фона, пропускаем
-            continue
+        # Temporarily disabled for debugging
+        #if abs(mean_inside - mean_total) > intensity_threshold:  # если внутри эллипса сильно отличается от фона, пропускаем
+        #    continue
+        
         spores.append(cnt)
     
-	# Debug: рисуем эллипсы
+    print(f"DEBUG {debug_path}: Processed {contour_count} contours, kept {len(spores)} spores")
+    # Debug: рисуем эллипсы
     if debug_path is not None:
         debug_img = cv2.cvtColor(image_array, cv2.COLOR_GRAY2BGR)
         for cnt in spores:
