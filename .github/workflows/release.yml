@@ -27,6 +27,7 @@ jobs:
           pip install pyinstaller
 
       - name: Build EXE with PyInstaller
+        shell: cmd
         run: |
           pyinstaller --noconfirm --onefile --name bees-spore-counter ^
             --hidden-import cv2 ^
