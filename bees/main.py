@@ -1,186 +1,430 @@
+"""
+Main module for bee spore analysis.
+
+This module provides the command-line interface and main processing pipeline
+for analyzing bee spore images using computer vision techniques.
+"""
+
 import os
 import argparse
-from bees import io_utils, image_proc, spores, titr
-from bees.config_loader import load_config, get_param
-from bees.grouping import list_grouped_images
-from bees.reporting import write_markdown_report, export_excel
+import logging
 import shutil
 import zipfile
 from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Tuple, Optional
 
-def process_image(image_path, xml_path, params, debug_prefix=None):
-    image = io_utils.load_image(image_path)
-    metadata = io_utils.load_metadata(xml_path)
-    # Сохраняем grayscale/contrast debug
-    preproc_debug = debug_prefix + '_preproc' if debug_prefix else None
-    img_arr = image_proc.preprocess_image(image, debug_path=preproc_debug)
-    # Сохраняем бинаризацию/маску debug
-    mask_debug = debug_prefix + '_mask' if debug_prefix else None
-    spore_objs = image_proc.detect_spores(
-        img_arr,
-        min_contour_area=params.get('min_contour_area'),
-        max_contour_area=params.get('max_contour_area'),
-        min_ellipse_area=params.get('min_ellipse_area'),
-        max_ellipse_area=params.get('max_ellipse_area'),
-        canny_threshold1=params.get('canny_threshold1'),
-        canny_threshold2=params.get('canny_threshold2'), 
-        min_spore_contour_length=params.get('min_spore_contour_length'),
-        intensity_threshold=params.get('intensity_threshold'),
-        debug_path=mask_debug
-    )
-    count = spores.count_spores(spore_objs)
-    t = titr.calculate_titr(count)
-    return {
-        'image': image,
-        'spore_objs': spore_objs,
-        'count': count,
-        'titr': t
-    }
+from bees import io_utils, image_proc, spores, titr
+from bees.config_loader import create_config_manager, ConfigurationError
+from bees.grouping import create_group_manager, GroupedImageManager
+from bees.reporting import ReportManager
+from bees.image_proc import SporeDetectionPipeline
 
-def make_cvat_export(task_name, image_files, spore_objs_list, output_dir):
-    """
-    Create a folder with CVAT export structure and zip it:
-    taskname/
-      images/
-        img1.jpg ...
-      annotations.xml
-    """
-    import os
-    from xml.etree import ElementTree as ET
-    from bees.io_utils import export_cvat_xml_elements
-    export_dir = os.path.join(output_dir, task_name)
-    images_dir = os.path.join(export_dir, 'images')
-    os.makedirs(images_dir, exist_ok=True)
-    # Copy images
-    for img in image_files:
-        shutil.copy(img, images_dir)
-    # Build XML: <annotations><version>1.1</version><meta>...</meta><image>...</image>...</annotations>
-    root = ET.Element('annotations')
-    ET.SubElement(root, 'version').text = '1.1'
-    metas = []
-    for i, (img, spore_objs) in enumerate(zip(image_files, spore_objs_list)):
-        meta, image_elem = export_cvat_xml_elements(img, spore_objs, image_id=i)
-        metas.append(meta)
-        root.append(image_elem)
-    # Use the first meta (or merge if needed)
-    if metas:
-        root.insert(1, metas[0])
-    # Pretty-print XML before saving
-    from bees.io_utils import indent_xml
-    indent_xml(root)
-    merged_xml_path = os.path.join(export_dir, 'annotations.xml')
-    ET.ElementTree(root).write(merged_xml_path, encoding='utf-8', xml_declaration=True)
-    # Zip the folder
-    zip_path = os.path.join(output_dir, f'{task_name}.zip')
-    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root_dir, _, files in os.walk(export_dir):
-            for file in files:
-                abs_path = os.path.join(root_dir, file)
-                rel_path = os.path.relpath(abs_path, output_dir)
-                zipf.write(abs_path, rel_path)
-    return zip_path
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+
+class SporeAnalysisPipeline:
+    """Main pipeline for spore analysis."""
+    
+    def __init__(self, config_manager, data_dir: str, results_dir: str):
+        """
+        Initialize the analysis pipeline.
+        
+        Args:
+            config_manager: Configuration manager instance
+            data_dir: Directory containing input images
+            results_dir: Directory for output results
+        """
+        self.config_manager = config_manager
+        self.data_dir = Path(data_dir)
+        self.results_dir = Path(results_dir)
+        self.detection_pipeline = SporeDetectionPipeline()
+        
+        # Ensure directories exist
+        self.data_dir.mkdir(parents=True, exist_ok=True)
+        self.results_dir.mkdir(parents=True, exist_ok=True)
+    
+    def get_parameters(self) -> Dict[str, any]:
+        """Get detection parameters from configuration."""
+        return {
+            'min_contour_area': self.config_manager.get_int_param('min_contour_area'),
+            'max_contour_area': self.config_manager.get_int_param('max_contour_area'),
+            'min_ellipse_area': self.config_manager.get_int_param('min_ellipse_area'),
+            'max_ellipse_area': self.config_manager.get_int_param('max_ellipse_area'),
+            'canny_threshold1': self.config_manager.get_int_param('canny_threshold1'),
+            'canny_threshold2': self.config_manager.get_int_param('canny_threshold2'),
+            'min_spore_contour_length': self.config_manager.get_int_param('min_spore_contour_length'),
+            'intensity_threshold': self.config_manager.get_int_param('intensity_threshold'),
+        }
+    
+    def process_image(self, 
+                     image_path: str, 
+                     xml_path: str, 
+                     debug_prefix: Optional[str] = None) -> Dict[str, any]:
+        """
+        Process a single image for spore detection.
+        
+        Args:
+            image_path: Path to the image file
+            xml_path: Path to the metadata XML file
+            debug_prefix: Optional prefix for debug output
+            
+        Returns:
+            Dictionary containing analysis results
+        """
+        try:
+            # Load image and metadata
+            image = io_utils.ImageLoader.load_image(image_path)
+            metadata = io_utils.MetadataLoader.load_metadata(xml_path)
+            
+            # Process image
+            params = self.get_parameters()
+            spore_objects = self.detection_pipeline.detect_spores(image, **params)
+            
+            # Count spores and calculate titer
+            count = spores.count_spores(spore_objects)
+            titer_value = titr.calculate_titr(count)
+            
+            # Save debug images if requested
+            if debug_prefix:
+                debug_path = str(debug_prefix) + '_debug'
+                image_proc.save_debug_image(image, spore_objects, debug_path)
+            
+            return {
+                'image': image,
+                'spore_objects': spore_objects,
+                'count': count,
+                'titer': titer_value,
+                'metadata': metadata
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to process image {image_path}: {e}")
+            raise
+    
+    def process_group(self, 
+                     group_prefix: str, 
+                     image_paths: List[str]) -> Tuple[List[int], float, List[Dict]]:
+        """
+        Process a group of three images.
+        
+        Args:
+            group_prefix: Group prefix name
+            image_paths: List of three image paths
+            
+        Returns:
+            Tuple of (counts, group_titer, results)
+        """
+        counts = []
+        results = []
+        
+        for idx, image_path in enumerate(image_paths, 1):
+            xml_path = image_path + '_meta.xml'
+            
+            if not os.path.exists(xml_path):
+                logger.warning(f"Metadata file not found: {xml_path}")
+                continue
+            
+            debug_prefix = Path(self.results_dir) / f"{Path(image_path).stem}"
+            result = self.process_image(image_path, xml_path, debug_prefix)
+            
+            counts.append(result['count'])
+            results.append(result)
+            
+            logger.info(f"Processed {group_prefix} sample {idx}: {result['count']} spores")
+        
+        if not counts:
+            raise ValueError(f"No valid images processed for group {group_prefix}")
+        
+        group_titer = titr.calculate_titr(counts)
+        logger.info(f"Group {group_prefix} titer: {group_titer:.2f} million spores/ml")
+        
+        return counts, group_titer, results
+    
+    def run_analysis(self) -> Dict[str, List[Tuple[int, float]]]:
+        """
+        Run the complete analysis pipeline.
+        
+        Returns:
+            Dictionary mapping group prefixes to lists of (count, titer) tuples
+        """
+        # Create group manager
+        group_manager = create_group_manager(str(self.data_dir))
+        if not group_manager:
+            raise RuntimeError("Failed to create group manager")
+        
+        logger.info(f"Found {group_manager.get_group_count()} image groups")
+        
+        # Process each group
+        groups_results = {}
+        self.group_results = {}  # Store detailed results for CVAT export
+        
+        for prefix in group_manager.list_group_prefixes():
+            image_paths = group_manager.get_group(prefix)
+            if image_paths:
+                counts, group_titer, results = self.process_group(prefix, image_paths)
+                # Store as (count, group_titer) tuples for each sample
+                groups_results[prefix] = [(count, group_titer) for count in counts]
+                # Store detailed results for CVAT export
+                self.group_results[prefix] = results
+        
+        return groups_results
+
+
+class CVATExporter:
+    """Handles export of results to CVAT format."""
+    
+    def __init__(self, output_dir: str):
+        """
+        Initialize the CVAT exporter.
+        
+        Args:
+            output_dir: Directory for output files
+        """
+        self.output_dir = Path(output_dir)
+        self.exporter = io_utils.CVATExporter()
+    
+    def export_task(self, 
+                   task_name: str, 
+                   image_files: List[str], 
+                   spore_objects_list: List[List]) -> str:
+        """
+        Export analysis results to CVAT format.
+        
+        Args:
+            task_name: Name for the CVAT task
+            image_files: List of image file paths
+            spore_objects_list: List of spore object lists for each image
+            
+        Returns:
+            Path to the generated ZIP file
+        """
+        export_dir = self.output_dir / task_name
+        images_dir = export_dir / 'images'
+        images_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Copy images
+        for image_path in image_files:
+            shutil.copy(image_path, images_dir)
+        
+        # Build XML annotations
+        root = self._build_annotations_xml(image_files, spore_objects_list)
+        
+        # Save XML
+        xml_path = export_dir / 'annotations.xml'
+        
+        # Pretty-print the XML
+        io_utils.XMLFormatter.indent_xml(root)
+        
+        # Convert to string and save
+        import xml.etree.ElementTree as ET
+        tree = ET.ElementTree(root)
+        tree.write(xml_path, encoding='utf-8', xml_declaration=True)
+        
+        # Create ZIP file
+        zip_path = self.output_dir / f'{task_name}.zip'
+        self._create_zip(export_dir, zip_path)
+        
+        logger.info(f"CVAT export completed: {zip_path}")
+        return str(zip_path)
+    
+    def _build_annotations_xml(self, 
+                              image_files: List[str], 
+                              spore_objects_list: List[List]) -> any:
+        """Build the annotations XML structure."""
+        import xml.etree.ElementTree as ET
+        
+        root = ET.Element('annotations')
+        ET.SubElement(root, 'version').text = '1.1'
+        
+        # Add meta and image elements
+        for i, (image_path, spore_objects) in enumerate(zip(image_files, spore_objects_list)):
+            meta, image_elem = self.exporter.export_image_elements(
+                image_path, spore_objects, i
+            )
+            if i == 0:  # Use first meta
+                root.insert(1, meta)
+            root.append(image_elem)
+        
+        return root
+    
+    def _create_zip(self, source_dir: Path, zip_path: Path) -> None:
+        """Create a ZIP file from the source directory."""
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for file_path in source_dir.rglob('*'):
+                if file_path.is_file():
+                    arcname = file_path.relative_to(source_dir)
+                    zipf.write(file_path, arcname)
+
+
+class AnalysisRunner:
+    """Main runner class for the analysis pipeline."""
+    
+    def __init__(self, config_path: str, data_dir: Optional[str] = None, 
+                 results_dir: Optional[str] = None):
+        """
+        Initialize the analysis runner.
+        
+        Args:
+            config_path: Path to configuration file
+            data_dir: Optional override for data directory
+            results_dir: Optional override for results directory
+        """
+        self.config_path = Path(config_path)
+        self.config_manager = create_config_manager(config_path)
+        
+        # Get directories
+        self.data_dir = data_dir or self.config_manager.get_param('data_dir')
+        self.results_dir = results_dir or self.config_manager.get_param('results_dir')
+        
+        # Create pipeline
+        self.pipeline = SporeAnalysisPipeline(
+            self.config_manager, self.data_dir, self.results_dir
+        )
+        
+        # Create exporters
+        self.cvat_exporter = CVATExporter(str(self.results_dir))
+        self.report_manager = ReportManager(str(self.results_dir))
+    
+    def run(self, export_cvat: bool = False) -> Dict[str, any]:
+        """
+        Run the complete analysis.
+        
+        Args:
+            export_cvat: Whether to export CVAT format
+            
+        Returns:
+            Dictionary containing analysis results and report paths
+        """
+        logger.info("Starting bee spore analysis")
+        
+        try:
+            # Run analysis
+            groups_results = self.pipeline.run_analysis()
+            
+            # Generate reports
+            reports = self.report_manager.generate_all_reports(groups_results)
+            
+            # Export CVAT if requested
+            if export_cvat:
+                # Collect all image files and spore objects
+                image_files = []
+                spore_objects_list = []
+                
+                for prefix, rows in groups_results.items():
+                    group_paths = self._get_group_image_paths(prefix)
+                    group_objects = self._get_group_spore_objects(prefix, rows)
+                    
+                    image_files.extend(group_paths)
+                    spore_objects_list.extend(group_objects)
+                
+                if image_files:
+                    cvat_path = self.cvat_exporter.export_task(
+                        'bees_task', image_files, spore_objects_list
+                    )
+                    reports['cvat'] = cvat_path
+            
+            # Save run parameters
+            self._save_run_parameters()
+            
+            logger.info("Analysis completed successfully")
+            return {
+                'groups_results': groups_results,
+                'reports': reports
+            }
+            
+        except Exception as e:
+            logger.error(f"Analysis failed: {e}")
+            raise
+    
+    def _get_group_image_paths(self, prefix: str) -> List[str]:
+        """Get image paths for a group."""
+        group_manager = create_group_manager(str(self.data_dir))
+        if group_manager and group_manager.has_group(prefix):
+            return group_manager.get_group(prefix)
+        return []
+    
+    def _get_group_spore_objects(self, prefix: str, rows: List[Tuple[int, float]]) -> List[List]:
+        """Get spore objects for a group from stored results."""
+        if hasattr(self.pipeline, 'group_results') and prefix in self.pipeline.group_results:
+            return [result['spore_objects'] for result in self.pipeline.group_results[prefix]]
+        # Fallback to empty lists if no stored results
+        return [[] for _ in rows]
+    
+    def _save_run_parameters(self) -> None:
+        """Save run parameters for reproducibility."""
+        params_txt = Path(self.results_dir) / 'params_used.txt'
+        
+        log_lines = [
+            "--------------------------------",
+            f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            f"Config file: {self.config_path.absolute()}",
+            f"Data dir: {Path(self.data_dir).absolute()}",
+            f"Results dir: {Path(self.results_dir).absolute()}",
+            "Parameters:"
+        ]
+        
+        # Add all parameters
+        all_params = self.config_manager.get_all_params()
+        for key, value in all_params.items():
+            log_lines.append(f"  {key}: {value}")
+        
+        log_lines.append("--------------------------------")
+        
+        try:
+            with open(params_txt, 'a', encoding='utf-8') as f:
+                f.write('\n'.join(log_lines) + '\n')
+        except Exception as e:
+            logger.warning(f"Could not write parameters log: {e}")
+
 
 def main():
+    """Main entry point for the command-line interface."""
     parser = argparse.ArgumentParser(description='Bees Spore Counter CLI')
-    parser.add_argument('-c', '--config', required=False, default='config.yaml', help='Path to YAML config')
-    parser.add_argument('-d', '--data', required=False, help='Override data directory (images)')
-    parser.add_argument('-o', '--output', required=False, help='Override results directory')
-    parser.add_argument('--export-cvat-zip', action='store_true', help='Export CVAT 1.1 ZIP with ellipses')
-    args = parser.parse_args()
-
-    cfg = load_config(args.config)
-    data_dir = args.data or get_param(cfg, 'data_dir', 'dataset2')
-    res_dir = args.output or get_param(cfg, 'results_dir', 'results2')
+    parser.add_argument('-c', '--config', required=False, default='config.yaml', 
+                       help='Path to YAML config')
+    parser.add_argument('-d', '--data', required=False, 
+                       help='Override data directory (images)')
+    parser.add_argument('-o', '--output', required=False, 
+                       help='Override results directory')
+    parser.add_argument('--export-cvat-zip', action='store_true', 
+                       help='Export CVAT 1.1 ZIP with ellipses')
+    parser.add_argument('--verbose', '-v', action='store_true', 
+                       help='Enable verbose logging')
     
-    # Создаём папки, если не существуют
-    if not os.path.exists(data_dir):
-        os.makedirs(data_dir)
-    if not os.path.exists(res_dir):
-        os.makedirs(res_dir)
-        
-    # Загружаем параметры из конфига
-    params = {
-        'min_contour_area': get_param(cfg, 'min_contour_area', 25),
-        'max_contour_area': get_param(cfg, 'max_contour_area', 500),
-        'min_ellipse_area': get_param(cfg, 'min_ellipse_area', 25),
-        'max_ellipse_area': get_param(cfg, 'max_ellipse_area', 500),
-        'canny_threshold1': get_param(cfg, 'canny_threshold1', 40),
-        'canny_threshold2': get_param(cfg, 'canny_threshold2', 125),
-        'min_spore_contour_length': get_param(cfg, 'min_spore_contour_length', 5),
-        'intensity_threshold': get_param(cfg, 'intensity_threshold', 50),
-    }
-    # Debug: print config, paths, and parameters in a clear, readable format
-    print("\n===== Bees Spore Counter Run Info =====")
-    print(f"Config file:   {os.path.abspath(args.config)}")
-    print(f"Data dir:      {os.path.abspath(data_dir)} (exists: {os.path.isdir(data_dir)})")
-    print(f"Results dir:   {os.path.abspath(res_dir)}")
-    print("Parameters:")
-    for k, v in params.items():
-        print(f"  {k}: {v}")
-    print("=======================================\n")
-
-    # Save run parameters to results directory for reproducibility
-    params_txt = os.path.join(res_dir, 'params_used.txt')
-    log_lines = [
-        "--------------------------------",
-        f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
-        f"Config file:   {os.path.abspath(args.config)}",
-        f"Data dir:      {os.path.abspath(data_dir)} (exists: {os.path.isdir(data_dir)})",
-        f"Results dir:   {os.path.abspath(res_dir)}",
-        "Parameters:"
-    ] + [f"  {k}: {v}" for k, v in params.items()] + [
-        "--------------------------------"
-    ]
+    args = parser.parse_args()
+    
+    # Set logging level
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+    
     try:
-        with open(params_txt, 'a', encoding='utf-8') as f:
-            f.write('\n'.join(log_lines) + '\n')
+        # Create and run analysis
+        runner = AnalysisRunner(args.config, args.data, args.output)
+        results = runner.run(export_cvat=args.export_cvat_zip)
+        
+        # Print summary
+        print("\n===== Analysis Summary =====")
+        print(f"Processed {len(results['groups_results'])} groups")
+        print(f"Reports generated: {len(results['reports'])}")
+        if 'cvat' in results['reports']:
+            print(f"CVAT export: {results['reports']['cvat']}")
+        print("============================\n")
+        
+    except ConfigurationError as e:
+        logger.error(f"Configuration error: {e}")
+        return 1
     except Exception as e:
-        print(f"Warning: Could not write params log: {e}")
+        logger.error(f"Analysis failed: {e}")
+        return 1
+    
+    return 0
 
-    # Validate and group images
-    groups, errors = list_grouped_images(data_dir)
-    if errors:
-        print("\n".join(errors))
-        if not groups:
-            return
-
-    # Process images and collect results per group
-    groups_results = {}
-    image_files = []
-    spore_objs_list = []
-    for prefix, image_paths in groups.items():
-        group_counts = []
-        md_records = []  # (md_path, image_path, count)
-        for idx, image_path in enumerate(image_paths, start=1):
-            xml_path = image_path + '_meta.xml'
-            if not os.path.exists(xml_path):
-                print(f"Не найден мета-файл: {os.path.basename(image_path)}_meta.xml")
-                continue
-            base = os.path.splitext(os.path.basename(image_path))[0]
-            md_path = os.path.join(res_dir, base + '.md')
-            debug_prefix = os.path.join(res_dir, base)
-            debug_path = debug_prefix + '_debug'
-            result = process_image(image_path, xml_path, params, debug_prefix=debug_prefix)
-            # defer markdown until group titr is known
-            md_records.append((md_path, image_path, result['count']))
-            image_proc.save_debug_image(result['image'], result['spore_objs'], debug_path)
-            image_files.append(image_path)
-            spore_objs_list.append(result['spore_objs'])
-            group_counts.append(result['count'])
-        # store rows as (count, group_titr placeholder)
-        group_titr = titr.calculate_titr(group_counts)
-        groups_results[prefix] = [(c, group_titr) for c in group_counts]
-        # write markdown for each image in the group using group titr
-        for md_path, image_path, count in md_records:
-            write_markdown_report(md_path, image_path, count, group_titr)
-
-    # Excel report
-    export_excel(groups_results, os.path.join(res_dir, 'report.xlsx'))
-
-    # Optional CVAT export
-    if args.export_cvat_zip and image_files:
-        task_name = 'bees_task'
-        make_cvat_export(task_name, image_files, spore_objs_list, res_dir)
 
 if __name__ == '__main__':
-    main() 
+    exit(main()) 
