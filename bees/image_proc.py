@@ -24,8 +24,14 @@ def detect_spores(image_array: np.ndarray,
                   min_spore_contour_length: int,
                   intensity_threshold: int,
                   debug_path=None):
-    # 1. Детектор границ (Canny)
-    edges = cv2.Canny(image_array, canny_threshold1, canny_threshold2)
+    # 0. Предварительное подавление шума с сохранением граней
+    # Небольшой bilateral уменьшает текстуру, оставляя контуры спор
+    denoised = cv2.bilateralFilter(image_array, d=5, sigmaColor=20, sigmaSpace=5)
+
+    # 1. Детектор границ (Canny) и объединение двух уровней для повышения полноты
+    edges_strong = cv2.Canny(denoised, canny_threshold1, canny_threshold2)
+    edges_soft = cv2.Canny(denoised, max(0, int(canny_threshold1 * 0.8)), max(0, int(canny_threshold2 * 0.8)))
+    edges = cv2.bitwise_or(edges_strong, edges_soft)
     if debug_path is not None:
         save_debug_image(edges, [], debug_path + '_edges', is_mask=True)
     
@@ -53,11 +59,25 @@ def detect_spores(image_array: np.ndarray,
             cv2.line(edges_working, (x1, y1), (x2, y2), 0, 2)
     if debug_path is not None:
         save_debug_image(edges_working, [], debug_path + '_edges_nolines', is_mask=True)
+
+    # 1.3. Лёгкое замыкание разорванных контуров (closing)
+    kernel_close = np.ones((2, 2), np.uint8)
+    edges_closed = cv2.morphologyEx(edges_working, cv2.MORPH_CLOSE, kernel_close)
+    if debug_path is not None:
+        save_debug_image(edges_closed, [], debug_path + '_edges_close', is_mask=True)
+    # Если closing раздувает шум более чем на 50%, оставим предыдущее
+    if float(np.count_nonzero(edges_closed)) > 1.5 * float(np.count_nonzero(edges_working)):
+        edges_final = edges_working
+    else:
+        edges_final = edges_closed
     
     # 2. Поиск замкнутых контуров
-    contours, _ = cv2.findContours(edges_working, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # Важно: используем RETR_LIST, чтобы не терять внутренние/разорванные контуры спор
+    contours, _ = cv2.findContours(edges_final, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     print(f"DEBUG {debug_path}: Found {len(contours)} total contours")
     spores = []
+    accepted_centers = []  # для дедубликации близких эллипсов
+    min_center_dist_px = 6.0
     contour_count = 0
     for cnt in contours:
         contour_count += 1
@@ -87,25 +107,47 @@ def detect_spores(image_array: np.ndarray,
         if not (min_ellipse_area < ellipse_area < max_ellipse_area):
             continue 
 
-        # 2.5. Фильтр по отношению осей и эксцентриситету (под споры)
+        # 2.5. Фильтр по отношению осей и эксцентриситету (расширено для повышения полноты)
         ratio = min(MA, ma) / max(MA, ma)
-        # Temporarily disabled for debugging
-        #if ratio < 0.5 or ratio > 0.9:
-        #    continue
+        if ratio < 0.45 or ratio > 0.92:
+            continue
         ecc = np.sqrt(1 - (min(MA, ma) / max(MA, ma))**2)
-        # Temporarily disabled for debugging
-        #if not (0.5 < ecc < 0.92):
-        #    continue
+        if not (0.45 < ecc < 0.95):
+            continue
         
         # 2.6. Проверка на "полость": средняя яркость внутри эллипса близка к фону
         mask = np.zeros(image_array.shape, dtype=np.uint8)
         cv2.ellipse(mask, (int(x), int(y)), (int(MA/2), int(ma/2)), angle, 0, 360, 255, -1)
         mean_inside = cv2.mean(image_array, mask=mask)[0]
         mean_total = np.mean(image_array)
-        # Temporarily disabled for debugging
-        #if abs(mean_inside - mean_total) > intensity_threshold:  # если внутри эллипса сильно отличается от фона, пропускаем
-        #    continue
+        diff_intensity = abs(mean_inside - mean_total)
+        # Проверку можно отключить, установив intensity_threshold < 0 в конфиге
+        if intensity_threshold is not None and intensity_threshold >= 0:
+            if diff_intensity > intensity_threshold:
+                continue
+
+        # 2.7. Подтверждение по поддержке границ: доля пикселей периметра эллипса,
+        # совпадающих с исходными границами (после лёгкого расширения),
+        # чтобы пропускать эллипсы с недостаточной поддержкой
+        edges_for_support = cv2.dilate(edges_strong, np.ones((3, 3), np.uint8), iterations=1)
+        perim_mask = np.zeros_like(edges_for_support)
+        cv2.ellipse(perim_mask, (int(x), int(y)), (int(MA/2), int(ma/2)), angle, 0, 360, 255, 1)
+        support_pixels = cv2.countNonZero(cv2.bitwise_and(edges_for_support, perim_mask))
+        perim_pixels = cv2.countNonZero(perim_mask)
+        support_ratio = float(support_pixels) / float(perim_pixels + 1e-9)
+        if support_ratio < 0.25:
+            continue
         
+        # 2.8. Дедубликация: пропускаем, если центр эллипса слишком близок к уже принятым
+        is_duplicate = False
+        for (cx0, cy0) in accepted_centers:
+            if (x - cx0) ** 2 + (y - cy0) ** 2 < (min_center_dist_px ** 2):
+                is_duplicate = True
+                break
+        if is_duplicate:
+            continue
+
+        accepted_centers.append((x, y))
         spores.append(cnt)
     
     print(f"DEBUG {debug_path}: Processed {contour_count} contours, kept {len(spores)} spores")

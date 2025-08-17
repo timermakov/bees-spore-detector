@@ -5,15 +5,15 @@ results_dir: results3_EXAMPLE2
 
 # Параметры обработки (влияние на детекцию см. bees/image_proc.py)
 # Минимальная/максимальная площадь эллиптического потенциального контура (пиксели)
-min_contour_area: 25
-max_contour_area: 800
-# Минимальная/максимальная площадь эллиптического контура определенного эллипса (пиксели)
-min_ellipse_area: 70
-max_ellipse_area: 500
-# Пороговые значения алгоритма Canny для выделения границ
-canny_threshold1: 70
-canny_threshold2: 170
+min_contour_area: 45
+max_contour_area: 650
+# Минимальная/максимальная площадь определённого эллипса (пиксели)
+min_ellipse_area: 100
+max_ellipse_area: 360
+# Пороговые значения алгоритма Canny
+canny_threshold1: 40
+canny_threshold2: 120
 # Минимальная длина контура (число точек) для эллипса
-min_spore_contour_length: 5
+min_spore_contour_length: 7
 # Порог по интенсивности: насколько средняя яркость внутри эллипса может отличаться от фона
-intensity_threshold: 50
+intensity_threshold: 36
