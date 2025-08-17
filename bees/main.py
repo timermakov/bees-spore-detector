@@ -13,7 +13,9 @@ def process_image(image_path, xml_path, params, debug_prefix=None):
     metadata = io_utils.load_metadata(xml_path)
     # Сохраняем grayscale/contrast debug
     preproc_debug = debug_prefix + '_preproc' if debug_prefix else None
-    img_arr = image_proc.preprocess_image(image, debug_path=preproc_debug)
+    img_arr = image_proc.preprocess_image(image, debug_path=preproc_debug,
+                                        analysis_square_size=params.get('analysis_square_size'),
+                                        analysis_square_line_width=params.get('analysis_square_line_width'))
     # Сохраняем бинаризацию/маску debug
     mask_debug = debug_prefix + '_mask' if debug_prefix else None
     spore_objs = image_proc.detect_spores(
@@ -26,6 +28,8 @@ def process_image(image_path, xml_path, params, debug_prefix=None):
         canny_threshold2=params.get('canny_threshold2'), 
         min_spore_contour_length=params.get('min_spore_contour_length'),
         intensity_threshold=params.get('intensity_threshold'),
+        analysis_square_size=params.get('analysis_square_size'),
+        analysis_square_line_width=params.get('analysis_square_line_width'),
         debug_path=mask_debug
     )
     count = spores.count_spores(spore_objs)
@@ -108,6 +112,8 @@ def main():
         'canny_threshold2': get_param(cfg, 'canny_threshold2', 125),
         'min_spore_contour_length': get_param(cfg, 'min_spore_contour_length', 5),
         'intensity_threshold': get_param(cfg, 'intensity_threshold', 50),
+        'analysis_square_size': get_param(cfg, 'analysis_square_size', 780),
+        'analysis_square_line_width': get_param(cfg, 'analysis_square_line_width', 2),
     }
     # Debug: print config, paths, and parameters in a clear, readable format
     print("\n===== Bees Spore Counter Run Info =====")
@@ -163,7 +169,9 @@ def main():
             result = process_image(image_path, xml_path, params, debug_prefix=debug_prefix)
             # defer markdown until group titr is known
             md_records.append((md_path, image_path, result['count']))
-            image_proc.save_debug_image(result['image'], result['spore_objs'], debug_path)
+            image_proc.save_debug_image(result['image'], result['spore_objs'], debug_path, 
+                                      analysis_square_size=params.get('analysis_square_size'),
+                                      analysis_square_line_width=params.get('analysis_square_line_width'))
             image_files.append(image_path)
             spore_objs_list.append(result['spore_objs'])
             group_counts.append(result['count'])
@@ -172,10 +180,12 @@ def main():
         groups_results[prefix] = [(c, group_titr) for c in group_counts]
         # write markdown for each image in the group using group titr
         for md_path, image_path, count in md_records:
-            write_markdown_report(md_path, image_path, count, group_titr)
+            write_markdown_report(md_path, image_path, count, group_titr, 
+                                analysis_square_size=params.get('analysis_square_size'))
 
     # Excel report
-    export_excel(groups_results, os.path.join(res_dir, 'report.xlsx'))
+    export_excel(groups_results, os.path.join(res_dir, 'report.xlsx'), 
+                analysis_square_size=params.get('analysis_square_size'))
 
     # Optional CVAT export
     if args.export_cvat_zip and image_files:

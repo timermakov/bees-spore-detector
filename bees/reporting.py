@@ -8,24 +8,30 @@ from openpyxl.styles import Alignment
 from bees.titr import calculate_titr
 
 
-def write_markdown_report(md_path: str, image_name: str, count: int, titr_value: float) -> None:
+def write_markdown_report(md_path: str, image_name: str, count: int, titr_value: float, analysis_square_size: int = None) -> None:
     content = (
         f"# Результаты анализа изображения {os.path.basename(image_name)}\n\n"
         f"- Количество спор: {count}\n"
         f"- Титр (млн спор/мл): {titr_value:.2f}\n"
     )
+    
+    if analysis_square_size:
+        content += f"- Зона анализа: квадрат {analysis_square_size}x{analysis_square_size} пикселей в центре изображения\n"
+    
     os.makedirs(os.path.dirname(md_path), exist_ok=True)
     with open(md_path, 'w', encoding='utf-8') as f:
         f.write(content)
 
 
-def export_excel(groups_results: Dict[str, List[Tuple[int, float]]], output_xlsx: str) -> None:
+def export_excel(groups_results: Dict[str, List[Tuple[int, float]]], output_xlsx: str, analysis_square_size: int = None) -> None:
     """
     groups_results: {prefix: [(count1, titr_group), (count2, titr_group), (count3, titr_group)]}
+    analysis_square_size: размер квадрата анализа для добавления в заголовок
     """
     wb = Workbook()
     ws = wb.active
     ws.title = 'Отчет'
+       
     # Header
     ws.append(["Проба", "Сэмпл", "Количество спор", "Титр"])
     # Content

@@ -2,16 +2,63 @@ import numpy as np
 from PIL import Image
 import cv2
 
-def preprocess_image(image: Image.Image, debug_path=None):
+def get_analysis_square_coords(image_shape, square_size):
+    """
+    Calculate the coordinates for the analysis square centered in the image.
+    
+    Args:
+        image_shape: tuple of (height, width) or (height, width, channels)
+        square_size: size of the square in pixels
+    
+    Returns:
+        tuple: (x1, y1, x2, y2) coordinates of the square
+    """
+    height, width = image_shape[:2]
+    
+    # Calculate center of the image
+    center_x = width // 2
+    center_y = height // 2
+    
+    # Calculate square coordinates
+    half_size = square_size // 2
+    x1 = center_x - half_size
+    y1 = center_y - half_size
+    x2 = center_x + half_size
+    y2 = center_y + half_size
+    
+    return x1, y1, x2, y2
+
+def is_spore_in_analysis_square(ellipse_center, square_coords):
+    """
+    Check if a spore's center is within the analysis square (including touching the lines).
+    
+    Args:
+        ellipse_center: tuple of (x, y) coordinates of the spore center
+        square_coords: tuple of (x1, y1, x2, y2) coordinates of the square
+    
+    Returns:
+        bool: True if spore is within or touching the square
+    """
+    x, y = ellipse_center
+    x1, y1, x2, y2 = square_coords
+    
+    # Check if center is within or on the boundary of the square
+    return x1 <= x <= x2 and y1 <= y <= y2
+
+def preprocess_image(image: Image.Image, debug_path=None, analysis_square_size=None, analysis_square_line_width=None):
     gray = image.convert('L')
     arr = np.array(gray)
     blurred = cv2.GaussianBlur(arr, (5, 5), 2)
     if debug_path is not None:
-        save_debug_image(blurred, [], debug_path + '_blur', is_mask=True)
+        save_debug_image(blurred, [], debug_path + '_blur', is_mask=True, 
+                        analysis_square_size=analysis_square_size, 
+                        analysis_square_line_width=analysis_square_line_width)
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
     arr = clahe.apply(blurred)
     if debug_path is not None:
-        save_debug_image(arr, [], debug_path + '_clahe', is_mask=True)
+        save_debug_image(arr, [], debug_path + '_clahe', is_mask=True,
+                        analysis_square_size=analysis_square_size, 
+                        analysis_square_line_width=analysis_square_line_width)
     return arr
 
 def detect_spores(image_array: np.ndarray,
@@ -23,6 +70,8 @@ def detect_spores(image_array: np.ndarray,
                   canny_threshold2: int,
                   min_spore_contour_length: int,
                   intensity_threshold: int,
+                  analysis_square_size: int,
+                  analysis_square_line_width: int,
                   debug_path=None):
     # 0. Предварительное подавление шума с сохранением граней
     # Небольшой bilateral уменьшает текстуру, оставляя контуры спор
@@ -33,14 +82,18 @@ def detect_spores(image_array: np.ndarray,
     edges_soft = cv2.Canny(denoised, max(0, int(canny_threshold1 * 0.8)), max(0, int(canny_threshold2 * 0.8)))
     edges = cv2.bitwise_or(edges_strong, edges_soft)
     if debug_path is not None:
-        save_debug_image(edges, [], debug_path + '_edges', is_mask=True)
+        save_debug_image(edges, [], debug_path + '_edges', is_mask=True,
+                        analysis_square_size=analysis_square_size, 
+                        analysis_square_line_width=analysis_square_line_width)
     
     # 1.1. Лёгкая морфологическая очистка шума
     kernel = np.ones((2, 2), np.uint8)  # gentler kernel
     edges_morph = cv2.morphologyEx(edges, cv2.MORPH_OPEN, kernel)
     # Всегда сохраняем результат морфологии отдельным файлом
     if debug_path is not None:
-        save_debug_image(edges_morph, [], debug_path + '_edges_morph', is_mask=True)
+        save_debug_image(edges_morph, [], debug_path + '_edges_morph', is_mask=True,
+                        analysis_square_size=analysis_square_size, 
+                        analysis_square_line_width=analysis_square_line_width)
     # Если морфология слишком агрессивна — используем исходные края дальше
     use_fallback = False
     sum_edges = float(np.count_nonzero(edges)) + 1e-9
@@ -58,13 +111,17 @@ def detect_spores(image_array: np.ndarray,
             x1, y1, x2, y2 = line[0]
             cv2.line(edges_working, (x1, y1), (x2, y2), 0, 2)
     if debug_path is not None:
-        save_debug_image(edges_working, [], debug_path + '_edges_nolines', is_mask=True)
+        save_debug_image(edges_working, [], debug_path + '_edges_nolines', is_mask=True,
+                        analysis_square_size=analysis_square_size, 
+                        analysis_square_line_width=analysis_square_line_width)
 
     # 1.3. Лёгкое замыкание разорванных контуров (closing)
     kernel_close = np.ones((2, 2), np.uint8)
     edges_closed = cv2.morphologyEx(edges_working, cv2.MORPH_CLOSE, kernel_close)
     if debug_path is not None:
-        save_debug_image(edges_closed, [], debug_path + '_edges_close', is_mask=True)
+        save_debug_image(edges_closed, [], debug_path + '_edges_close', is_mask=True,
+                        analysis_square_size=analysis_square_size, 
+                        analysis_square_line_width=analysis_square_line_width)
     # Если closing раздувает шум более чем на 50%, оставим предыдущее
     if float(np.count_nonzero(edges_closed)) > 1.5 * float(np.count_nonzero(edges_working)):
         edges_final = edges_working
@@ -147,24 +204,39 @@ def detect_spores(image_array: np.ndarray,
         if is_duplicate:
             continue
 
+        # 2.9. Фильтр по зоне анализа: проверяем, что спора находится внутри зелёного квадрата
+        square_coords = get_analysis_square_coords(image_array.shape, analysis_square_size)
+        if not is_spore_in_analysis_square((x, y), square_coords):
+            continue
+
         accepted_centers.append((x, y))
         spores.append(cnt)
     
     print(f"DEBUG {debug_path}: Processed {contour_count} contours, kept {len(spores)} spores")
-    # Debug: рисуем эллипсы
+    # Debug: рисуем эллипсы и зелёный квадрат анализа
     if debug_path is not None:
         debug_img = cv2.cvtColor(image_array, cv2.COLOR_GRAY2BGR)
+        
+        # Draw the analysis square
+        square_coords = get_analysis_square_coords(image_array.shape, analysis_square_size)
+        x1, y1, x2, y2 = square_coords
+        cv2.rectangle(debug_img, (x1, y1), (x2, y2), (0, 255, 0), analysis_square_line_width)
+        
+        # Draw detected spores
         for cnt in spores:
             ellipse = cv2.fitEllipse(cnt)
             cv2.ellipse(debug_img, ellipse, (0,0,255), 2)
+        
         cv2.imwrite(debug_path + '_ellipses.jpg', debug_img)
     return spores
 
-def save_debug_image(image, spores, out_path, is_mask=False):
+def save_debug_image(image, spores, out_path, is_mask=False, analysis_square_size=None, analysis_square_line_width=None):
     """
     Сохраняет изображение с контурами (если есть). Если is_mask=True, просто сохраняет ч/б маску.
     image: np.ndarray (ч/б) или PIL.Image (цвет)
     spores: список контуров
+    analysis_square_size: размер квадрата анализа (если None, квадрат не рисуется)
+    analysis_square_line_width: толщина линии квадрата
     """
     if is_mask:
         if isinstance(image, Image.Image):
@@ -181,5 +253,12 @@ def save_debug_image(image, spores, out_path, is_mask=False):
             img_bgr = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
         else:
             img_bgr = image
+    
+    # Draw the analysis square if parameters are provided
+    if analysis_square_size is not None and analysis_square_line_width is not None:
+        square_coords = get_analysis_square_coords(img_bgr.shape, analysis_square_size)
+        x1, y1, x2, y2 = square_coords
+        cv2.rectangle(img_bgr, (x1, y1), (x2, y2), (0, 255, 0), analysis_square_line_width)
+    
     cv2.drawContours(img_bgr, spores, -1, (0,0,255), 2)
     cv2.imwrite(out_path + '.jpg', img_bgr) 
