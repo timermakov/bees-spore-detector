@@ -18,7 +18,7 @@ def process_image(image_path, xml_path, params, debug_prefix=None):
                                         analysis_square_line_width=params.get('analysis_square_line_width'))
     # Сохраняем бинаризацию/маску debug
     mask_debug = debug_prefix + '_mask' if debug_prefix else None
-    spore_objs = image_proc.detect_spores(
+    spores_inside, spores_outside = image_proc.detect_spores(
         img_arr,
         min_contour_area=params.get('min_contour_area'),
         max_contour_area=params.get('max_contour_area'),
@@ -32,12 +32,15 @@ def process_image(image_path, xml_path, params, debug_prefix=None):
         analysis_square_line_width=params.get('analysis_square_line_width'),
         debug_path=mask_debug
     )
-    count = spores.count_spores(spore_objs)
-    t = titr.calculate_titr(count)
+    count_inside = spores.count_spores(spores_inside)
+    total_count = count_inside + spores.count_spores(spores_outside)
+    t = titr.calculate_titr(count_inside)
     return {
         'image': image,
-        'spore_objs': spore_objs,
-        'count': count,
+        'spores_inside': spores_inside,
+        'spores_outside': spores_outside,
+        'count_inside': count_inside,
+        'total_count': total_count,
         'titr': t
     }
 
@@ -155,8 +158,8 @@ def main():
     image_files = []
     spore_objs_list = []
     for prefix, image_paths in groups.items():
-        group_counts = []
-        md_records = []  # (md_path, image_path, count)
+        group_counts_inside = []
+        md_records = []  # (md_path, image_path, count_inside, total_count)
         for idx, image_path in enumerate(image_paths, start=1):
             xml_path = image_path + '_meta.xml'
             if not os.path.exists(xml_path):
@@ -168,20 +171,23 @@ def main():
             debug_path = debug_prefix + '_debug'
             result = process_image(image_path, xml_path, params, debug_prefix=debug_prefix)
             # defer markdown until group titr is known
-            md_records.append((md_path, image_path, result['count']))
-            image_proc.save_debug_image(result['image'], result['spore_objs'], debug_path, 
+            md_records.append((md_path, image_path, result['count_inside'], result['total_count']))
+            image_proc.save_debug_image(result['image'], result['spores_inside'], debug_path, 
                                       analysis_square_size=params.get('analysis_square_size'),
-                                      analysis_square_line_width=params.get('analysis_square_line_width'))
+                                      analysis_square_line_width=params.get('analysis_square_line_width'),
+                                      spores_outside=result['spores_outside'])
             image_files.append(image_path)
-            spore_objs_list.append(result['spore_objs'])
-            group_counts.append(result['count'])
-        # store rows as (count, group_titr placeholder)
-        group_titr = titr.calculate_titr(group_counts)
-        groups_results[prefix] = [(c, group_titr) for c in group_counts]
+            # Для CVAT теперь добавляем все споры (внутри и снаружи)
+            spore_objs_list.append(result['spores_inside'] + result['spores_outside'])
+            group_counts_inside.append(result['count_inside'])
+        # store rows as (count_inside, total_count, group_titr placeholder)
+        group_titr = titr.calculate_titr(group_counts_inside)
+        groups_results[prefix] = [(c_in, t_total, group_titr) for (_, _, c_in, t_total) in md_records]
         # write markdown for each image in the group using group titr
-        for md_path, image_path, count in md_records:
-            write_markdown_report(md_path, image_path, count, group_titr, 
-                                analysis_square_size=params.get('analysis_square_size'))
+        for md_path, image_path, count_inside, total_count in md_records:
+            write_markdown_report(md_path, image_path, count_inside, group_titr, 
+                                analysis_square_size=params.get('analysis_square_size'),
+                                total_count=total_count)
 
     # Excel report
     export_excel(groups_results, os.path.join(res_dir, 'report.xlsx'), 
