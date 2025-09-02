@@ -132,10 +132,13 @@ def detect_spores(image_array: np.ndarray,
     # Важно: используем RETR_LIST, чтобы не терять внутренние/разорванные контуры спор
     contours, _ = cv2.findContours(edges_final, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     print(f"DEBUG {debug_path}: Found {len(contours)} total contours")
-    spores = []
-    accepted_centers = []  # для дедубликации близких эллипсов
+    spores_inside = []
+    spores_outside = []
+    accepted_centers = []  # для дедубликации близких эллипсов (для всех принятых спор)
     min_center_dist_px = 6.0
     contour_count = 0
+    # Рассчитываем координаты квадрата один раз
+    square_coords = get_analysis_square_coords(image_array.shape, analysis_square_size)
     for cnt in contours:
         contour_count += 1
         # 2.1. Ограничение длины контура споры (по количеству точек)
@@ -183,9 +186,7 @@ def detect_spores(image_array: np.ndarray,
             if diff_intensity > intensity_threshold:
                 continue
 
-        # 2.7. Подтверждение по поддержке границ: доля пикселей периметра эллипса,
-        # совпадающих с исходными границами (после лёгкого расширения),
-        # чтобы пропускать эллипсы с недостаточной поддержкой
+        # 2.7. Подтверждение по поддержке границ
         edges_for_support = cv2.dilate(edges_strong, np.ones((3, 3), np.uint8), iterations=1)
         perim_mask = np.zeros_like(edges_for_support)
         cv2.ellipse(perim_mask, (int(x), int(y)), (int(MA/2), int(ma/2)), angle, 0, 360, 255, 1)
@@ -195,7 +196,7 @@ def detect_spores(image_array: np.ndarray,
         if support_ratio < 0.25:
             continue
         
-        # 2.8. Дедубликация: пропускаем, если центр эллипса слишком близок к уже принятым
+        # 2.8. Дедубликация по центрам среди всех принятых спор
         is_duplicate = False
         for (cx0, cy0) in accepted_centers:
             if (x - cx0) ** 2 + (y - cy0) ** 2 < (min_center_dist_px ** 2):
@@ -204,46 +205,59 @@ def detect_spores(image_array: np.ndarray,
         if is_duplicate:
             continue
 
-        # 2.9. Фильтр по зоне анализа: проверяем, что спора находится внутри зелёного квадрата
-        square_coords = get_analysis_square_coords(image_array.shape, analysis_square_size)
-        if not is_spore_in_analysis_square((x, y), square_coords):
-            continue
-
+        # 2.9. Классификация по зоне анализа: внутри/снаружи
+        if is_spore_in_analysis_square((x, y), square_coords):
+            spores_inside.append(cnt)
+        else:
+            spores_outside.append(cnt)
         accepted_centers.append((x, y))
-        spores.append(cnt)
     
-    print(f"DEBUG {debug_path}: Processed {contour_count} contours, kept {len(spores)} spores")
+    print(f"DEBUG {debug_path}: Processed {contour_count} contours, kept {len(spores_inside) + len(spores_outside)} spores (inside={len(spores_inside)}, outside={len(spores_outside)})")
     # Debug: рисуем эллипсы и зелёный квадрат анализа
     if debug_path is not None:
         debug_img = cv2.cvtColor(image_array, cv2.COLOR_GRAY2BGR)
         
         # Draw the analysis square
-        square_coords = get_analysis_square_coords(image_array.shape, analysis_square_size)
         x1, y1, x2, y2 = square_coords
         cv2.rectangle(debug_img, (x1, y1), (x2, y2), (0, 255, 0), analysis_square_line_width)
         
-        # Draw detected spores
-        for cnt in spores:
+        # Draw detected spores: inside (red), outside (blue)
+        for cnt in spores_inside:
             ellipse = cv2.fitEllipse(cnt)
             cv2.ellipse(debug_img, ellipse, (0,0,255), 2)
+        for cnt in spores_outside:
+            ellipse = cv2.fitEllipse(cnt)
+            cv2.ellipse(debug_img, ellipse, (255,0,0), 2)
         
         cv2.imwrite(debug_path + '_ellipses.jpg', debug_img)
-    return spores
+    return spores_inside, spores_outside
 
-def save_debug_image(image, spores, out_path, is_mask=False, analysis_square_size=None, analysis_square_line_width=None):
+def save_debug_image(image, spores, out_path, is_mask=False, analysis_square_size=None, analysis_square_line_width=None, spores_outside=None):
     """
     Сохраняет изображение с контурами (если есть). Если is_mask=True, просто сохраняет ч/б маску.
     image: np.ndarray (ч/б) или PIL.Image (цвет)
     spores: список контуров
     analysis_square_size: размер квадрата анализа (если None, квадрат не рисуется)
     analysis_square_line_width: толщина линии квадрата
+    spores_outside: список контуров спор за пределами квадрата (для отрисовки синим)
     """
     if is_mask:
         if isinstance(image, Image.Image):
             arr = np.array(image)
         else:
             arr = image
-        cv2.imwrite(out_path + '.jpg', arr)
+        # Если нужно рисовать квадрат, переключимся на BGR и нарисуем
+        if analysis_square_size is not None and analysis_square_line_width is not None:
+            if len(arr.shape) == 2:
+                img_bgr = cv2.cvtColor(arr, cv2.COLOR_GRAY2BGR)
+            else:
+                img_bgr = arr.copy()
+            square_coords = get_analysis_square_coords(img_bgr.shape, analysis_square_size)
+            x1, y1, x2, y2 = square_coords
+            cv2.rectangle(img_bgr, (x1, y1), (x2, y2), (0, 255, 0), analysis_square_line_width)
+            cv2.imwrite(out_path + '.jpg', img_bgr)
+        else:
+            cv2.imwrite(out_path + '.jpg', arr)
         return
     if isinstance(image, Image.Image):
         img_bgr = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
@@ -260,5 +274,9 @@ def save_debug_image(image, spores, out_path, is_mask=False, analysis_square_siz
         x1, y1, x2, y2 = square_coords
         cv2.rectangle(img_bgr, (x1, y1), (x2, y2), (0, 255, 0), analysis_square_line_width)
     
+    # Draw inside spores (red)
     cv2.drawContours(img_bgr, spores, -1, (0,0,255), 2)
+    # Draw outside spores (blue)
+    if spores_outside:
+        cv2.drawContours(img_bgr, spores_outside, -1, (255,0,0), 2)
     cv2.imwrite(out_path + '.jpg', img_bgr) 
