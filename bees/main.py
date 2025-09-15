@@ -98,13 +98,13 @@ def main():
     cfg = load_config(args.config)
     data_dir = args.data or get_param(cfg, 'data_dir', 'dataset2')
     res_dir = args.output or get_param(cfg, 'results_dir', 'results2')
-    
+
     # Создаём папки, если не существуют
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
     if not os.path.exists(res_dir):
         os.makedirs(res_dir)
-        
+
     # Загружаем параметры из конфига
     params = {
         'min_contour_area': get_param(cfg, 'min_contour_area', 25),
@@ -150,53 +150,69 @@ def main():
     groups, errors = list_grouped_images(data_dir)
     if errors:
         print("\n".join(errors))
-        if not groups:
-            return
 
-    # Process images and collect results per group
-    groups_results = {}
-    image_files = []
-    spore_objs_list = []
-    for prefix, image_paths in groups.items():
-        group_counts_inside = []
-        md_records = []  # (md_path, image_path, count_inside, total_count)
-        for idx, image_path in enumerate(image_paths, start=1):
-            xml_path = image_path + '_meta.xml'
-            if not os.path.exists(xml_path):
-                print(f"Не найден мета-файл: {os.path.basename(image_path)}_meta.xml")
-                continue
-            base = os.path.splitext(os.path.basename(image_path))[0]
-            md_path = os.path.join(res_dir, base + '.md')
-            debug_prefix = os.path.join(res_dir, base)
-            debug_path = debug_prefix + '_debug'
-            result = process_image(image_path, xml_path, params, debug_prefix=debug_prefix)
-            # defer markdown until group titr is known
-            md_records.append((md_path, image_path, result['count_inside'], result['total_count']))
-            image_proc.save_debug_image(result['image'], result['spores_inside'], debug_path, 
-                                      analysis_square_size=params.get('analysis_square_size'),
-                                      analysis_square_line_width=params.get('analysis_square_line_width'),
-                                      spores_outside=result['spores_outside'])
-            image_files.append(image_path)
-            # Для CVAT теперь добавляем все споры (внутри и снаружи)
-            spore_objs_list.append(result['spores_inside'] + result['spores_outside'])
-            group_counts_inside.append(result['count_inside'])
-        # store rows as (count_inside, total_count, group_titr placeholder)
-        group_titr = titr.calculate_titr(group_counts_inside)
-        groups_results[prefix] = [(c_in, t_total, group_titr) for (_, _, c_in, t_total) in md_records]
-        # write markdown for each image in the group using group titr
-        for md_path, image_path, count_inside, total_count in md_records:
-            write_markdown_report(md_path, image_path, count_inside, group_titr, 
-                                analysis_square_size=params.get('analysis_square_size'),
-                                total_count=total_count)
+    if groups:
+        # Process images and collect results per group
+        groups_results = {}
+        image_files = []
+        spore_objs_list = []
+        for prefix, image_paths in groups.items():
+            group_counts_inside = []
+            md_records = []  # (md_path, image_path, count_inside, total_count)
+            for idx, image_path in enumerate(image_paths, start=1):
+                xml_path = image_path + '_meta.xml'
+                if not os.path.exists(xml_path):
+                    print(f"Не найден мета-файл: {os.path.basename(image_path)}_meta.xml")
+                    continue
+                base = os.path.splitext(os.path.basename(image_path))[0]
+                md_path = os.path.join(res_dir, base + '.md')
+                debug_prefix = os.path.join(res_dir, base)
+                debug_path = debug_prefix + '_debug'
+                result = process_image(image_path, xml_path, params, debug_prefix=debug_prefix)
+                # defer markdown until group titr is known
+                md_records.append((md_path, image_path, result['count_inside'], result['total_count']))
+                image_proc.save_debug_image(result['image'], result['spores_inside'], debug_path, 
+                                        analysis_square_size=params.get('analysis_square_size'),
+                                        analysis_square_line_width=params.get('analysis_square_line_width'),
+                                        spores_outside=result['spores_outside'])
+                image_files.append(image_path)
+                # Для CVAT теперь добавляем все споры (внутри и снаружи)
+                spore_objs_list.append(result['spores_inside'] + result['spores_outside'])
+                group_counts_inside.append(result['count_inside'])
+            # store rows as (count_inside, total_count, group_titr placeholder)
+            group_titr = titr.calculate_titr(group_counts_inside)
+            groups_results[prefix] = [(c_in, t_total, group_titr) for (_, _, c_in, t_total) in md_records]
+            # write markdown for each image in the group using group titr
+            for md_path, image_path, count_inside, total_count in md_records:
+                write_markdown_report(md_path, image_path, count_inside, group_titr, 
+                                    analysis_square_size=params.get('analysis_square_size'),
+                                    total_count=total_count)
 
-    # Excel report
-    export_excel(groups_results, os.path.join(res_dir, 'report.xlsx'), 
-                analysis_square_size=params.get('analysis_square_size'))
+        # Excel report
+        export_excel(groups_results, os.path.join(res_dir, 'report.xlsx'), 
+                    analysis_square_size=params.get('analysis_square_size'))
 
     # Optional CVAT export
-    if args.export_cvat_zip and image_files:
-        task_name = 'bees_task'
-        make_cvat_export(task_name, image_files, spore_objs_list, res_dir)
+    if args.export_cvat_zip:
+        # Collect all .jpg images in the data directory
+        all_jpgs = [os.path.join(data_dir, f) for f in os.listdir(data_dir) if f.lower().endswith('.jpg')]
+        cvat_image_files = []
+        cvat_spore_objs_list = []
+        for img_path in sorted(all_jpgs, key=lambda x: os.path.basename(x).lower()):
+            xml_path = img_path + '_meta.xml'
+            if os.path.exists(xml_path):
+                base = os.path.splitext(os.path.basename(img_path))[0]
+                debug_prefix = os.path.join(res_dir, base)
+                result = process_image(img_path, xml_path, params, debug_prefix=debug_prefix)
+                all_spores = result['spores_inside'] + result['spores_outside']
+                cvat_image_files.append(img_path)
+                cvat_spore_objs_list.append(all_spores)
+            else:
+                cvat_image_files.append(img_path)
+                cvat_spore_objs_list.append([])
+        if cvat_image_files:
+            task_name = data_dir + os.path.sep + datetime.now().strftime('%Y-%m-%d')
+            make_cvat_export(task_name, cvat_image_files, cvat_spore_objs_list, res_dir)
 
 if __name__ == '__main__':
     main() 
