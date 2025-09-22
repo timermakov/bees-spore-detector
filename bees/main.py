@@ -19,6 +19,7 @@ from bees.config_loader import create_config_manager, ConfigurationError
 from bees.grouping import create_group_manager, GroupedImageManager
 from bees.reporting import ReportManager
 from bees.image_proc import SporeDetectionPipeline
+from bees.titer import TiterCalculator
 
 # Configure logging
 logging.basicConfig(

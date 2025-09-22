@@ -252,23 +252,22 @@ class ExcelReporter:
     
     def _add_data(self, worksheet, groups_results: Dict[str, List[Tuple[int, float]]]) -> None:
         """Add data rows to the worksheet."""
-        start_row = 2
-        
         for group_prefix, rows in groups_results.items():
+            # Determine start row dynamically to avoid off-by-one issues
+            start_row = worksheet.max_row + 1
+
             # Calculate group titer
             group_counts = [count for count, _ in rows]
             group_titer = self.titer_calculator.calculate_titer(group_counts)
-            
+
             # Add data rows
             for idx, (count, _) in enumerate(rows, start=1):
                 worksheet.append([group_prefix, idx, count, group_titer])
-            
-            # Merge cells for group name and titer
-            end_row = start_row + len(rows) - 1
+
+            # Merge cells for group name and titer across the just-added block
+            end_row = worksheet.max_row
             if end_row >= start_row:
                 self._merge_group_cells(worksheet, start_row, end_row)
-            
-            start_row = end_row + 1
     
     def _merge_group_cells(self, worksheet, start_row: int, end_row: int) -> None:
         """Merge cells for group name and titer columns."""
@@ -312,10 +311,10 @@ class ExcelReporter:
             bottom=Side(style='thin')
         )
         
-        for row in worksheet.iter_rows():
-            for cell in row:
-                if cell.value is not None:
-                    cell.border = thin_border
+        for row_idx in range(1, worksheet.max_row + 1):
+            for col_idx in range(1, worksheet.max_column + 1):
+                cell = worksheet.cell(row=row_idx, column=col_idx)
+                cell.border = thin_border
 
 
 class ReportManager:
