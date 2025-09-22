@@ -50,7 +50,7 @@ def test_legacy_functions():
     try:
         from bees import (
             count_spores,
-            calculate_titr,
+            calculate_titer,
             load_config,
             get_param,
             write_markdown_report,
@@ -88,10 +88,10 @@ def test_titer_calculation():
     print("\nTesting titer calculation...")
     
     try:
-        from bees import TiterCalculator, calculate_titr
+        from bees import TiterCalculator, calculate_titer
         
         # Test legacy function
-        legacy_titer = calculate_titr([100, 120, 140])
+        legacy_titer = calculate_titer([100, 120, 140])
         print(f"✓ Legacy function: {legacy_titer:.2f}")
         
         # Test new class

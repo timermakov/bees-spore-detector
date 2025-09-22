@@ -15,7 +15,7 @@ from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
 
-from bees.titr import calculate_titr
+from bees.titer import calculate_titer
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -37,7 +37,7 @@ class MarkdownReporter:
     def write_image_report(self, 
                           image_path: Union[str, Path], 
                           count: int, 
-                          titr_value: float,
+                          titer_value: float,
                           output_filename: Optional[str] = None) -> Path:
         """
         Write a Markdown report for a single image.
@@ -45,7 +45,7 @@ class MarkdownReporter:
         Args:
             image_path: Path to the analyzed image
             count: Number of detected spores
-            titr_value: Calculated titer value
+            titer_value: Calculated titer value
             output_filename: Optional custom filename for the report
             
         Returns:
@@ -64,7 +64,7 @@ class MarkdownReporter:
         
         output_path = self.output_dir / output_filename
         
-        content = self._generate_image_report_content(image_name, count, titr_value)
+        content = self._generate_image_report_content(image_name, count, titer_value)
         
         try:
             with open(output_path, 'w', encoding='utf-8') as f:
@@ -80,7 +80,7 @@ class MarkdownReporter:
     def _generate_image_report_content(self, 
                                      image_name: str, 
                                      count: int, 
-                                     titr_value: float) -> str:
+                                     titer_value: float) -> str:
         """Generate the content for an image report."""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
@@ -92,7 +92,7 @@ class MarkdownReporter:
 ## Results
 
 - **Spore Count:** {count}
-- **Titer:** {titr_value:.2f} million spores/ml
+- **Titer:** {titer_value:.2f} million spores/ml
 
 ## Analysis Parameters
 
@@ -192,7 +192,7 @@ class ExcelReporter:
         Export analysis results to Excel format.
         
         Args:
-            groups_results: Dictionary mapping group prefixes to lists of (count, titr) tuples
+            groups_results: Dictionary mapping group prefixes to lists of (count, titer) tuples
             output_filename: Name of the output Excel file
             
         Returns:
@@ -262,7 +262,7 @@ class ExcelReporter:
         for group_prefix, rows in groups_results.items():
             # Calculate group titer
             group_counts = [count for count, _ in rows]
-            group_titer = calculate_titr(group_counts)
+            group_titer = calculate_titer(group_counts)
             
             # Add data rows
             for idx, (count, _) in enumerate(rows, start=1):
@@ -364,7 +364,7 @@ class ReportManager:
                     report_path = self.markdown_reporter.write_image_report(
                         image_path, 
                         result['count'], 
-                        result['titr']
+                        result['titer']
                     )
                     image_reports[image_path] = report_path
                 reports['individual_reports'] = image_reports
@@ -373,7 +373,7 @@ class ReportManager:
             group_reports = {}
             for prefix, rows in groups_results.items():
                 counts = [count for count, _ in rows]
-                group_titer = calculate_titr(counts)
+                group_titer = calculate_titer(counts)
                 report_path = self.markdown_reporter.write_group_report(
                     prefix, counts, group_titer
                 )
@@ -392,11 +392,11 @@ class ReportManager:
 def write_markdown_report(md_path: str, 
                          image_name: str, 
                          count: int, 
-                         titr_value: float) -> None:
+                         titer_value: float) -> None:
     """Legacy function for writing Markdown reports."""
     output_dir = Path(md_path).parent
     reporter = MarkdownReporter(output_dir)
-    reporter.write_image_report(image_name, count, titr_value, Path(md_path).name)
+    reporter.write_image_report(image_name, count, titer_value, Path(md_path).name)
 
 
 def export_excel(groups_results: Dict[str, List[Tuple[int, float]]], 

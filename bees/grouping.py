@@ -269,9 +269,10 @@ def create_group_manager(data_dir: str) -> Optional[GroupedImageManager]:
     """
     groups, errors = list_grouped_images(data_dir)
     
+    # proceed with valid groups even if some files are invalid; 
+    # log errors but don't abort entirely.
     if errors:
-        logger.error(f"Failed to group images: {errors}")
-        return None
+        logger.warning(f"Grouping encountered issues ({len(errors)}): {errors}")
     
     return GroupedImageManager(groups)
 

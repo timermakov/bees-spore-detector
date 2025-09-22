@@ -11,7 +11,7 @@ __author__ = "Bee Spore Counter Team"
 # Import main modules
 from . import image_proc
 from . import spores
-from . import titr
+from . import titer
 from . import io_utils
 from . import grouping
 from . import reporting
@@ -32,9 +32,9 @@ from .spores import (
     validate_spore_contours
 )
 
-from .titr import (
+from .titer import (
     TiterCalculator,
-    calculate_titr,
+    calculate_titer,
     create_standard_calculator,
     create_custom_calculator
 )
@@ -101,7 +101,7 @@ __all__ = [
     'analyze_spore_distribution',
     'filter_spores_by_area',
     'validate_spore_contours',
-    'calculate_titr',
+    'calculate_titer',
     'create_standard_calculator',
     'create_custom_calculator',
     'list_grouped_images',
@@ -116,7 +116,7 @@ __all__ = [
     # Legacy functions (maintained for compatibility)
     'image_proc',
     'spores',
-    'titr',
+    'titer',
     'io_utils',
     'grouping',
     'reporting',

@@ -131,7 +131,7 @@ class TiterCalculator:
 
 
 # Legacy function for backward compatibility
-def calculate_titr(spores: Union[int, List[int], Tuple[int, ...]], 
+def calculate_titer(spores: Union[int, List[int], Tuple[int, ...]], 
                   volume_factor: float = 12.0) -> float:
     """
     Legacy function for titer calculation.
@@ -145,10 +145,10 @@ def calculate_titr(spores: Union[int, List[int], Tuple[int, ...]],
         
     Example:
         >>> # Single count
-        >>> titer = calculate_titr(150)
+        >>> titer = calculate_titer(150)
         >>> print(f"Titer: {titer:.2f}")
         >>> # Multiple counts
-        >>> titer = calculate_titr([120, 135, 145])
+        >>> titer = calculate_titer([120, 135, 145])
         >>> print(f"Group titer: {titer:.2f}")
     """
     calculator = TiterCalculator(volume_factor)

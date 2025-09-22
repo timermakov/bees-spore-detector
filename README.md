@@ -23,7 +23,7 @@ The codebase has been refactored to follow modern Python best practices with a c
 
 - **`image_proc.py`**: Image preprocessing and spore detection pipeline
 - **`spores.py`**: Spore counting and analysis utilities
-- **`titr.py`**: Titer calculation using the Goryaev chamber method
+- **`titer.py`**: Titer calculation using the Goryaev chamber method
 - **`io_utils.py`**: Image loading, metadata handling, and CVAT export
 - **`grouping.py`**: Image grouping and validation
 - **`reporting.py`**: Report generation in various formats
@@ -195,7 +195,7 @@ Each image should have a corresponding metadata file:
 
 ```python
 # Legacy functions (maintained for compatibility)
-from bees import count_spores, calculate_titr, load_config, get_param
+from bees import count_spores, calculate_titer, load_config, get_param
 
 # New structured approach
 from bees import (
