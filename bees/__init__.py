@@ -6,7 +6,7 @@ A computer vision-based system for detecting and counting bee spores in microsco
 
 # Version information
 __version__ = "2.0.0"
-__author__ = "Bee Spore Counter Team"
+__author__ = "Timofei Ermakov, ITMO University. Email: ts.ermakov@yandex.ru"
 
 # Import main modules
 from . import image_proc
@@ -34,7 +34,6 @@ from .spores import (
 
 from .titer import (
     TiterCalculator,
-    calculate_titer,
     create_standard_calculator,
     create_custom_calculator
 )
@@ -58,22 +57,17 @@ from .grouping import (
 from .reporting import (
     MarkdownReporter,
     ExcelReporter,
-    ReportManager,
-    write_markdown_report,
-    export_excel
+    ReportManager
 )
 
 from .config_loader import (
     ConfigurationLoader,
     ConfigurationManager,
     ConfigurationValidator,
-    load_config,
-    get_param,
     create_config_manager,
     load_config_context
 )
 
-# Legacy imports for backward compatibility
 __all__ = [
     # Main classes
     'ImagePreprocessor',
@@ -101,19 +95,12 @@ __all__ = [
     'analyze_spore_distribution',
     'filter_spores_by_area',
     'validate_spore_contours',
-    'calculate_titer',
     'create_standard_calculator',
     'create_custom_calculator',
     'list_grouped_images',
     'create_group_manager',
-    'write_markdown_report',
-    'export_excel',
-    'load_config',
-    'get_param',
     'create_config_manager',
     'load_config_context',
-    
-    # Legacy functions (maintained for compatibility)
     'image_proc',
     'spores',
     'titer',

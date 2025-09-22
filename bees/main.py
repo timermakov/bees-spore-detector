@@ -44,6 +44,7 @@ class SporeAnalysisPipeline:
         self.data_dir = Path(data_dir)
         self.results_dir = Path(results_dir)
         self.detection_pipeline = SporeDetectionPipeline()
+        self.titer_calculator = TiterCalculator()
         
         # Ensure directories exist
         self.data_dir.mkdir(parents=True, exist_ok=True)
@@ -88,7 +89,7 @@ class SporeAnalysisPipeline:
             
             # Count spores and calculate titer
             count = spores.count_spores(spore_objects)
-            titer_value = titer.calculate_titer(count)
+            titer_value = self.titer_calculator.calculate_titer(count)
             
             # Save debug images if requested
             if debug_prefix:
@@ -141,7 +142,7 @@ class SporeAnalysisPipeline:
         if not counts:
             raise ValueError(f"No valid images processed for group {group_prefix}")
         
-        group_titer = titer.calculate_titer(counts)
+        group_titer = self.titer_calculator.calculate_titer(counts)
         logger.info(f"Group {group_prefix} titer: {group_titer:.2f} million spores/ml")
         
         return counts, group_titer, results

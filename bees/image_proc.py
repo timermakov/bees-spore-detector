@@ -439,68 +439,7 @@ class SporeDetectionPipeline:
         
         return spores
 
-
-# Legacy function for backward compatibility
-def preprocess_image(image: Image.Image, debug_path: Optional[str] = None) -> np.ndarray:
-    """
-    Legacy function for image preprocessing.
-    
-    Args:
-        image: Input PIL Image
-        debug_path: Optional path for saving debug images
-        
-    Returns:
-        Preprocessed grayscale image as numpy array
-    """
-    preprocessor = ImagePreprocessor(debug_path)
-    return preprocessor.preprocess(image)
-
-
-def detect_spores(image_array: np.ndarray,
-                  min_contour_area: int,
-                  max_contour_area: int,
-                  min_ellipse_area: int,
-                  max_ellipse_area: int,
-                  canny_threshold1: int,
-                  canny_threshold2: int,
-                  min_spore_contour_length: int,
-                  intensity_threshold: int,
-                  debug_path: Optional[str] = None) -> List[np.ndarray]:
-    """
-    Legacy function for spore detection.
-    
-    Args:
-        image_array: Preprocessed grayscale image
-        min_contour_area: Minimum contour area
-        max_contour_area: Maximum contour area
-        min_ellipse_area: Minimum ellipse area
-        max_ellipse_area: Maximum ellipse area
-        canny_threshold1: Lower Canny threshold
-        canny_threshold2: Upper Canny threshold
-        min_spore_contour_length: Minimum contour length
-        intensity_threshold: Intensity threshold for validation
-        debug_path: Optional path for saving debug images
-        
-    Returns:
-        List of detected spore contours
-    """
-    # Convert numpy array to PIL Image for preprocessing
-    image = Image.fromarray(image_array)
-    
-    # Create pipeline and run detection
-    pipeline = SporeDetectionPipeline(debug_path)
-    params = {
-        'min_contour_area': min_contour_area,
-        'max_contour_area': max_contour_area,
-        'min_ellipse_area': min_ellipse_area,
-        'max_ellipse_area': max_ellipse_area,
-        'canny_threshold1': canny_threshold1,
-        'canny_threshold2': canny_threshold2,
-        'min_spore_contour_length': min_spore_contour_length,
-        'intensity_threshold': intensity_threshold,
-    }
-    
-    return pipeline.detect_spores(image, **params)
+ 
 
 
 def save_debug_image(image: Union[Image.Image, np.ndarray], 

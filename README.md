@@ -128,8 +128,8 @@ pipeline = SporeDetectionPipeline()
 spores = pipeline.detect_spores(image, **params)
 
 # Calculate titer
-calculator = TiterCalculator(volume_factor=12.0)
-titer = calculator.calculate_titer(spore_count)
+titer_calculator = TiterCalculator(volume_factor=12.0)
+titer = titer_calculator.calculate_titer(spore_count)
 
 # Generate reports
 report_manager = ReportManager("results/")
@@ -194,22 +194,21 @@ Each image should have a corresponding metadata file:
 ### Core Functions
 
 ```python
-# Legacy functions (maintained for compatibility)
-from bees import count_spores, calculate_titer, load_config, get_param
-
-# New structured approach
 from bees import (
+    count_spores,
     SporeDetectionPipeline,
     TiterCalculator,
     ReportManager,
-    ConfigurationManager
+    ConfigurationManager,
 )
 ```
 
 ### Configuration Management
 
 ```python
-# Load configuration
+from bees import create_config_manager
+
+# Load configuration manager
 config = create_config_manager("config.yaml")
 
 # Get typed parameters
@@ -259,11 +258,8 @@ The codebase follows these principles:
 ### Testing
 
 ```bash
-# Run tests
-python -m pytest tests/
-
-# Run with coverage
-python -m pytest --cov=bees tests/
+# Run tests (example)
+python test_refactored.py
 ```
 
 ## Contributing

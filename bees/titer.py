@@ -130,30 +130,6 @@ class TiterCalculator:
         logger.info(f"Updated volume factor from {old_factor} to {self.volume_factor}")
 
 
-# Legacy function for backward compatibility
-def calculate_titer(spores: Union[int, List[int], Tuple[int, ...]], 
-                  volume_factor: float = 12.0) -> float:
-    """
-    Legacy function for titer calculation.
-    
-    Args:
-        spores: Spore count(s) - can be a single integer or iterable of counts
-        volume_factor: Divisor according to the Goryaev chamber method (default 12.0)
-        
-    Returns:
-        Titer value in million spores per ml
-        
-    Example:
-        >>> # Single count
-        >>> titer = calculate_titer(150)
-        >>> print(f"Titer: {titer:.2f}")
-        >>> # Multiple counts
-        >>> titer = calculate_titer([120, 135, 145])
-        >>> print(f"Group titer: {titer:.2f}")
-    """
-    calculator = TiterCalculator(volume_factor)
-    return calculator.calculate_titer(spores)
-
 
 # Constants for common volume factors
 STANDARD_VOLUME_FACTOR = 12.0

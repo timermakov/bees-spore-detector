@@ -14,8 +14,7 @@ from datetime import datetime
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
-
-from bees.titer import calculate_titer
+from bees.titer import TiterCalculator
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -97,12 +96,8 @@ class MarkdownReporter:
 ## Analysis Parameters
 
 - **Method:** Goryaev Chamber
-- **Volume Factor:** 12.0
 - **Detection Algorithm:** Computer Vision with Ellipse Fitting
 
-## Notes
-
-This report was generated automatically by the Bee Spore Counter system.
 """
     
     def write_group_report(self, 
@@ -165,7 +160,6 @@ This report was generated automatically by the Bee Spore Counter system.
 ## Analysis Parameters
 
 - **Method:** Goryaev Chamber
-- **Volume Factor:** 12.0
 - **Grouping:** Triplicate Analysis
 """
         
@@ -184,6 +178,7 @@ class ExcelReporter:
         """
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.titer_calculator = TiterCalculator()
     
     def export_results(self, 
                       groups_results: Dict[str, List[Tuple[int, float]]], 
@@ -262,7 +257,7 @@ class ExcelReporter:
         for group_prefix, rows in groups_results.items():
             # Calculate group titer
             group_counts = [count for count, _ in rows]
-            group_titer = calculate_titer(group_counts)
+            group_titer = self.titer_calculator.calculate_titer(group_counts)
             
             # Add data rows
             for idx, (count, _) in enumerate(rows, start=1):
@@ -334,6 +329,7 @@ class ReportManager:
             output_dir: Directory for output reports
         """
         self.output_dir = Path(output_dir)
+        self.titer_calculator = TiterCalculator()
         self.markdown_reporter = MarkdownReporter(output_dir)
         self.excel_reporter = ExcelReporter(output_dir)
     
@@ -373,7 +369,7 @@ class ReportManager:
             group_reports = {}
             for prefix, rows in groups_results.items():
                 counts = [count for count, _ in rows]
-                group_titer = calculate_titer(counts)
+                group_titer = self.titer_calculator.calculate_titer(counts)
                 report_path = self.markdown_reporter.write_group_report(
                     prefix, counts, group_titer
                 )
@@ -388,22 +384,6 @@ class ReportManager:
             raise
 
 
-# Legacy functions for backward compatibility
-def write_markdown_report(md_path: str, 
-                         image_name: str, 
-                         count: int, 
-                         titer_value: float) -> None:
-    """Legacy function for writing Markdown reports."""
-    output_dir = Path(md_path).parent
-    reporter = MarkdownReporter(output_dir)
-    reporter.write_image_report(image_name, count, titer_value, Path(md_path).name)
 
-
-def export_excel(groups_results: Dict[str, List[Tuple[int, float]]], 
-                output_xlsx: str) -> None:
-    """Legacy function for exporting Excel reports."""
-    output_dir = Path(output_xlsx).parent
-    reporter = ExcelReporter(output_dir)
-    reporter.export_results(groups_results, Path(output_xlsx).name)
 
 

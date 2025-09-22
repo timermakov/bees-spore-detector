@@ -311,17 +311,7 @@ def load_config_context(config_path: Union[str, Path]):
         pass
 
 
-# Legacy functions for backward compatibility
-def load_config(config_path: str) -> Dict[str, Any]:
-    """Legacy function for loading configuration."""
-    loader = ConfigurationLoader(config_path)
-    return loader.load_config()
 
-
-def get_param(config: Dict[str, Any], key: str, default: Any) -> Any:
-    """Legacy function for getting configuration parameters."""
-    manager = ConfigurationManager(config)
-    return manager.get_param(key, default)
 
 
 def create_config_manager(config_path: Union[str, Path]) -> ConfigurationManager:

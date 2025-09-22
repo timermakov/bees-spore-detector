@@ -43,23 +43,22 @@ def test_imports():
         print(f"✗ Import failed: {e}")
         return False
 
-def test_legacy_functions():
-    """Test that legacy functions still work."""
-    print("\nTesting legacy functions...")
+def test_public_functions():
+    """Test that public functions are available and work."""
+    print("\nTesting public functions...")
     
     try:
         from bees import (
+            MarkdownReporter,
+            ExcelReporter,
             count_spores,
-            calculate_titer,
-            load_config,
-            get_param,
-            write_markdown_report,
-            export_excel
         )
-        print("✓ All legacy functions imported successfully")
+        # simple smoke checks
+        assert count_spores([]) == 0
+        print("✓ Public functions available and working")
         return True
-    except ImportError as e:
-        print(f"✗ Legacy function import failed: {e}")
+    except Exception as e:
+        print(f"✗ Public functions test failed: {e}")
         return False
 
 def test_configuration():
@@ -88,19 +87,15 @@ def test_titer_calculation():
     print("\nTesting titer calculation...")
     
     try:
-        from bees import TiterCalculator, calculate_titer
-        
-        # Test legacy function
-        legacy_titer = calculate_titer([100, 120, 140])
-        print(f"✓ Legacy function: {legacy_titer:.2f}")
+        from bees import TiterCalculator
         
         # Test new class
-        calculator = TiterCalculator(volume_factor=12.0)
-        new_titer = calculator.calculate_titer([100, 120, 140])
+        titer_calculator = TiterCalculator(volume_factor=12.0)
+        new_titer = titer_calculator.calculate_titer([100, 120, 140])
         print(f"✓ New class: {new_titer:.2f}")
         
         # Test single count
-        single_titer = calculator.calculate_titer(100)
+        single_titer = titer_calculator.calculate_titer(100)
         print(f"✓ Single count: {single_titer:.2f}")
         
         return True
@@ -213,7 +208,7 @@ def main():
     
     tests = [
         test_imports,
-        test_legacy_functions,
+        test_public_functions,
         test_configuration,
         test_titer_calculation,
         test_spore_analysis,

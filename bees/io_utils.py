@@ -288,32 +288,3 @@ class XMLFormatter:
             if level and (not elem.tail or not elem.tail.strip()):
                 elem.tail = indent
 
-
-# Legacy functions for backward compatibility
-def load_image(image_path: Union[str, Path]) -> Image.Image:
-    """Legacy function for loading images."""
-    return ImageLoader.load_image(image_path)
-
-
-def load_metadata(xml_path: Union[str, Path]) -> ET.Element:
-    """Legacy function for loading metadata."""
-    return MetadataLoader.load_metadata(xml_path)
-
-
-def list_image_pairs(data_dir: Union[str, Path]) -> List[Tuple[Path, Path]]:
-    """Legacy function for finding image pairs."""
-    return FilePairFinder.list_image_pairs(data_dir)
-
-
-def export_cvat_xml_elements(image_path: Union[str, Path], 
-                           spore_objects: List[np.ndarray], 
-                           image_id: int = 0, 
-                           label_name: str = 'spore') -> Tuple[ET.Element, ET.Element]:
-    """Legacy function for CVAT export."""
-    exporter = CVATExporter(label_name)
-    return exporter.export_image_elements(image_path, spore_objects, image_id)
-
-
-def indent_xml(elem: ET.Element, level: int = 0) -> None:
-    """Legacy function for XML indentation."""
-    XMLFormatter.indent_xml(elem, level) 
