@@ -84,25 +84,42 @@ class SporeAnalysisPipeline:
             image = io_utils.ImageLoader.load_image(image_path)
             metadata = io_utils.MetadataLoader.load_metadata(xml_path)
             
-            # Process image
+            # Process image (instantiate pipeline with debug path to emit all debug artifacts)
             params = self.get_parameters()
-            spore_objects = self.detection_pipeline.detect_spores(image, **params)
+            debug_base = Path(self.results_dir) / Path(image_path).stem
+            detection_pipeline = SporeDetectionPipeline(debug_path=str(debug_base))
+            spore_objects = detection_pipeline.detect_spores(image, **params)
             
             # Count spores and calculate titer
             count = spores.count_spores(spore_objects)
             titer_value = self.titer_calculator.calculate_titer(count)
             
-            # Save debug images if requested
+            # Save final overlay debug image
             if debug_prefix:
                 debug_path = str(debug_prefix) + '_debug'
                 image_proc.save_debug_image(image, spore_objects, debug_path)
+
+            # Collect available debug images for convenience
+            debug_candidates = [
+                f"{debug_base}_blur.jpg",
+                f"{debug_base}_clahe.jpg",
+                f"{debug_base}_edges.jpg",
+                f"{debug_base}_edges_morph.jpg",
+                f"{debug_base}_edges_nolines.jpg",
+                f"{debug_base}_edges_close.jpg",
+                f"{debug_base}_ellipses.jpg",
+                f"{debug_base}_debug.jpg",
+            ]
+            debug_images = [str(p) for p in map(Path, debug_candidates) if Path(p).exists()]
             
             return {
                 'image': image,
                 'spore_objects': spore_objects,
                 'count': count,
                 'titer': titer_value,
-                'metadata': metadata
+                'metadata': metadata,
+                'image_path': image_path,
+                'debug_images': debug_images
             }
             
         except Exception as e:

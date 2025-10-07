@@ -79,10 +79,15 @@ class MarkdownReporter:
     def _generate_image_report_content(self, 
                                      image_name: str, 
                                      count: int, 
-                                     titer_value: float) -> str:
+                                     titer_value: float,
+                                     debug_images: Optional[List[str]] = None) -> str:
         """Generate the content for an image report."""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
+        debug_section = ""
+        if debug_images:
+            debug_lines = "\n".join(f"- {Path(p).name}: {p}" for p in debug_images)
+            debug_section = f"\n## Debug Images\n\n{debug_lines}\n"
         return f"""# Bee Spore Analysis Report
 
 **Image:** {image_name}  
@@ -98,6 +103,7 @@ class MarkdownReporter:
 - **Method:** Goryaev Chamber
 - **Detection Algorithm:** Computer Vision with Ellipse Fitting
 
+{debug_section}
 """
     
     def write_group_report(self, 
@@ -352,7 +358,7 @@ class ReportManager:
             excel_path = self.excel_reporter.export_results(groups_results)
             reports['excel'] = excel_path
             
-            # Generate individual image reports if provided
+            # Generate individual image reports if provided (include debug links if present)
             if image_results:
                 image_reports = {}
                 for image_path, result in image_results.items():
@@ -361,7 +367,14 @@ class ReportManager:
                         result['count'], 
                         result['titer']
                     )
-                    image_reports[image_path] = report_path
+                    # Attach debug images if available
+                    if 'debug_images' in result and result['debug_images']:
+                        image_reports[image_path] = {
+                            'report': report_path,
+                            'debug_images': result['debug_images']
+                        }
+                    else:
+                        image_reports[image_path] = {'report': report_path}
                 reports['individual_reports'] = image_reports
             
             # Generate group reports

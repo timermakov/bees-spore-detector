@@ -311,9 +311,6 @@ def load_config_context(config_path: Union[str, Path]):
         pass
 
 
-
-
-
 def create_config_manager(config_path: Union[str, Path]) -> ConfigurationManager:
     """
     Create a ConfigurationManager for the given config file.
