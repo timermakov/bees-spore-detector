@@ -92,8 +92,20 @@ class SporeAnalysisPipeline:
             detection_pipeline = SporeDetectionPipeline(debug_path=str(debug_base))
             spore_objects = detection_pipeline.detect_spores(image, **params)
             
-            # Count spores and calculate titer
-            count = spores.count_spores(spore_objects)
+            # Count spores and calculate titer (use inside square when configured)
+            try:
+                square_size = int(self.config_manager.get_int_param('analysis_square_size'))
+            except Exception:
+                square_size = None
+            if square_size and square_size > 0:
+                # Determine inside/outside using image size
+                img_width, img_height = image.size
+                inside, outside = image_proc.count_spores_inside_outside(
+                    spore_objects, (img_width, img_height), square_size
+                )
+                count = inside
+            else:
+                count = spores.count_spores(spore_objects)
             titer_value = self.titer_calculator.calculate_titer(count)
             
             # Save final overlay debug image
@@ -122,7 +134,9 @@ class SporeAnalysisPipeline:
                 'titer': titer_value,
                 'metadata': metadata,
                 'image_path': image_path,
-                'debug_images': debug_images
+                'debug_images': debug_images,
+                'count_inside_square': inside if square_size and square_size > 0 else count,
+                'count_outside_square': outside if square_size and square_size > 0 else 0
             }
             
         except Exception as e:
