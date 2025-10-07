@@ -198,6 +198,8 @@ class ConfigurationManager:
             'canny_threshold2': 125,
             'min_spore_contour_length': 5,
             'intensity_threshold': 50,
+            'analysis_square_size': 780,
+            'analysis_square_line_width': 2,
         }
     
     def get_param(self, key: str, default: Optional[Any] = None) -> Any:

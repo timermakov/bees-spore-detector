@@ -62,6 +62,8 @@ class SporeAnalysisPipeline:
             'canny_threshold2': self.config_manager.get_int_param('canny_threshold2'),
             'min_spore_contour_length': self.config_manager.get_int_param('min_spore_contour_length'),
             'intensity_threshold': self.config_manager.get_int_param('intensity_threshold'),
+            'analysis_square_size': self.config_manager.get_int_param('analysis_square_size'),
+            'analysis_square_line_width': self.config_manager.get_int_param('analysis_square_line_width'),
         }
     
     def process_image(self, 
@@ -108,6 +110,7 @@ class SporeAnalysisPipeline:
                 f"{debug_base}_edges_nolines.jpg",
                 f"{debug_base}_edges_close.jpg",
                 f"{debug_base}_ellipses.jpg",
+                f"{debug_base}_analysis_overlay.jpg",
                 f"{debug_base}_debug.jpg",
             ]
             debug_images = [str(p) for p in map(Path, debug_candidates) if Path(p).exists()]

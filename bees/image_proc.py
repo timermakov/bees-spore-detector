@@ -437,7 +437,44 @@ class SporeDetectionPipeline:
             preprocessed, cleaned_edges, edges_strong, params
         )
         
+        self._save_analysis_overlay_if_enabled(preprocessed, spores, params)
+        
         return spores
+
+    def _save_analysis_overlay_if_enabled(self, 
+                                          preprocessed: np.ndarray, 
+                                          spores: List[np.ndarray], 
+                                          params: dict) -> None:
+        """Save colored overlay with analysis square when configured.
+        Draws green square, red ellipses for spores inside, blue outside.
+        """
+        try:
+            square_raw = params.get('analysis_square_size')
+            square_size = int(square_raw) if square_raw is not None else 0
+        except Exception:
+            square_size = 0
+        if square_size <= 0:
+            return
+        overlay = cv2.cvtColor(preprocessed, cv2.COLOR_GRAY2BGR)
+        h, w = preprocessed.shape[:2]
+        cx, cy = w // 2, h // 2
+        half = square_size // 2
+        x1, y1 = max(0, cx - half), max(0, cy - half)
+        x2, y2 = min(w - 1, cx + half), min(h - 1, cy + half)
+        line_width = int(params.get('analysis_square_line_width', 2))
+        cv2.rectangle(overlay, (x1, y1), (x2, y2), (0, 255, 0), line_width)
+        for cnt in spores:
+            if len(cnt) < 5:
+                continue
+            ellipse = cv2.fitEllipse(cnt)
+            (ex, ey), _, _ = ellipse
+            color = (0, 0, 255) if (x1 <= ex <= x2 and y1 <= ey <= y2) else (255, 0, 0)
+            cv2.ellipse(overlay, ellipse, color, 2)
+        if self.debug_path:
+            try:
+                cv2.imwrite(f"{self.debug_path}_analysis_overlay.jpg", overlay)
+            except Exception:
+                pass
 
  
 
