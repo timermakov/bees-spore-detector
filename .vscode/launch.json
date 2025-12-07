@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python Debugger: Python File",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "args": [
+        "-c",
+        "config.yaml",
+        "-d",
+        "dataset1",
+        "-o",
+        "results1",
+        "--export-cvat-zip"
+      ],
+      "env": { "PYTHONPATH": "${workspaceRoot}" }
+    }
+  ]
+}

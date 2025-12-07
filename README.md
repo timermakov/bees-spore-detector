@@ -93,6 +93,12 @@ canny_threshold1: 40
 canny_threshold2: 125
 min_spore_contour_length: 5
 intensity_threshold: 50
+
+# Параметры зоны анализа (зелёный квадрат)
+# Размер квадрата в пикселях
+analysis_square_size: 780
+# Толщина линии квадрата в пикселях
+analysis_square_line_width: 2
 ```
 
 ## Usage

@@ -17,3 +17,9 @@ canny_threshold2: 120
 min_spore_contour_length: 7
 # Порог по интенсивности: насколько средняя яркость внутри эллипса может отличаться от фона
 intensity_threshold: 36
+
+# Параметры зоны анализа (зелёный квадрат)
+# Размер квадрата в пикселях
+analysis_square_size: 780
+# Толщина линии квадрата в пикселях
+analysis_square_line_width: 2
