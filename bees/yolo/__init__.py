@@ -11,6 +11,7 @@ from .dataset import DatasetPreparer
 from .trainer import SporeTrainer
 from .detector import SporeDetector
 from .counter import SporeCounter
+from .pseudo_label import PseudoLabeler, pseudo_label_images
 
 __all__ = [
     'YOLOConfig',
@@ -19,4 +20,6 @@ __all__ = [
     'SporeTrainer',
     'SporeDetector',
     'SporeCounter',
+    'PseudoLabeler',
+    'pseudo_label_images',
 ]

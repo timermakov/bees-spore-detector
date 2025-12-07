@@ -23,7 +23,7 @@ from bees.titer import TiterCalculator
 
 # YOLO imports (optional)
 try:
-    from bees.yolo import YOLOConfig, SporeDetector, SporeCounter, SporeTrainer, DatasetPreparer
+    from bees.yolo import YOLOConfig, SporeDetector, SporeCounter, SporeTrainer, DatasetPreparer, PseudoLabeler
     YOLO_AVAILABLE = True
 except ImportError:
     YOLO_AVAILABLE = False
@@ -152,7 +152,7 @@ class SporeAnalysisPipeline:
             square_size = int(self.config_manager.get_int_param('analysis_square_size'))
         except Exception:
             square_size = None
-        
+    
         if square_size and square_size > 0:
             img_width, img_height = image.size
             inside, outside = image_proc.count_spores_inside_outside(
@@ -161,8 +161,8 @@ class SporeAnalysisPipeline:
             count = inside
         else:
             count = spores.count_spores(spore_objects)
-            inside, outside = count, 0
-        
+        inside, outside = count, 0
+    
         titer_value = self.titer_calculator.calculate_titer(count)
         
         if debug_prefix:
@@ -190,10 +190,10 @@ class SporeAnalysisPipeline:
             'metadata': metadata,
             'image_path': image_path,
             'debug_images': debug_images,
-            'count_inside_square': inside,
-            'count_outside_square': outside,
-            'method': 'opencv'
-        }
+        'count_inside_square': inside,
+        'count_outside_square': outside,
+        'method': 'opencv'
+    }
     
     def _detections_to_contours(self, detections) -> List:
         """Convert YOLO detections to contour format for compatibility."""
@@ -488,8 +488,14 @@ class AnalysisRunner:
             logger.warning(f"Could not write parameters log: {e}")
 
 
-def train_yolo_model(config_path: str) -> int:
-    """Train YOLO model for spore detection."""
+def train_yolo_model(config_path: str, quick_test: bool = False) -> int:
+    """
+    Train YOLO model for spore detection.
+    
+    Args:
+        config_path: Path to config file
+        quick_test: If True, use reduced settings for fast testing (~15 min)
+    """
     if not YOLO_AVAILABLE:
         logger.error("YOLO module not available. Install ultralytics: pip install ultralytics")
         return 1
@@ -498,15 +504,18 @@ def train_yolo_model(config_path: str) -> int:
         config_manager = create_config_manager(config_path)
         yolo_config = YOLOConfig.from_config_manager(config_manager)
         
-        logger.info("Starting YOLO training pipeline...")
+        if quick_test:
+            logger.info("Starting YOLO QUICK TEST training (30 epochs, 640px)...")
+        else:
+            logger.info("Starting YOLO training pipeline...")
         
-        # Prepare dataset
+        # Prepare dataset with 75/25 split
         preparer = DatasetPreparer(yolo_config)
-        data_yaml = preparer.prepare_dataset()
+        data_yaml = preparer.prepare_dataset(val_split=0.4)  # 60/40 split for better validation
         
         # Train model
         trainer = SporeTrainer(yolo_config)
-        metrics = trainer.train(data_yaml)
+        metrics = trainer.train(data_yaml, quick_test=quick_test)
         
         # Export to OpenVINO
         logger.info("Exporting model to OpenVINO format...")
@@ -517,6 +526,60 @@ def train_yolo_model(config_path: str) -> int:
         
     except Exception as e:
         logger.error(f"Training failed: {e}")
+        return 1
+
+
+def pseudo_label(config_path: str, source_dir: str, output_dir: str = "pseudo_labels", confidence: float = 0.5, max_det: int = 1000) -> int:
+    """Generate pseudo-labels for unlabeled images using trained model."""
+    if not YOLO_AVAILABLE:
+        logger.error("YOLO module not available")
+        return 1
+    
+    try:
+        config_manager = create_config_manager(config_path)
+        yolo_config = YOLOConfig.from_config_manager(config_manager)
+        
+        logger.info(f"Generating pseudo-labels from {source_dir}")
+        logger.info(f"Confidence threshold: {confidence}, max_det: {max_det}")
+        
+        labeler = PseudoLabeler(yolo_config)
+        stats = labeler.generate_labels(
+            Path(source_dir),
+            Path(output_dir),
+            confidence=confidence,
+            max_det=max_det
+        )
+        
+        logger.info(f"Pseudo-labeling complete: {stats['images']} images, {stats['detections']} detections")
+        logger.info(f"Output saved to: {output_dir}")
+        logger.info("Review the labels, then merge with: --merge-pseudo")
+        return 0
+        
+    except Exception as e:
+        logger.error(f"Pseudo-labeling failed: {e}")
+        return 1
+
+
+def merge_pseudo_labels(config_path: str, pseudo_dir: str = "pseudo_labels") -> int:
+    """Merge verified pseudo-labels into training set."""
+    if not YOLO_AVAILABLE:
+        logger.error("YOLO module not available")
+        return 1
+    
+    try:
+        config_manager = create_config_manager(config_path)
+        yolo_config = YOLOConfig.from_config_manager(config_manager)
+        
+        logger.info(f"Merging pseudo-labels from {pseudo_dir}")
+        
+        labeler = PseudoLabeler(yolo_config)
+        stats = labeler.merge_with_training(Path(pseudo_dir))
+        
+        logger.info(f"Merge complete: {stats['added']} images added to training set")
+        return 0
+        
+    except Exception as e:
+        logger.error(f"Merge failed: {e}")
         return 1
 
 
@@ -539,6 +602,22 @@ def main():
                        help='Use YOLO-based detection instead of OpenCV')
     parser.add_argument('--train-yolo', action='store_true',
                        help='Train YOLO model on annotated data')
+    parser.add_argument('--quick-test', action='store_true',
+                       help='Quick training mode: 30 epochs, 640px images (~15 min on CPU)')
+    
+    # Pseudo-labeling arguments
+    parser.add_argument('--pseudo-label', action='store_true',
+                       help='Generate pseudo-labels for unlabeled images')
+    parser.add_argument('--pseudo-source', type=str, default='dataset_test',
+                       help='Source directory for pseudo-labeling (default: dataset_test)')
+    parser.add_argument('--pseudo-output', type=str, default='pseudo_labels',
+                       help='Output directory for pseudo-labels (default: pseudo_labels)')
+    parser.add_argument('--pseudo-conf', type=float, default=0.5,
+                       help='Confidence threshold for pseudo-labeling (default: 0.5)')
+    parser.add_argument('--pseudo-max-det', type=int, default=1000,
+                       help='Max detections per image for pseudo-labeling (default: 1000)')
+    parser.add_argument('--merge-pseudo', action='store_true',
+                       help='Merge pseudo-labels into training set')
     
     args = parser.parse_args()
     
@@ -546,9 +625,16 @@ def main():
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
     
+    # Handle pseudo-labeling
+    if args.pseudo_label:
+        return pseudo_label(args.config, args.pseudo_source, args.pseudo_output, args.pseudo_conf, args.pseudo_max_det)
+    
+    if args.merge_pseudo:
+        return merge_pseudo_labels(args.config, args.pseudo_output)
+    
     # Handle YOLO training mode
     if args.train_yolo:
-        return train_yolo_model(args.config)
+        return train_yolo_model(args.config, quick_test=args.quick_test)
     
     # Check YOLO availability
     if args.use_yolo and not YOLO_AVAILABLE:

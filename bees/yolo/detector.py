@@ -137,7 +137,8 @@ class SporeDetector:
     def detect(self, 
                image: Union[str, Path, Image.Image, np.ndarray],
                confidence: Optional[float] = None,
-               iou_threshold: Optional[float] = None) -> List[Detection]:
+               iou_threshold: Optional[float] = None,
+               max_det: int = 1000) -> List[Detection]:
         """
         Detect spores in image.
         
@@ -145,6 +146,7 @@ class SporeDetector:
             image: Image path, PIL Image, or numpy array
             confidence: Confidence threshold (uses config default if None)
             iou_threshold: IoU threshold for NMS (uses config default if None)
+            max_det: Maximum detections per image (default 1000)
             
         Returns:
             List of Detection objects
@@ -161,6 +163,7 @@ class SporeDetector:
             conf=conf,
             iou=iou,
             imgsz=self.config.imgsz,
+            max_det=max_det,
             verbose=False,
         )
         

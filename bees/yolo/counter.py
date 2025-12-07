@@ -142,7 +142,8 @@ class SporeCounter:
                   image: Union[str, Path, Image.Image, np.ndarray],
                   output_path: Optional[str] = None,
                   confidence: Optional[float] = None,
-                  line_width: int = 2) -> np.ndarray:
+                  line_width: int = 1,
+                  show_labels: bool = False) -> np.ndarray:
         """
         Visualize detections with analysis zone.
         
@@ -151,6 +152,7 @@ class SporeCounter:
             output_path: Optional path to save visualization
             confidence: Confidence threshold
             line_width: Line width for drawing
+            show_labels: Whether to show per-detection labels (disabled by default)
             
         Returns:
             Visualization as numpy array (BGR)
@@ -172,21 +174,18 @@ class SporeCounter:
         square_size = self.config.analysis_square_size
         if square_size > 0:
             x1, y1, x2, y2 = self._compute_zone_bounds(img_width, img_height, square_size)
-            cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), line_width)
+            cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), line_width + 1)
         
-        # Draw detections - red for inside, blue for outside
+        # Draw detections - red for inside, blue for outside (boxes only, no text)
         for det in inside_dets:
             x1, y1, x2, y2 = map(int, det.bbox)
             cv2.rectangle(img, (x1, y1), (x2, y2), (0, 0, 255), line_width)
-            # Draw confidence
-            label = f"{det.confidence:.2f}"
-            cv2.putText(img, label, (x1, y1 - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (0, 0, 255), 1)
         
         for det in outside_dets:
             x1, y1, x2, y2 = map(int, det.bbox)
             cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 0), line_width)
         
-        # Add count text
+        # Add summary count text at top
         text = f"Inside: {counts['inside']} | Outside: {counts['outside']} | Total: {counts['total']}"
         cv2.putText(img, text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
         

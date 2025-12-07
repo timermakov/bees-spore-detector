@@ -21,7 +21,7 @@ class YOLOConfig:
     
     # Training settings
     epochs: int = 100
-    batch_size: int = 8
+    batch_size: int = 4  # Reduced for CPU memory (1280px images)
     imgsz: int = 1280
     patience: int = 20
     
@@ -74,7 +74,7 @@ class YOLOConfig:
             confidence_threshold=config_manager.get_float_param('yolo_confidence', 0.25),
             iou_threshold=config_manager.get_float_param('yolo_iou_threshold', 0.45),
             epochs=config_manager.get_int_param('yolo_epochs', 100),
-            batch_size=config_manager.get_int_param('yolo_batch_size', 8),
+            batch_size=config_manager.get_int_param('yolo_batch_size', 4),
             imgsz=config_manager.get_int_param('yolo_imgsz', 1280),
             export_format=config_manager.get_param('yolo_export_format', 'openvino'),
             analysis_square_size=config_manager.get_int_param('analysis_square_size', 780),

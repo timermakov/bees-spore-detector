@@ -28,12 +28,12 @@ class SporeTrainer:
         self.model = None
         self.results = None
     
-    def prepare_data(self, val_split: float = 0.18) -> Path:
+    def prepare_data(self, val_split: float = 0.4) -> Path:
         """
         Prepare dataset for training.
         
         Args:
-            val_split: Validation split fraction
+            val_split: Validation split fraction (default 0.4 for 60/40 split)
             
         Returns:
             Path to data.yaml
@@ -43,17 +43,21 @@ class SporeTrainer:
     
     def train(self, 
               data_yaml: Optional[Path] = None,
-              resume: bool = False) -> Dict[str, Any]:
+              resume: bool = False,
+              quick_test: bool = False) -> Dict[str, Any]:
         """
         Train YOLO model on spore dataset.
         
         Args:
             data_yaml: Path to data.yaml (if None, prepares dataset first)
             resume: Whether to resume from last checkpoint
+            quick_test: If True, use reduced settings for fast testing (~15 min)
             
         Returns:
             Training results dict
         """
+        import platform
+        
         try:
             from ultralytics import YOLO
         except ImportError:
@@ -75,16 +79,32 @@ class SporeTrainer:
         preparer = DatasetPreparer(self.config)
         aug_config = preparer.get_augmentation_config()
         
+        # Quick test mode: reduced settings for ~15 min training
+        if quick_test:
+            epochs = 30
+            imgsz = 640  # 4x faster than 1280
+            batch_size = 16
+            patience = 0  # Disable early stopping - train all epochs
+            logger.info("QUICK TEST MODE: 30 epochs, 640px images, NO early stopping")
+        else:
+            epochs = self.config.epochs
+            imgsz = self.config.imgsz
+            batch_size = self.config.batch_size
+            patience = self.config.patience
+        
+        # Windows: use workers=0 to avoid multiprocessing issues
+        workers = 0 if platform.system() == 'Windows' else 4
+        
         # Train
-        logger.info(f"Starting training for {self.config.epochs} epochs")
-        logger.info(f"Image size: {self.config.imgsz}, Batch size: {self.config.batch_size}")
+        logger.info(f"Starting training for {epochs} epochs")
+        logger.info(f"Image size: {imgsz}, Batch size: {batch_size}, Workers: {workers}")
         
         self.results = self.model.train(
             data=str(data_yaml),
-            epochs=self.config.epochs,
-            imgsz=self.config.imgsz,
-            batch=self.config.batch_size,
-            patience=self.config.patience,
+            epochs=epochs,
+            imgsz=imgsz,
+            batch=batch_size,
+            patience=patience,
             project=str(self.config.models_dir),
             name="yolo11s_spores",
             exist_ok=True,
@@ -103,10 +123,14 @@ class SporeTrainer:
             scale=aug_config['scale'],
             fliplr=aug_config['fliplr'],
             flipud=aug_config['flipud'],
+            copy_paste=0.3,  # Copy-paste augmentation for small datasets
             # Device - auto-select best available
             device='0' if self._cuda_available() else 'cpu',
-            workers=4,
+            workers=workers,
             verbose=True,
+            # Disable text labels on visualizations (too cluttered with many detections)
+            show_labels=False,
+            show_conf=False,
         )
         
         logger.info("Training completed")

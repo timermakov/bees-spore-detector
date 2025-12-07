@@ -31,13 +31,13 @@ class DatasetPreparer:
         self.converter = CVATToYOLOConverter(config.class_names)
     
     def prepare_dataset(self, 
-                        val_split: float = 0.18,
+                        val_split: float = 0.4,
                         seed: int = 42) -> Path:
         """
         Prepare complete YOLO dataset from CVAT annotations.
         
         Args:
-            val_split: Fraction of data for validation (default 0.18 for ~2 images)
+            val_split: Fraction of data for validation (default 0.4 for 60/40 split)
             seed: Random seed for reproducibility
             
         Returns:
@@ -174,13 +174,13 @@ class DatasetPreparer:
         }
 
 
-def prepare_yolo_dataset(config: YOLOConfig, val_split: float = 0.18) -> Path:
+def prepare_yolo_dataset(config: YOLOConfig, val_split: float = 0.4) -> Path:
     """
     Convenience function to prepare YOLO dataset.
     
     Args:
         config: YOLOConfig instance
-        val_split: Validation split fraction
+        val_split: Validation split fraction (default 0.4 for 60/40 split)
         
     Returns:
         Path to data.yaml
