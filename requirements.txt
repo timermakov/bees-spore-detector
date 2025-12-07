@@ -1,5 +1,10 @@
+# Core dependencies
 Pillow
 numpy
 opencv-python
 PyYAML
 openpyxl
+
+# YOLO dependencies (for --use-yolo and --train-yolo)
+ultralytics>=8.3.0
+openvino>=2024.0

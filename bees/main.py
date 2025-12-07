@@ -21,6 +21,13 @@ from bees.reporting import ReportManager
 from bees.image_proc import SporeDetectionPipeline
 from bees.titer import TiterCalculator
 
+# YOLO imports (optional)
+try:
+    from bees.yolo import YOLOConfig, SporeDetector, SporeCounter, SporeTrainer, DatasetPreparer
+    YOLO_AVAILABLE = True
+except ImportError:
+    YOLO_AVAILABLE = False
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -32,7 +39,7 @@ logger = logging.getLogger(__name__)
 class SporeAnalysisPipeline:
     """Main pipeline for spore analysis."""
     
-    def __init__(self, config_manager, data_dir: str, results_dir: str):
+    def __init__(self, config_manager, data_dir: str, results_dir: str, use_yolo: bool = False):
         """
         Initialize the analysis pipeline.
         
@@ -40,12 +47,21 @@ class SporeAnalysisPipeline:
             config_manager: Configuration manager instance
             data_dir: Directory containing input images
             results_dir: Directory for output results
+            use_yolo: Whether to use YOLO-based detection
         """
         self.config_manager = config_manager
         self.data_dir = Path(data_dir)
         self.results_dir = Path(results_dir)
+        self.use_yolo = use_yolo and YOLO_AVAILABLE
         self.detection_pipeline = SporeDetectionPipeline()
         self.titer_calculator = TiterCalculator()
+        
+        # Initialize YOLO components if requested
+        self.yolo_counter = None
+        if self.use_yolo:
+            yolo_config = YOLOConfig.from_config_manager(config_manager)
+            self.yolo_counter = SporeCounter(yolo_config)
+            logger.info("Using YOLO-based spore detection")
         
         # Ensure directories exist
         self.data_dir.mkdir(parents=True, exist_ok=True)
@@ -86,62 +102,113 @@ class SporeAnalysisPipeline:
             image = io_utils.ImageLoader.load_image(image_path)
             metadata = io_utils.MetadataLoader.load_metadata(xml_path)
             
-            # Process image (instantiate pipeline with debug path to emit all debug artifacts)
-            params = self.get_parameters()
             debug_base = Path(self.results_dir) / Path(image_path).stem
-            detection_pipeline = SporeDetectionPipeline(debug_path=str(debug_base))
-            spore_objects = detection_pipeline.detect_spores(image, **params)
             
-            # Count spores and calculate titer (use inside square when configured)
-            try:
-                square_size = int(self.config_manager.get_int_param('analysis_square_size'))
-            except Exception:
-                square_size = None
-            if square_size and square_size > 0:
-                # Determine inside/outside using image size
-                img_width, img_height = image.size
-                inside, outside = image_proc.count_spores_inside_outside(
-                    spore_objects, (img_width, img_height), square_size
-                )
-                count = inside
+            # Use YOLO or OpenCV pipeline based on configuration
+            if self.use_yolo and self.yolo_counter:
+                return self._process_image_yolo(image_path, image, metadata, debug_base)
             else:
-                count = spores.count_spores(spore_objects)
-            titer_value = self.titer_calculator.calculate_titer(count)
-            
-            # Save final overlay debug image
-            if debug_prefix:
-                debug_path = str(debug_prefix) + '_debug'
-                image_proc.save_debug_image(image, spore_objects, debug_path)
-
-            # Collect available debug images for convenience
-            debug_candidates = [
-                f"{debug_base}_blur.jpg",
-                f"{debug_base}_clahe.jpg",
-                f"{debug_base}_edges.jpg",
-                f"{debug_base}_edges_morph.jpg",
-                f"{debug_base}_edges_nolines.jpg",
-                f"{debug_base}_edges_close.jpg",
-                f"{debug_base}_ellipses.jpg",
-                f"{debug_base}_analysis_overlay.jpg",
-                f"{debug_base}_debug.jpg",
-            ]
-            debug_images = [str(p) for p in map(Path, debug_candidates) if Path(p).exists()]
-            
-            return {
-                'image': image,
-                'spore_objects': spore_objects,
-                'count': count,
-                'titer': titer_value,
-                'metadata': metadata,
-                'image_path': image_path,
-                'debug_images': debug_images,
-                'count_inside_square': inside if square_size and square_size > 0 else count,
-                'count_outside_square': outside if square_size and square_size > 0 else 0
-            }
+                return self._process_image_opencv(image_path, image, metadata, debug_base, debug_prefix)
             
         except Exception as e:
             logger.error(f"Failed to process image {image_path}: {e}")
             raise
+    
+    def _process_image_yolo(self, image_path: str, image, metadata, debug_base: Path) -> Dict[str, any]:
+        """Process image using YOLO detector."""
+        counts, inside_dets, outside_dets = self.yolo_counter.count_with_detections(image_path)
+        
+        count = counts['inside']
+        titer_value = self.titer_calculator.calculate_titer(count)
+        
+        # Save visualization
+        vis_path = str(debug_base) + "_yolo_detections.jpg"
+        self.yolo_counter.visualize(image_path, vis_path)
+        
+        # Convert detections to contour-like format for compatibility
+        spore_objects = self._detections_to_contours(inside_dets + outside_dets)
+        
+        return {
+            'image': image,
+            'spore_objects': spore_objects,
+            'count': count,
+            'titer': titer_value,
+            'metadata': metadata,
+            'image_path': image_path,
+            'debug_images': [vis_path] if Path(vis_path).exists() else [],
+            'count_inside_square': counts['inside'],
+            'count_outside_square': counts['outside'],
+            'method': 'yolo'
+        }
+    
+    def _process_image_opencv(self, image_path: str, image, metadata, 
+                               debug_base: Path, debug_prefix: Optional[str]) -> Dict[str, any]:
+        """Process image using OpenCV pipeline."""
+        params = self.get_parameters()
+        detection_pipeline = SporeDetectionPipeline(debug_path=str(debug_base))
+        spore_objects = detection_pipeline.detect_spores(image, **params)
+        
+        try:
+            square_size = int(self.config_manager.get_int_param('analysis_square_size'))
+        except Exception:
+            square_size = None
+        
+        if square_size and square_size > 0:
+            img_width, img_height = image.size
+            inside, outside = image_proc.count_spores_inside_outside(
+                spore_objects, (img_width, img_height), square_size
+            )
+            count = inside
+        else:
+            count = spores.count_spores(spore_objects)
+            inside, outside = count, 0
+        
+        titer_value = self.titer_calculator.calculate_titer(count)
+        
+        if debug_prefix:
+            debug_path = str(debug_prefix) + '_debug'
+            image_proc.save_debug_image(image, spore_objects, debug_path)
+
+        debug_candidates = [
+            f"{debug_base}_blur.jpg",
+            f"{debug_base}_clahe.jpg",
+            f"{debug_base}_edges.jpg",
+            f"{debug_base}_edges_morph.jpg",
+            f"{debug_base}_edges_nolines.jpg",
+            f"{debug_base}_edges_close.jpg",
+            f"{debug_base}_ellipses.jpg",
+            f"{debug_base}_analysis_overlay.jpg",
+            f"{debug_base}_debug.jpg",
+        ]
+        debug_images = [str(p) for p in map(Path, debug_candidates) if Path(p).exists()]
+        
+        return {
+            'image': image,
+            'spore_objects': spore_objects,
+            'count': count,
+            'titer': titer_value,
+            'metadata': metadata,
+            'image_path': image_path,
+            'debug_images': debug_images,
+            'count_inside_square': inside,
+            'count_outside_square': outside,
+            'method': 'opencv'
+        }
+    
+    def _detections_to_contours(self, detections) -> List:
+        """Convert YOLO detections to contour format for compatibility."""
+        import numpy as np
+        contours = []
+        for det in detections:
+            x1, y1, x2, y2 = det.bbox
+            contour = np.array([
+                [[int(x1), int(y1)]],
+                [[int(x2), int(y1)]],
+                [[int(x2), int(y2)]],
+                [[int(x1), int(y2)]]
+            ], dtype=np.int32)
+            contours.append(contour)
+        return contours
     
     def process_group(self, 
                      group_prefix: str, 
@@ -302,7 +369,7 @@ class AnalysisRunner:
     """Main runner class for the analysis pipeline."""
     
     def __init__(self, config_path: str, data_dir: Optional[str] = None, 
-                 results_dir: Optional[str] = None):
+                 results_dir: Optional[str] = None, use_yolo: bool = False):
         """
         Initialize the analysis runner.
         
@@ -310,9 +377,11 @@ class AnalysisRunner:
             config_path: Path to configuration file
             data_dir: Optional override for data directory
             results_dir: Optional override for results directory
+            use_yolo: Whether to use YOLO-based detection
         """
         self.config_path = Path(config_path)
         self.config_manager = create_config_manager(config_path)
+        self.use_yolo = use_yolo
         
         # Get directories
         self.data_dir = data_dir or self.config_manager.get_param('data_dir')
@@ -320,7 +389,7 @@ class AnalysisRunner:
         
         # Create pipeline
         self.pipeline = SporeAnalysisPipeline(
-            self.config_manager, self.data_dir, self.results_dir
+            self.config_manager, self.data_dir, self.results_dir, use_yolo=use_yolo
         )
         
         # Create exporters
@@ -419,6 +488,38 @@ class AnalysisRunner:
             logger.warning(f"Could not write parameters log: {e}")
 
 
+def train_yolo_model(config_path: str) -> int:
+    """Train YOLO model for spore detection."""
+    if not YOLO_AVAILABLE:
+        logger.error("YOLO module not available. Install ultralytics: pip install ultralytics")
+        return 1
+    
+    try:
+        config_manager = create_config_manager(config_path)
+        yolo_config = YOLOConfig.from_config_manager(config_manager)
+        
+        logger.info("Starting YOLO training pipeline...")
+        
+        # Prepare dataset
+        preparer = DatasetPreparer(yolo_config)
+        data_yaml = preparer.prepare_dataset()
+        
+        # Train model
+        trainer = SporeTrainer(yolo_config)
+        metrics = trainer.train(data_yaml)
+        
+        # Export to OpenVINO
+        logger.info("Exporting model to OpenVINO format...")
+        trainer.export_model()
+        
+        logger.info(f"Training complete. Metrics: {metrics}")
+        return 0
+        
+    except Exception as e:
+        logger.error(f"Training failed: {e}")
+        return 1
+
+
 def main():
     """Main entry point for the command-line interface."""
     parser = argparse.ArgumentParser(description='Bees Spore Counter CLI')
@@ -433,19 +534,35 @@ def main():
     parser.add_argument('--verbose', '-v', action='store_true', 
                        help='Enable verbose logging')
     
+    # YOLO arguments
+    parser.add_argument('--use-yolo', action='store_true',
+                       help='Use YOLO-based detection instead of OpenCV')
+    parser.add_argument('--train-yolo', action='store_true',
+                       help='Train YOLO model on annotated data')
+    
     args = parser.parse_args()
     
     # Set logging level
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
     
+    # Handle YOLO training mode
+    if args.train_yolo:
+        return train_yolo_model(args.config)
+    
+    # Check YOLO availability
+    if args.use_yolo and not YOLO_AVAILABLE:
+        logger.warning("YOLO not available, falling back to OpenCV. Install: pip install ultralytics")
+        args.use_yolo = False
+    
     try:
         # Create and run analysis
-        runner = AnalysisRunner(args.config, args.data, args.output)
+        runner = AnalysisRunner(args.config, args.data, args.output, use_yolo=args.use_yolo)
         results = runner.run(export_cvat=args.export_cvat_zip)
         
         # Print summary
-        print("\n===== Analysis Summary =====")
+        method = "YOLO" if args.use_yolo else "OpenCV"
+        print(f"\n===== Analysis Summary ({method}) =====")
         print(f"Processed {len(results['groups_results'])} groups")
         print(f"Reports generated: {len(results['reports'])}")
         if 'cvat' in results['reports']:

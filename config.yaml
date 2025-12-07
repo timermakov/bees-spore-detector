@@ -23,3 +23,19 @@ intensity_threshold: 36
 analysis_square_size: 780
 # Толщина линии квадрата в пикселях
 analysis_square_line_width: 2
+
+# ========== YOLO Configuration ==========
+# Модель YOLO11-S (оптимизирована для Intel Iris Xe)
+yolo_model: yolo11s.pt
+# Порог уверенности детекции [0-1]
+yolo_confidence: 0.25
+# Порог IoU для NMS [0-1]
+yolo_iou_threshold: 0.45
+# Формат экспорта модели (openvino для Intel GPU, onnx для CPU)
+yolo_export_format: openvino
+# Количество эпох обучения
+yolo_epochs: 100
+# Размер батча (уменьшить при нехватке памяти)
+yolo_batch_size: 8
+# Размер изображения для обучения/инференса (больше = точнее, но медленнее)
+yolo_imgsz: 1280
