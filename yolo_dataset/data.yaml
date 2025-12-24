@@ -1,0 +1,6 @@
+names:
+  0: spore
+nc: 1
+path: C:\Users\admin\Documents\Bees\yolo_dataset
+train: C:\Users\admin\Documents\Bees\yolo_dataset\train\images
+val: C:\Users\admin\Documents\Bees\yolo_dataset\val\images

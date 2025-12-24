@@ -300,3 +300,118 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Initial implementation
 - Basic spore detection
 - Simple reporting
+
+
+## Commands to train
+### default
+python -m bees.main --train-yolo
+### quick test
+python -m bees.main --train-yolo --quick-test
+
+## Commands to predict
+yolo predict model="models\yolo11s_spores\weights\best.pt" source="dataset_test" imgsz=1280 conf=0.25 save=True project="results" name="test_predictions"
+
+### do not show text and confidence on image - too many overlays
+yolo predict model="models\yolo11s_spores\weights\best.pt" source="dataset_test" imgsz=1280 conf=0.25 save=True project="results" name="clean_predictions" show_labels=False show_conf=False
+
+
+
+## Commands to Run
+1. Test on dataset_test/ (clean, no labels):
+```yolo predict model="models\yolo11s_spores\weights\best.pt" source="dataset_test" imgsz=1280 conf=0.25 save=True project="results" name="test_v2" show_labels=False show_conf=False```
+
+2. Test using OpenVINO (faster on Intel Iris Xe):
+```yolo predict model="models\yolo11s_spores\weights\best_openvino_model" source="dataset_test" imgsz=1280 conf=0.25 save=True project="results" name="test_openvino" show_labels=False show_conf=False```
+
+3. Run full pipeline with YOLO:
+```python -m bees.main --use-yolo -d dataset_test```
+
+4. Validate model metrics:
+```yolo val model="models\yolo11s_spores\weights\best.pt" data="yolo_dataset\data.yaml" imgsz=1280```
+
+Note: Still at 45.8% mAP (target 90%). To improve further:
+Need more labeled training data
+Or run full training with 1280px images (currently 640px quick test)
+
+
+
+
+Good ideas! Let me implement both:
+
+1. **60/40 split** = 6-7 train, 4-5 val images → more representative validation
+2. **Pseudo-labeling** = use current model to label `dataset_test/` images → expand training data
+
+[2 tools called]
+
+Now let me create the pseudo-labeling script:
+
+[10 tools called]
+
+Done! Here's what I implemented:
+
+---
+
+## Changes Made
+
+### 1. Train/Val Split Changed to 60/40
+- With 11 images: **6-7 train**, **4-5 val**
+- More representative validation metrics
+
+### 2. Pseudo-Labeling System
+New commands added to expand dataset:
+
+---
+
+## Commands
+
+### Step 1: Retrain with 60/40 split
+```powershell
+# Clean old dataset first
+Remove-Item -Recurse -Force yolo_dataset
+
+# Train with new split
+python -m bees.main --train-yolo --quick-test
+```
+
+### Step 2: Generate pseudo-labels from test images
+```powershell
+# Uses trained model to label dataset_test/ images
+python -m bees.main --pseudo-label --pseudo-source dataset_test --pseudo-conf 0.5
+```
+
+This creates `pseudo_labels/` with:
+- `images/` - copied test images  
+- `labels/` - YOLO format labels (model predictions)
+
+### Step 3: Review pseudo-labels
+Open `pseudo_labels/labels/` and review the `.txt` files. Delete or edit incorrect ones.
+
+### Step 4: Merge verified pseudo-labels into training
+```powershell
+python -m bees.main --merge-pseudo
+```
+
+### Step 5: Retrain with expanded dataset
+```powershell
+python -m bees.main --train-yolo --quick-test
+```
+
+---
+
+## Workflow Summary
+
+```
+11 labeled images (60/40 split)
+        ↓
+   Train model
+        ↓
+   Pseudo-label 25 test images
+        ↓
+   Review & verify predictions
+        ↓
+   Merge verified labels
+        ↓
+   Retrain with 11 + N images
+        ↓
+   Better accuracy!
+```
