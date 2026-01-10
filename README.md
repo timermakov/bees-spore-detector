@@ -303,10 +303,37 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 
 ## Commands to train
-### default
+
+### Default (auto-detects Nvidia GPU)
+The training process automatically detects and uses the first available Nvidia GPU. If no Nvidia GPU is found, it falls back to CPU.
+
+```bash
 python -m bees.main --train-yolo
-### quick test
+```
+
+### Quick test (auto-detects Nvidia GPU)
+```bash
 python -m bees.main --train-yolo --quick-test
+```
+
+### Manual device specification
+To manually specify a CUDA device, add the `device` parameter to your `config.yaml`:
+
+```yaml
+# In config.yaml, add:
+yolo_device: "cuda:0"  # Use first CUDA device
+# or
+yolo_device: "cuda:1"  # Use second CUDA device
+# or
+yolo_device: "cpu"     # Force CPU usage
+```
+
+Then run training as usual:
+```bash
+python -m bees.main --train-yolo
+```
+
+**Note**: The training system automatically detects Nvidia GPUs and skips Intel integrated graphics. You only need to manually specify the device if you want to use a specific GPU or force CPU usage.
 
 ## Commands to predict
 yolo predict model="models\yolo11s_spores\weights\best.pt" source="dataset_test" imgsz=1280 conf=0.25 save=True project="results" name="test_predictions"
@@ -320,8 +347,6 @@ yolo predict model="models\yolo11s_spores\weights\best.pt" source="dataset_test"
 1. Test on dataset_test/ (clean, no labels):
 ```yolo predict model="models\yolo11s_spores\weights\best.pt" source="dataset_test" imgsz=1280 conf=0.25 save=True project="results" name="test_v2" show_labels=False show_conf=False```
 
-2. Test using OpenVINO (faster on Intel Iris Xe):
-```yolo predict model="models\yolo11s_spores\weights\best_openvino_model" source="dataset_test" imgsz=1280 conf=0.25 save=True project="results" name="test_openvino" show_labels=False show_conf=False```
 
 3. Run full pipeline with YOLO:
 ```python -m bees.main --use-yolo -d dataset_test```

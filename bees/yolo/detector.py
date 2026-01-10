@@ -1,5 +1,5 @@
 """
-YOLO spore detector with OpenVINO optimization for Intel Iris Xe.
+YOLO spore detector using PyTorch with CUDA support.
 """
 
 from pathlib import Path
@@ -73,18 +73,16 @@ class Detection:
 
 
 class SporeDetector:
-    """YOLO-based spore detector optimized for Intel Iris Xe."""
+    """YOLO-based spore detector using PyTorch with CUDA support."""
     
-    def __init__(self, config: YOLOConfig, use_openvino: bool = True):
+    def __init__(self, config: YOLOConfig):
         """
         Initialize detector.
         
         Args:
             config: YOLOConfig instance
-            use_openvino: Whether to use OpenVINO backend (recommended for Iris Xe)
         """
         self.config = config
-        self.use_openvino = use_openvino
         self.model = None
         self._load_model()
     
@@ -95,44 +93,16 @@ class SporeDetector:
         except ImportError:
             raise ImportError("ultralytics package required. Install with: pip install ultralytics")
         
-        # Try OpenVINO model first if available
-        openvino_path = self.config.get_exported_model_path()
+        # Load trained PyTorch model if available
         pt_path = self.config.get_trained_model_path()
         
-        if self.use_openvino and openvino_path.exists():
-            logger.info(f"Loading OpenVINO model from {openvino_path}")
-            self.model = YOLO(str(openvino_path))
-        elif pt_path.exists():
+        if pt_path.exists():
             logger.info(f"Loading PyTorch model from {pt_path}")
             self.model = YOLO(str(pt_path))
-            
-            # Export to OpenVINO if requested
-            if self.use_openvino:
-                logger.info("Exporting to OpenVINO format...")
-                self._export_openvino()
         else:
             # Use pretrained model for testing
             logger.warning(f"Trained model not found, using pretrained {self.config.model_name}")
             self.model = YOLO(self.config.model_name)
-    
-    def _export_openvino(self):
-        """Export model to OpenVINO format."""
-        if self.model is None:
-            return
-        
-        try:
-            export_path = self.model.export(
-                format='openvino',
-                imgsz=self.config.imgsz,
-                half=self.config.half_precision,
-            )
-            logger.info(f"OpenVINO model exported to: {export_path}")
-            
-            # Reload with OpenVINO
-            from ultralytics import YOLO
-            self.model = YOLO(export_path)
-        except Exception as e:
-            logger.warning(f"OpenVINO export failed: {e}. Using PyTorch backend.")
     
     def detect(self, 
                image: Union[str, Path, Image.Image, np.ndarray],

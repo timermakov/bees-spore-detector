@@ -517,10 +517,6 @@ def train_yolo_model(config_path: str, quick_test: bool = False) -> int:
         trainer = SporeTrainer(yolo_config)
         metrics = trainer.train(data_yaml, quick_test=quick_test)
         
-        # Export to OpenVINO
-        logger.info("Exporting model to OpenVINO format...")
-        trainer.export_model()
-        
         logger.info(f"Training complete. Metrics: {metrics}")
         return 0
         
