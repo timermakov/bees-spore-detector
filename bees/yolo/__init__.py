@@ -2,7 +2,7 @@
 YOLO-based spore detection module.
 
 Provides YOLO11-S model training, inference, and counting functionality
-optimized for Intel Iris Xe with OpenVINO.
+using PyTorch with CUDA support.
 """
 
 from .config import YOLOConfig

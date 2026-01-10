@@ -95,6 +95,14 @@ class SporeTrainer:
         # Windows: use workers=0 to avoid multiprocessing issues
         workers = 0 if platform.system() == 'Windows' else 4
         
+        # Device selection: use config device if specified, otherwise auto-detect Nvidia GPU
+        if self.config.device is not None:
+            device = self.config.device
+            logger.info(f"Using manually specified device: {device}")
+        else:
+            device = self._get_nvidia_gpu() or 'cpu'
+            logger.info(f"Auto-selected device: {device}")
+        
         # Train
         logger.info(f"Starting training for {epochs} epochs")
         logger.info(f"Image size: {imgsz}, Batch size: {batch_size}, Workers: {workers}")
@@ -124,8 +132,8 @@ class SporeTrainer:
             fliplr=aug_config['fliplr'],
             flipud=aug_config['flipud'],
             copy_paste=0.3,  # Copy-paste augmentation for small datasets
-            # Device - auto-select best available
-            device='0' if self._cuda_available() else 'cpu',
+            # Device - auto-select Nvidia GPU or use CPU
+            device=device,
             workers=workers,
             verbose=True,
             # Disable text labels on visualizations (too cluttered with many detections)
@@ -136,13 +144,35 @@ class SporeTrainer:
         logger.info("Training completed")
         return self._get_metrics()
     
-    def _cuda_available(self) -> bool:
-        """Check if CUDA is available."""
+    def _get_nvidia_gpu(self) -> Optional[str]:
+        """
+        Detect and return the first available Nvidia GPU device ID.
+        
+        Returns:
+            Device ID string (e.g., '0', '1') if Nvidia GPU found, None otherwise
+        """
         try:
             import torch
-            return torch.cuda.is_available()
+            if not torch.cuda.is_available():
+                return None
+            
+            # Check each CUDA device for Nvidia GPUs
+            device_count = torch.cuda.device_count()
+            for device_id in range(device_count):
+                device_name = torch.cuda.get_device_name(device_id)
+                # Check if device name contains "NVIDIA" (case-insensitive)
+                if "nvidia" in device_name.lower():
+                    logger.info(f"Found Nvidia GPU: {device_name} (device {device_id})")
+                    return str(device_id)
+            
+            # No Nvidia GPU found
+            logger.info("No Nvidia GPU detected, will use CPU")
+            return None
         except ImportError:
-            return False
+            return None
+        except Exception as e:
+            logger.warning(f"Error detecting Nvidia GPU: {e}, falling back to CPU")
+            return None
     
     def _get_metrics(self) -> Dict[str, Any]:
         """Extract metrics from training results."""
@@ -203,39 +233,6 @@ class SporeTrainer:
             'recall': float(results.box.mr),
         }
     
-    def export_model(self, format: Optional[str] = None) -> Path:
-        """
-        Export trained model to specified format.
-        
-        Args:
-            format: Export format (openvino, onnx, etc.)
-            
-        Returns:
-            Path to exported model
-        """
-        try:
-            from ultralytics import YOLO
-        except ImportError:
-            raise ImportError("ultralytics package required")
-        
-        format = format or self.config.export_format
-        model_path = self.config.get_trained_model_path()
-        
-        if not model_path.exists():
-            raise FileNotFoundError(f"Model not found: {model_path}")
-        
-        model = YOLO(str(model_path))
-        
-        logger.info(f"Exporting model to {format} format")
-        
-        export_path = model.export(
-            format=format,
-            imgsz=self.config.imgsz,
-            half=self.config.half_precision,
-        )
-        
-        logger.info(f"Model exported to: {export_path}")
-        return Path(export_path)
 
 
 def train_spore_model(config: YOLOConfig) -> Dict[str, Any]:

@@ -24,6 +24,7 @@ class YOLOConfig:
     batch_size: int = 4  # Reduced for CPU memory (1280px images)
     imgsz: int = 1280
     patience: int = 20
+    device: Optional[str] = None  # Device for training (None = auto-detect Nvidia GPU, 'cpu', 'cuda:0', etc.)
     
     # Data paths
     annotations_path: Path = field(default_factory=lambda: Path("annotations.xml"))
@@ -32,9 +33,8 @@ class YOLOConfig:
     output_dir: Path = field(default_factory=lambda: Path("yolo_dataset"))
     models_dir: Path = field(default_factory=lambda: Path("models"))
     
-    # Export settings
-    export_format: str = "openvino"
-    half_precision: bool = False  # FP32 for Iris Xe
+    # Export settings (not used - models stay in PyTorch format)
+    half_precision: bool = False  # FP32 precision
     
     # Augmentation settings
     mosaic: float = 1.0
@@ -76,19 +76,14 @@ class YOLOConfig:
             epochs=config_manager.get_int_param('yolo_epochs', 100),
             batch_size=config_manager.get_int_param('yolo_batch_size', 4),
             imgsz=config_manager.get_int_param('yolo_imgsz', 1280),
-            export_format=config_manager.get_param('yolo_export_format', 'openvino'),
             analysis_square_size=config_manager.get_int_param('analysis_square_size', 780),
+            device=config_manager.get_param('yolo_device', None),  # None = auto-detect Nvidia GPU
         )
     
     def get_trained_model_path(self) -> Path:
         """Get path to the trained model."""
         return self.models_dir / "yolo11s_spores" / "weights" / "best.pt"
     
-    def get_exported_model_path(self) -> Path:
-        """Get path to the exported model."""
-        if self.export_format == "openvino":
-            return self.models_dir / "yolo11s_spores_openvino"
-        return self.models_dir / f"yolo11s_spores.{self.export_format}"
     
     def ensure_dirs(self):
         """Create necessary directories."""
