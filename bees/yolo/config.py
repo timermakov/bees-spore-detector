@@ -75,7 +75,7 @@ class YOLOConfig:
             iou_threshold=config_manager.get_float_param('yolo_iou_threshold', 0.45),
             epochs=config_manager.get_int_param('yolo_epochs', 100),
             batch_size=config_manager.get_int_param('yolo_batch_size', 4),
-            imgsz=config_manager.get_int_param('yolo_imgsz', 1280),
+            imgsz=config_manager.get_int_param('yolo_imgsz', 640),
             analysis_square_size=config_manager.get_int_param('analysis_square_size', 780),
             device=config_manager.get_param('yolo_device', None),  # None = auto-detect Nvidia GPU
         )

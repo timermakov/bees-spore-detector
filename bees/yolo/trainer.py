@@ -83,7 +83,7 @@ class SporeTrainer:
         if quick_test:
             epochs = 30
             imgsz = 640  # 4x faster than 1280
-            batch_size = 16
+            batch_size = 4
             patience = 0  # Disable early stopping - train all epochs
             logger.info("QUICK TEST MODE: 30 epochs, 640px images, NO early stopping")
         else:
