@@ -2,3 +2,33 @@ venv/
 __pycache__/
 res*/
 results*/
+
+# Environments
+.venv/
+venv/
+__pycache__/
+
+# Training results and logs
+runs/
+results*/
+res*/
+
+# Weights and heavy archives
+*.pt
+*.rar
+
+# Datasets (usually ignored to keep repo small)
+dataset_test*/
+dataset_train/
+yolo_dataset/
+pseudo_labels/
+bees/
+
+# IDE and local notes
+.vscode/
+.idea/
+notes.txt
+params_used.txt
+
+# System files
+.DS_Store

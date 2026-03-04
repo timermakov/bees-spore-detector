@@ -82,15 +82,15 @@ class SporeTrainer:
         # Quick test mode: reduced settings for ~15 min training
         if quick_test:
             epochs = 30
-            imgsz = 640  # 4x faster than 1280
-            batch_size = 16
+            imgsz = 960  # 4x faster than 1280
+            batch_size = 4
             patience = 0  # Disable early stopping - train all epochs
-            logger.info("QUICK TEST MODE: 30 epochs, 640px images, NO early stopping")
+            logger.info("QUICK TEST MODE: 30 epochs, 960px images, NO early stopping")
         else:
             epochs = self.config.epochs
             imgsz = self.config.imgsz
             batch_size = self.config.batch_size
-            patience = self.config.patience
+            patience = 0
         
         # Windows: use workers=0 to avoid multiprocessing issues
         workers = 0 if platform.system() == 'Windows' else 4
@@ -118,9 +118,10 @@ class SporeTrainer:
             exist_ok=True,
             pretrained=True,
             optimizer='AdamW',
-            lr0=0.001,
+            lr0=0.0001,
             lrf=0.01,
-            warmup_epochs=3,
+            warmup_epochs=5,
+            # nbs=64,
             # Augmentations
             mosaic=aug_config['mosaic'],
             mixup=aug_config['mixup'],

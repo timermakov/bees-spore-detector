@@ -1,9 +1,14 @@
-# Core dependencies
+# 1. Сначала указываем, где искать тяжелые бинарники торча
+--extra-index-url https://download.pytorch.org/whl/nightly/cu130
+
+# 2. Указываем сами библиотеки с флагом пре-релиза (для текстового файла это делается так)
+torch
+torchvision
+ultralytics>=8.3.0
+
+# 3. Остальные зависимости
 Pillow
 numpy
 opencv-python
 PyYAML
-openpyxl
-
-# YOLO dependencies (for --use-yolo and --train-yolo)
-ultralytics>=8.3.0
+psutil
