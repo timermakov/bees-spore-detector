@@ -28,7 +28,7 @@ class YOLOConfig:
     
     # Data paths
     annotations_path: Path = field(default_factory=lambda: Path("annotations.xml"))
-    images_dir: Path = field(default_factory=lambda: Path("dataset_train"))
+    images_dir: Path = field(default_factory=lambda: Path("bees_dataset#3_2025-08-22"))
     test_dir: Path = field(default_factory=lambda: Path("dataset_test"))
     output_dir: Path = field(default_factory=lambda: Path("yolo_dataset"))
     models_dir: Path = field(default_factory=lambda: Path("models"))
