@@ -82,8 +82,8 @@ class SporeTrainer:
         # Quick test mode: reduced settings for ~15 min training
         if quick_test:
             epochs = 30
-            imgsz = 960  # 4x faster than 1280
-            batch_size = 4
+            imgsz = 1024  # 4x faster than 1280
+            batch_size = 8
             patience = 0  # Disable early stopping - train all epochs
             logger.info("QUICK TEST MODE: 30 epochs, 960px images, NO early stopping")
         else:
@@ -93,7 +93,7 @@ class SporeTrainer:
             patience = 0
         
         # Windows: use workers=0 to avoid multiprocessing issues
-        workers = 0 if platform.system() == 'Windows' else 4
+        workers = 2 if platform.system() == 'Windows' else 4
         
         # Device selection: use config device if specified, otherwise auto-detect Nvidia GPU
         if self.config.device is not None:
@@ -118,7 +118,7 @@ class SporeTrainer:
             exist_ok=True,
             pretrained=True,
             optimizer='AdamW',
-            lr0=0.0001,
+            lr0=0.0005,
             lrf=0.01,
             warmup_epochs=5,
             # nbs=64,
