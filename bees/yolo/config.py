@@ -21,8 +21,8 @@ class YOLOConfig:
     
     # Training settings
     epochs: int = 100
-    batch_size: int = 4  # Reduced for CPU memory (1280px images)
-    imgsz: int = 1280
+    batch_size: int = 16  # Reduced for CPU memory (1280px images)
+    imgsz: int = 960
     patience: int = 20
     device: Optional[str] = None  # Device for training (None = auto-detect Nvidia GPU, 'cpu', 'cuda:0', etc.)
     

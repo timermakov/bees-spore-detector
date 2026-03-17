@@ -62,10 +62,11 @@ class SporeTrainer:
             from ultralytics import YOLO
         except ImportError:
             raise ImportError("ultralytics package required. Install with: pip install ultralytics")
-        
+
         # Prepare data if needed
         if data_yaml is None:
             data_yaml = self.prepare_data()
+            #data_yaml = Path(r"D:\Dev\Spore_Detector\bees_dataset#3_2025-08-22_tiled_480_0.7\data.yaml")
         
         # Load model
         if resume and self.config.get_trained_model_path().exists():
@@ -93,7 +94,7 @@ class SporeTrainer:
             patience = 0
         
         # Windows: use workers=0 to avoid multiprocessing issues
-        workers = 2 if platform.system() == 'Windows' else 4
+        workers = 8 if platform.system() == 'Windows' else 4
         
         # Device selection: use config device if specified, otherwise auto-detect Nvidia GPU
         if self.config.device is not None:
@@ -136,6 +137,7 @@ class SporeTrainer:
             # Device - auto-select Nvidia GPU or use CPU
             device=device,
             workers=workers,
+            cache='ram',
             verbose=True,
             # Disable text labels on visualizations (too cluttered with many detections)
             show_labels=False,
