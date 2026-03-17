@@ -119,14 +119,14 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # Определяем выходную папку
+
     if args.output:
         output_dir = args.output
     else:
-        # Базовое имя исходной папки (без пути)
+
         src_path = Path(args.img_dir)
         base_name = src_path.name
-        # Добавляем суффикс с параметрами для информативности
+
         output_dir = f"{base_name}_tiled_{args.tile_size}_{args.overlap}"
         print(f"Выходная папка не указана, генерируем: {output_dir}")
 
