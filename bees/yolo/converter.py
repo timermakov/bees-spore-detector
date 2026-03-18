@@ -48,29 +48,31 @@ class CVATToYOLOConverter:
         """
         self.class_names = class_names or ["spore"]
         self.class_to_id = {name: idx for idx, name in enumerate(self.class_names)}
-    
+
     def parse_cvat_xml(self, xml_path: Path) -> List[ImageAnnotation]:
         """
-        Parse CVAT XML file and extract all annotations.
-        
+        Parse CVAT XML file and extract all annotations (ellipses and boxes).
+
         Args:
             xml_path: Path to CVAT XML file
-            
+
         Returns:
             List of ImageAnnotation objects
         """
         tree = ET.parse(xml_path)
         root = tree.getroot()
-        
+
         annotations = []
-        
+
         for image_elem in root.findall('.//image'):
             img_id = int(image_elem.get('id', 0))
             name = image_elem.get('name', '')
             width = int(image_elem.get('width', 0))
             height = int(image_elem.get('height', 0))
-            
+
             ellipses = []
+
+            # 1. Читаем эллипсы (как и раньше)
             for ellipse_elem in image_elem.findall('ellipse'):
                 ellipse = EllipseAnnotation(
                     cx=float(ellipse_elem.get('cx', 0)),
@@ -81,7 +83,26 @@ class CVATToYOLOConverter:
                     label=ellipse_elem.get('label', 'spore')
                 )
                 ellipses.append(ellipse)
-            
+
+            # 2. ДОБАВЛЯЕМ: Читаем боксы из твоего нового XML
+            for box_elem in image_elem.findall('box'):
+                xtl = float(box_elem.get('xtl', 0))
+                ytl = float(box_elem.get('ytl', 0))
+                xbr = float(box_elem.get('xbr', 0))
+                ybr = float(box_elem.get('ybr', 0))
+
+                # Конвертируем координаты box (угол-угол) в формат ellipse (центр-радиус)
+                # Это позволит остальному коду работать без ошибок
+                ellipse = EllipseAnnotation(
+                    cx=(xtl + xbr) / 2,  # Центр X
+                    cy=(ytl + ybr) / 2,  # Центр Y
+                    rx=(xbr - xtl) / 2,  # "Радиус" X
+                    ry=(ybr - ytl) / 2,  # "Радиус" Y
+                    rotation=0.0,
+                    label=box_elem.get('label', 'spore')
+                )
+                ellipses.append(ellipse)
+
             annotations.append(ImageAnnotation(
                 image_id=img_id,
                 name=name,
@@ -89,9 +110,9 @@ class CVATToYOLOConverter:
                 height=height,
                 ellipses=ellipses
             ))
-        
+
         logger.info(f"Parsed {len(annotations)} images with "
-                   f"{sum(len(a.ellipses) for a in annotations)} total annotations")
+                    f"{sum(len(a.ellipses) for a in annotations)} total annotations")
         return annotations
     
     def ellipse_to_bbox(self, ellipse: EllipseAnnotation, 

@@ -44,13 +44,28 @@ class DatasetPreparer:
             Path to generated data.yaml
         """
         random.seed(seed)
-        
+
+        if self.config.output_dir.exists():
+            logger.info(f"Cleaning old dataset at {self.config.output_dir}")
+            # shutil.rmtree(self.config.output_dir) # Раскомментируй, если хочешь полную чистку
+
         self.config.ensure_dirs()
         
         # Parse annotations
         annotations = self.converter.parse_cvat_xml(self.config.annotations_path)
-        
-        if not annotations:
+
+        valid_annotations = []
+        for ann in annotations:
+            img_path = self.config.images_dir / ann.name
+            if img_path.exists() and img_path.is_file():
+                valid_annotations.append(ann)
+            else:
+                logger.warning(f"File {ann.name} is in XML but NOT found in {self.config.images_dir}")
+
+        if not valid_annotations:
+            raise ValueError("No matching image files found for the annotations in XML!")
+
+        #if not annotations:
             raise ValueError(f"No annotations found in {self.config.annotations_path}")
         
         # Shuffle and split
