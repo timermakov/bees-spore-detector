@@ -201,11 +201,17 @@ class SporeAnalysisPipeline:
         contours = []
         for det in detections:
             x1, y1, x2, y2 = det.bbox
+            cx = (x1 + x2) / 2
+            cy = (y1 + y2) / 2
             contour = np.array([
                 [[int(x1), int(y1)]],
+                [[int(cx), int(y1)]],
                 [[int(x2), int(y1)]],
+                [[int(x2), int(cy)]],
                 [[int(x2), int(y2)]],
-                [[int(x1), int(y2)]]
+                [[int(cx), int(y2)]],
+                [[int(x1), int(y2)]],
+                [[int(x1), int(cy)]]
             ], dtype=np.int32)
             contours.append(contour)
         return contours
@@ -579,6 +585,129 @@ def merge_pseudo_labels(config_path: str, pseudo_dir: str = "pseudo_labels") -> 
         return 1
 
 
+def _list_image_files(source_dir: Path, extensions: List[str]) -> List[Path]:
+    """List image files recursively from source directory."""
+    valid_extensions = {ext.lower() for ext in extensions}
+    image_files: List[Path] = []
+    for file_path in source_dir.rglob("*"):
+        if file_path.is_file() and file_path.suffix.lower() in valid_extensions:
+            image_files.append(file_path)
+    return sorted(image_files)
+
+
+def export_yolo_annotations_to_cvat(config_path: str,
+                                    source_dir: str,
+                                    output_dir: str = "results",
+                                    task_name: str = "yolo_auto_annotations",
+                                    confidence: Optional[float] = None,
+                                    max_det: int = 1000,
+                                    copy_images: bool = True) -> int:
+    """
+    Run YOLO inference on a folder and export predictions as CVAT 1.1 annotations.
+
+    Export format: CVAT XML with <box> objects + ZIP archive.
+    """
+    if not YOLO_AVAILABLE:
+        logger.error("YOLO module not available. Install ultralytics: pip install ultralytics")
+        return 1
+
+    try:
+        import xml.etree.ElementTree as ET
+        from PIL import Image
+
+        config_manager = create_config_manager(config_path)
+        yolo_config = YOLOConfig.from_config_manager(config_manager)
+        detector = SporeDetector(yolo_config)
+
+        source_path = Path(source_dir)
+        if not source_path.exists() or not source_path.is_dir():
+            logger.error(f"Source directory not found: {source_dir}")
+            return 1
+
+        image_files = _list_image_files(source_path, yolo_config.image_extensions)
+        if not image_files:
+            logger.error(f"No images found in {source_dir}")
+            return 1
+
+        export_dir = Path(output_dir) / task_name
+        export_dir.mkdir(parents=True, exist_ok=True)
+        images_out = export_dir / "images"
+        images_out.mkdir(parents=True, exist_ok=True)
+
+        root = ET.Element("annotations")
+        ET.SubElement(root, "version").text = "1.1"
+        meta = ET.SubElement(root, "meta")
+        task = ET.SubElement(meta, "task")
+        ET.SubElement(task, "name").text = task_name
+        ET.SubElement(task, "size").text = str(len(image_files))
+        ET.SubElement(task, "mode").text = "annotation"
+        ET.SubElement(task, "overlap").text = "0"
+        labels = ET.SubElement(task, "labels")
+        label = ET.SubElement(labels, "label")
+        ET.SubElement(label, "name").text = "spore"
+        ET.SubElement(label, "type").text = "rectangle"
+        ET.SubElement(label, "attributes")
+
+        total_boxes = 0
+        conf_for_run = confidence if confidence is not None else yolo_config.confidence_threshold
+
+        for image_id, image_path in enumerate(image_files):
+            with Image.open(image_path) as img:
+                width, height = img.size
+
+            detections = detector.detect(
+                image_path,
+                confidence=confidence,
+                max_det=max_det
+            )
+
+            image_elem = ET.SubElement(root, "image", {
+                "id": str(image_id),
+                "name": image_path.name,
+                "width": str(width),
+                "height": str(height),
+            })
+
+            for det in detections:
+                ET.SubElement(image_elem, "box", {
+                    "label": "spore",
+                    "source": "auto",
+                    "occluded": "0",
+                    "z_order": "0",
+                    "xtl": f"{float(det.x1):.2f}",
+                    "ytl": f"{float(det.y1):.2f}",
+                    "xbr": f"{float(det.x2):.2f}",
+                    "ybr": f"{float(det.y2):.2f}",
+                })
+                total_boxes += 1
+
+            if copy_images:
+                shutil.copy2(image_path, images_out / image_path.name)
+
+        io_utils.XMLFormatter.indent_xml(root)
+        xml_path = export_dir / "annotations.xml"
+        ET.ElementTree(root).write(xml_path, encoding="utf-8", xml_declaration=True)
+
+        zip_path = Path(output_dir) / f"{task_name}.zip"
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for file_path in export_dir.rglob("*"):
+                if file_path.is_file():
+                    zipf.write(file_path, file_path.relative_to(export_dir))
+
+        logger.info(
+            "YOLO -> CVAT export complete: %s images, %s boxes, conf=%.2f, zip=%s",
+            len(image_files),
+            total_boxes,
+            conf_for_run,
+            zip_path
+        )
+        return 0
+
+    except Exception as e:
+        logger.error(f"YOLO -> CVAT export failed: {e}")
+        return 1
+
+
 def main():
     """Main entry point for the command-line interface."""
     parser = argparse.ArgumentParser(description='Bees Spore Counter CLI')
@@ -614,6 +743,18 @@ def main():
                        help='Max detections per image for pseudo-labeling (default: 1000)')
     parser.add_argument('--merge-pseudo', action='store_true',
                        help='Merge pseudo-labels into training set')
+    parser.add_argument('--export-yolo-cvat', action='store_true',
+                       help='Run YOLO on a folder and export predictions as CVAT ZIP (box format)')
+    parser.add_argument('--yolo-source', type=str, default='dataset_test',
+                       help='Source directory for YOLO->CVAT export (default: dataset_test)')
+    parser.add_argument('--yolo-cvat-output', type=str, default='results',
+                       help='Output directory for YOLO->CVAT export (default: results)')
+    parser.add_argument('--yolo-cvat-task', type=str, default='yolo_auto_annotations',
+                       help='Task name for YOLO->CVAT export ZIP/XML (default: yolo_auto_annotations)')
+    parser.add_argument('--yolo-cvat-conf', type=float, default=None,
+                       help='Confidence threshold override for YOLO->CVAT export (default: from config)')
+    parser.add_argument('--yolo-cvat-max-det', type=int, default=1000,
+                       help='Max detections per image for YOLO->CVAT export (default: 1000)')
     
     args = parser.parse_args()
     
@@ -627,6 +768,16 @@ def main():
     
     if args.merge_pseudo:
         return merge_pseudo_labels(args.config, args.pseudo_output)
+
+    if args.export_yolo_cvat:
+        return export_yolo_annotations_to_cvat(
+            args.config,
+            args.yolo_source,
+            output_dir=args.yolo_cvat_output,
+            task_name=args.yolo_cvat_task,
+            confidence=args.yolo_cvat_conf,
+            max_det=args.yolo_cvat_max_det
+        )
     
     # Handle YOLO training mode
     if args.train_yolo:

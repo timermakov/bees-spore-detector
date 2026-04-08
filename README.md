@@ -372,15 +372,14 @@ This creates `pseudo_labels/` with:
 - `images/` - copied test images  
 - `labels/` - YOLO format labels (model predictions)
 
-Review pseudo-labels
-Open `pseudo_labels/labels/` and review the `.txt` files. Delete or edit incorrect 
-ones.
+Review pseudo-labels: open `pseudo_labels/labels/` and review `.txt` files.
 
-Merge verified pseudo-labels into training
+Merge verified pseudo-labels into training:
 ```powershell
 python -m bees.main --merge-pseudo
+```
 
-Retrain with expanded dataset
+Retrain with expanded dataset:
 ```powershell
 python -m bees.main --train-yolo --quick-test
 ```
@@ -396,8 +395,25 @@ yolo predict model="models\yolo11s_spores\weights\best.pt" source="dataset_test"
 yolo val model="models\yolo11s_spores\weights\best.pt" data="yolo_dataset\data.yaml" imgsz=1280
 ```
 
-Run full pipeline with YOLO:
-```python -m bees.main --use-yolo -d dataset_test```
+Export YOLO predictions directly to CVAT 1.1 ZIP (box format):
+```bash
+python -m bees.main --export-yolo-cvat --yolo-source dataset_test --yolo-cvat-output results --yolo-cvat-task yolo_auto_annotations
+```
+
+Optional export tuning:
+```bash
+python -m bees.main --export-yolo-cvat --yolo-source dataset_test --yolo-cvat-conf 0.35 --yolo-cvat-max-det 1500
+```
+
+Run full triplicate analysis pipeline with YOLO:
+```bash
+python -m bees.main --use-yolo -d dataset_test
+```
+
+Export CVAT ZIP from pipeline detections (OpenCV or YOLO mode):
+```bash
+python -m bees.main --use-yolo -d dataset_test --export-cvat-zip
+```
 
 ### 5) Incremental retraining workflow
 
@@ -409,3 +425,11 @@ python -m bees.main --train-yolo
 ```
 
 The dataset builder will automatically include all matching portions under `yolo_datasets_root`.
+
+### 6) Annotation merge scripts (when to use)
+
+- Use `python -m bees.main --export-yolo-cvat ...` for model-driven CVAT export.
+- Use `annotation_merger.py` only when you need to merge existing XML annotations from multiple sources into one CVAT XML.
+- `annotation_mergerV1.py` contains extra legacy modes (split Pascal VOC / ellipse/box switching / IoU merge). Keep it only for old workflows; for current YOLO->CVAT export it is not required.
+
+#
