@@ -1,3 +1,6 @@
+# оценивать тестовые изображения
+# веса
+
 import cv2
 import os
 import torch
@@ -80,9 +83,11 @@ def main():
         enhanced_img = apply_clahe(orig_img)
 
         h, w, c = orig_img.shape
-        y_positions = [min(j * stride, h - args.tile_size) for j in range(max(1, (h - args.tile_size) // stride + 1))]
-        x_positions = [min(j * stride, w - args.tile_size) for j in range(max(1, (w - args.tile_size) // stride + 1))]
 
+        y_positions = [min(j * stride, h - args.tile_size) for j in range((h - args.tile_size) // stride + 2) if
+                       j * stride < h - args.tile_size / 2]
+        x_positions = [min(j * stride, w - args.tile_size) for j in range((w - args.tile_size) // stride + 2) if
+                       j * stride < w - args.tile_size / 2]
         boxes_list = []
         scores_list = []
 
