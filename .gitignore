@@ -22,7 +22,7 @@ dataset_test*/
 dataset_train/
 yolo_dataset/
 pseudo_labels/
-bees/
+bees_dataset*/
 
 # IDE and local notes
 .vscode/
