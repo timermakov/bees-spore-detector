@@ -405,6 +405,11 @@ Optional export tuning:
 python -m bees.main --export-yolo-cvat --yolo-source dataset_test --yolo-cvat-conf 0.35 --yolo-cvat-max-det 1500
 ```
 
+Export as ellipses (derived from YOLO boxes):
+```bash
+python -m bees.main --export-yolo-cvat --yolo-source dataset_test --yolo-cvat-shape ellipse
+```
+
 Run full triplicate analysis pipeline with YOLO:
 ```bash
 python -m bees.main --use-yolo -d dataset_test
