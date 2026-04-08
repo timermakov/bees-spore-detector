@@ -12,7 +12,7 @@ import shutil
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Dict, List, Tuple, Optional, Literal
 
 from bees import io_utils, image_proc, spores, titer
 from bees.config_loader import create_config_manager, ConfigurationError
@@ -370,6 +370,133 @@ class CVATExporter:
                     arcname = file_path.relative_to(source_dir)
                     zipf.write(file_path, arcname)
 
+    def _list_image_files(self, source_dir: Path, extensions: List[str]) -> List[Path]:
+        """List image files recursively from source directory."""
+        valid_extensions = {ext.lower() for ext in extensions}
+        image_files: List[Path] = []
+        for file_path in source_dir.rglob("*"):
+            if file_path.is_file() and file_path.suffix.lower() in valid_extensions:
+                image_files.append(file_path)
+        return sorted(image_files)
+
+    def _build_yolo_meta(self, task_name: str, image_count: int, shape_type: str):
+        """Build CVAT meta section for YOLO-generated annotations."""
+        import xml.etree.ElementTree as ET
+
+        meta = ET.Element("meta")
+        task = ET.SubElement(meta, "task")
+        ET.SubElement(task, "name").text = task_name
+        ET.SubElement(task, "size").text = str(image_count)
+        ET.SubElement(task, "mode").text = "annotation"
+        ET.SubElement(task, "overlap").text = "0"
+        labels = ET.SubElement(task, "labels")
+        label = ET.SubElement(labels, "label")
+        ET.SubElement(label, "name").text = "spore"
+        ET.SubElement(label, "type").text = "ellipse" if shape_type == "ellipse" else "rectangle"
+        ET.SubElement(label, "attributes")
+        return meta
+
+    def export_yolo_predictions(self,
+                                detector: "SporeDetector",
+                                source_dir: Path,
+                                task_name: str,
+                                confidence: Optional[float] = None,
+                                max_det: int = 1000,
+                                copy_images: bool = True,
+                                shape_type: Literal["box", "ellipse"] = "box") -> str:
+        """
+        Run YOLO inference and export predictions to CVAT XML + ZIP.
+
+        shape_type:
+        - box: export detections as CVAT <box>
+        - ellipse: export detections as CVAT <ellipse> derived from bbox geometry
+        """
+        import xml.etree.ElementTree as ET
+        from PIL import Image
+
+        source_dir = Path(source_dir)
+        if not source_dir.exists() or not source_dir.is_dir():
+            raise FileNotFoundError(f"Source directory not found: {source_dir}")
+
+        image_files = self._list_image_files(source_dir, detector.config.image_extensions)
+        if not image_files:
+            raise FileNotFoundError(f"No images found in {source_dir}")
+
+        export_dir = self.output_dir / task_name
+        export_dir.mkdir(parents=True, exist_ok=True)
+        images_dir = export_dir / "images"
+        images_dir.mkdir(parents=True, exist_ok=True)
+
+        root = ET.Element("annotations")
+        ET.SubElement(root, "version").text = "1.1"
+        root.append(self._build_yolo_meta(task_name, len(image_files), shape_type))
+
+        total_detections = 0
+        for image_id, image_path in enumerate(image_files):
+            with Image.open(image_path) as img:
+                width, height = img.size
+
+            detections = detector.detect(
+                image=image_path,
+                confidence=confidence,
+                max_det=max_det
+            )
+
+            image_elem = ET.SubElement(root, "image", {
+                "id": str(image_id),
+                "name": image_path.name,
+                "width": str(width),
+                "height": str(height),
+            })
+
+            for det in detections:
+                x1, y1, x2, y2 = float(det.x1), float(det.y1), float(det.x2), float(det.y2)
+                if shape_type == "ellipse":
+                    cx = (x1 + x2) / 2
+                    cy = (y1 + y2) / 2
+                    rx = max((x2 - x1) / 2, 0.5)
+                    ry = max((y2 - y1) / 2, 0.5)
+                    ET.SubElement(image_elem, "ellipse", {
+                        "label": "spore",
+                        "source": "auto",
+                        "occluded": "0",
+                        "z_order": "0",
+                        "cx": f"{cx:.2f}",
+                        "cy": f"{cy:.2f}",
+                        "rx": f"{rx:.2f}",
+                        "ry": f"{ry:.2f}",
+                        "rotation": "0.00",
+                    })
+                else:
+                    ET.SubElement(image_elem, "box", {
+                        "label": "spore",
+                        "source": "auto",
+                        "occluded": "0",
+                        "z_order": "0",
+                        "xtl": f"{x1:.2f}",
+                        "ytl": f"{y1:.2f}",
+                        "xbr": f"{x2:.2f}",
+                        "ybr": f"{y2:.2f}",
+                    })
+                total_detections += 1
+
+            if copy_images:
+                shutil.copy2(image_path, images_dir / image_path.name)
+
+        io_utils.XMLFormatter.indent_xml(root)
+        xml_path = export_dir / "annotations.xml"
+        ET.ElementTree(root).write(xml_path, encoding="utf-8", xml_declaration=True)
+
+        zip_path = self.output_dir / f"{task_name}.zip"
+        self._create_zip(export_dir, zip_path)
+        logger.info(
+            "YOLO -> CVAT export completed: %s images, %s objects, zip=%s",
+            len(image_files),
+            total_detections,
+            zip_path
+        )
+        return str(zip_path)
+
 
 class AnalysisRunner:
     """Main runner class for the analysis pipeline."""
@@ -585,129 +712,6 @@ def merge_pseudo_labels(config_path: str, pseudo_dir: str = "pseudo_labels") -> 
         return 1
 
 
-def _list_image_files(source_dir: Path, extensions: List[str]) -> List[Path]:
-    """List image files recursively from source directory."""
-    valid_extensions = {ext.lower() for ext in extensions}
-    image_files: List[Path] = []
-    for file_path in source_dir.rglob("*"):
-        if file_path.is_file() and file_path.suffix.lower() in valid_extensions:
-            image_files.append(file_path)
-    return sorted(image_files)
-
-
-def export_yolo_annotations_to_cvat(config_path: str,
-                                    source_dir: str,
-                                    output_dir: str = "results",
-                                    task_name: str = "yolo_auto_annotations",
-                                    confidence: Optional[float] = None,
-                                    max_det: int = 1000,
-                                    copy_images: bool = True) -> int:
-    """
-    Run YOLO inference on a folder and export predictions as CVAT 1.1 annotations.
-
-    Export format: CVAT XML with <box> objects + ZIP archive.
-    """
-    if not YOLO_AVAILABLE:
-        logger.error("YOLO module not available. Install ultralytics: pip install ultralytics")
-        return 1
-
-    try:
-        import xml.etree.ElementTree as ET
-        from PIL import Image
-
-        config_manager = create_config_manager(config_path)
-        yolo_config = YOLOConfig.from_config_manager(config_manager)
-        detector = SporeDetector(yolo_config)
-
-        source_path = Path(source_dir)
-        if not source_path.exists() or not source_path.is_dir():
-            logger.error(f"Source directory not found: {source_dir}")
-            return 1
-
-        image_files = _list_image_files(source_path, yolo_config.image_extensions)
-        if not image_files:
-            logger.error(f"No images found in {source_dir}")
-            return 1
-
-        export_dir = Path(output_dir) / task_name
-        export_dir.mkdir(parents=True, exist_ok=True)
-        images_out = export_dir / "images"
-        images_out.mkdir(parents=True, exist_ok=True)
-
-        root = ET.Element("annotations")
-        ET.SubElement(root, "version").text = "1.1"
-        meta = ET.SubElement(root, "meta")
-        task = ET.SubElement(meta, "task")
-        ET.SubElement(task, "name").text = task_name
-        ET.SubElement(task, "size").text = str(len(image_files))
-        ET.SubElement(task, "mode").text = "annotation"
-        ET.SubElement(task, "overlap").text = "0"
-        labels = ET.SubElement(task, "labels")
-        label = ET.SubElement(labels, "label")
-        ET.SubElement(label, "name").text = "spore"
-        ET.SubElement(label, "type").text = "rectangle"
-        ET.SubElement(label, "attributes")
-
-        total_boxes = 0
-        conf_for_run = confidence if confidence is not None else yolo_config.confidence_threshold
-
-        for image_id, image_path in enumerate(image_files):
-            with Image.open(image_path) as img:
-                width, height = img.size
-
-            detections = detector.detect(
-                image_path,
-                confidence=confidence,
-                max_det=max_det
-            )
-
-            image_elem = ET.SubElement(root, "image", {
-                "id": str(image_id),
-                "name": image_path.name,
-                "width": str(width),
-                "height": str(height),
-            })
-
-            for det in detections:
-                ET.SubElement(image_elem, "box", {
-                    "label": "spore",
-                    "source": "auto",
-                    "occluded": "0",
-                    "z_order": "0",
-                    "xtl": f"{float(det.x1):.2f}",
-                    "ytl": f"{float(det.y1):.2f}",
-                    "xbr": f"{float(det.x2):.2f}",
-                    "ybr": f"{float(det.y2):.2f}",
-                })
-                total_boxes += 1
-
-            if copy_images:
-                shutil.copy2(image_path, images_out / image_path.name)
-
-        io_utils.XMLFormatter.indent_xml(root)
-        xml_path = export_dir / "annotations.xml"
-        ET.ElementTree(root).write(xml_path, encoding="utf-8", xml_declaration=True)
-
-        zip_path = Path(output_dir) / f"{task_name}.zip"
-        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-            for file_path in export_dir.rglob("*"):
-                if file_path.is_file():
-                    zipf.write(file_path, file_path.relative_to(export_dir))
-
-        logger.info(
-            "YOLO -> CVAT export complete: %s images, %s boxes, conf=%.2f, zip=%s",
-            len(image_files),
-            total_boxes,
-            conf_for_run,
-            zip_path
-        )
-        return 0
-
-    except Exception as e:
-        logger.error(f"YOLO -> CVAT export failed: {e}")
-        return 1
-
-
 def main():
     """Main entry point for the command-line interface."""
     parser = argparse.ArgumentParser(description='Bees Spore Counter CLI')
@@ -755,6 +759,8 @@ def main():
                        help='Confidence threshold override for YOLO->CVAT export (default: from config)')
     parser.add_argument('--yolo-cvat-max-det', type=int, default=1000,
                        help='Max detections per image for YOLO->CVAT export (default: 1000)')
+    parser.add_argument('--yolo-cvat-shape', choices=['box', 'ellipse'], default='box',
+                       help='Shape for YOLO->CVAT export (box or ellipse, default: box)')
     
     args = parser.parse_args()
     
@@ -770,14 +776,27 @@ def main():
         return merge_pseudo_labels(args.config, args.pseudo_output)
 
     if args.export_yolo_cvat:
-        return export_yolo_annotations_to_cvat(
-            args.config,
-            args.yolo_source,
-            output_dir=args.yolo_cvat_output,
-            task_name=args.yolo_cvat_task,
-            confidence=args.yolo_cvat_conf,
-            max_det=args.yolo_cvat_max_det
-        )
+        if not YOLO_AVAILABLE:
+            logger.error("YOLO module not available. Install ultralytics: pip install ultralytics")
+            return 1
+        try:
+            config_manager = create_config_manager(args.config)
+            yolo_config = YOLOConfig.from_config_manager(config_manager)
+            detector = SporeDetector(yolo_config)
+            exporter = CVATExporter(args.yolo_cvat_output)
+            zip_path = exporter.export_yolo_predictions(
+                detector=detector,
+                source_dir=Path(args.yolo_source),
+                task_name=args.yolo_cvat_task,
+                confidence=args.yolo_cvat_conf,
+                max_det=args.yolo_cvat_max_det,
+                shape_type=args.yolo_cvat_shape
+            )
+            print(f"YOLO CVAT export: {zip_path}")
+            return 0
+        except Exception as e:
+            logger.error(f"YOLO -> CVAT export failed: {e}")
+            return 1
     
     # Handle YOLO training mode
     if args.train_yolo:
