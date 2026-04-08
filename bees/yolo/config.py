@@ -27,8 +27,10 @@ class YOLOConfig:
     device: Optional[str] = None  # Device for training (None = auto-detect Nvidia GPU, 'cpu', 'cuda:0', etc.)
     
     # Data paths
-    annotations_path: Path = field(default_factory=lambda: Path("annotations_tile_512.xml"))
-    images_dir: Path = field(default_factory=lambda: Path("bees_dataset#3_2025-08-22_tiles_512"))
+    datasets_root: Path = field(default_factory=lambda: Path("dataset_train"))
+    dataset_folder_pattern: str = "*"
+    annotations_filename: Optional[str] = None
+    image_extensions: List[str] = field(default_factory=lambda: [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"])
     test_dir: Path = field(default_factory=lambda: Path("dataset_test"))
     output_dir: Path = field(default_factory=lambda: Path("yolo_dataset"))
     models_dir: Path = field(default_factory=lambda: Path("models"))
@@ -55,10 +57,8 @@ class YOLOConfig:
     
     def __post_init__(self):
         """Convert string paths to Path objects."""
-        if isinstance(self.annotations_path, str):
-            self.annotations_path = Path(self.annotations_path)
-        if isinstance(self.images_dir, str):
-            self.images_dir = Path(self.images_dir)
+        if isinstance(self.datasets_root, str):
+            self.datasets_root = Path(self.datasets_root)
         if isinstance(self.test_dir, str):
             self.test_dir = Path(self.test_dir)
         if isinstance(self.output_dir, str):
@@ -78,6 +78,9 @@ class YOLOConfig:
             imgsz=config_manager.get_int_param('yolo_imgsz', 1280),
             analysis_square_size=config_manager.get_int_param('analysis_square_size', 780),
             device=config_manager.get_param('yolo_device', None),  # None = auto-detect Nvidia GPU
+            datasets_root=Path(config_manager.get_param('yolo_datasets_root', 'dataset_train')),
+            dataset_folder_pattern=config_manager.get_param('yolo_dataset_folder_pattern', '*'),
+            annotations_filename=config_manager.get_param('yolo_annotations_filename', None),
         )
     
     def get_trained_model_path(self) -> Path:

@@ -302,105 +302,69 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Simple reporting
 
 
-## Commands to train
+## YOLO Multi-Dataset Training
 
 ### Default (auto-detects Nvidia GPU)
 The training process automatically detects and uses the first available Nvidia GPU. If no Nvidia GPU is found, it falls back to CPU.
 
-```bash
-python -m bees.main --train-yolo
-```
+YOLO training now uses a strict multi-dataset layout. Legacy single-folder mode is removed.
 
-### Quick test (auto-detects Nvidia GPU)
-```bash
-python -m bees.main --train-yolo --quick-test
-```
-
-### Manual device specification
-To manually specify a CUDA device, add the `device` parameter to your `config.yaml`:
+### 1) Required `config.yaml` keys
 
 ```yaml
-# In config.yaml, add:
-yolo_device: "cuda:0"  # Use first CUDA device
-# or
-yolo_device: "cuda:1"  # Use second CUDA device
-# or
-yolo_device: "cpu"     # Force CPU usage
+# YOLO dataset root (contains dataset portions)
+yolo_datasets_root: dataset_train
+
+# Which subfolders of yolo_datasets_root to include
+yolo_dataset_folder_pattern: "*"
+
+# Optional: set when every portion uses the same XML filename
+# yolo_annotations_filename: annotations_orig_2025-08-22.xml
 ```
 
-Then run training as usual:
+### 2) Required folder structure
+
+```text
+dataset_train/
+  portion_001/
+    annotations.xml
+    image_1.jpg
+    image_2.jpg
+    ...
+  portion_002/
+    annotations.xml
+    image_1.jpg
+    subfolder/
+      image_2.jpg
+```
+
+**Note**: The training system automatically detects Nvidia GPUs and skips Intel 
+integrated graphics. You only need to manually specify the device if you want to 
+use a specific GPU or force CPU usage.
+
+- Every dataset portion must contain at least one XML file with CVAT annotations.
+- If `yolo_annotations_filename` is set, that exact filename must exist in each portion.
+- Add new portions into `dataset_train` and retrain; no code changes needed.
+
+### 3) Train commands
+
 ```bash
+# Full training
 python -m bees.main --train-yolo
-```
 
-**Note**: The training system automatically detects Nvidia GPUs and skips Intel integrated graphics. You only need to manually specify the device if you want to use a specific GPU or force CPU usage.
-
-## Commands to predict
-yolo predict model="models\yolo11s_spores\weights\best.pt" source="dataset_test" imgsz=1280 conf=0.25 save=True project="results" name="test_predictions"
-
-### do not show text and confidence on image - too many overlays
-yolo predict model="models\yolo11s_spores\weights\best.pt" source="dataset_test" imgsz=1280 conf=0.25 save=True project="results" name="clean_predictions" show_labels=False show_conf=False
-
-
-
-## Commands to Run
-1. Test on dataset_test/ (clean, no labels):
-```yolo predict model="models\yolo11s_spores\weights\best.pt" source="dataset_test" imgsz=1280 conf=0.25 save=True project="results" name="test_v2" show_labels=False show_conf=False```
-
-
-3. Run full pipeline with YOLO:
-```python -m bees.main --use-yolo -d dataset_test```
-
-4. Validate model metrics:
-```yolo val model="models\yolo11s_spores\weights\best.pt" data="yolo_dataset\data.yaml" imgsz=1280```
-
-Note: Still at 45.8% mAP (target 90%). To improve further:
-Need more labeled training data
-Or run full training with 1280px images (currently 640px quick test)
-
-
-
-
-Good ideas! Let me implement both:
-
-1. **60/40 split** = 6-7 train, 4-5 val images → more representative validation
-2. **Pseudo-labeling** = use current model to label `dataset_test/` images → expand training data
-
-[2 tools called]
-
-Now let me create the pseudo-labeling script:
-
-[10 tools called]
-
-Done! Here's what I implemented:
-
----
-
-## Changes Made
-
-### 1. Train/Val Split Changed to 60/40
-- With 11 images: **6-7 train**, **4-5 val**
-- More representative validation metrics
-
-### 2. Pseudo-Labeling System
-New commands added to expand dataset:
-
----
-
-## Commands
-
-### Step 1: Retrain with 60/40 split
-```powershell
-# Clean old dataset first
-Remove-Item -Recurse -Force yolo_dataset
-
-# Train with new split
+# Quick smoke training
 python -m bees.main --train-yolo --quick-test
 ```
 
-### Step 2: Generate pseudo-labels from test images
+Optional device override in `config.yaml`:
+
+```yaml
+yolo_device: "cuda:0"  # or "cuda:1", or "cpu"
+```
+
+### Optional: Generate pseudo-labels from images
 ```powershell
-# Uses trained model to label dataset_test/ images
+# Uses trained model to label dataset_test/ images, use conf level you need
 python -m bees.main --pseudo-label --pseudo-source dataset_test --pseudo-conf 0.5
 ```
 
@@ -408,35 +372,40 @@ This creates `pseudo_labels/` with:
 - `images/` - copied test images  
 - `labels/` - YOLO format labels (model predictions)
 
-### Step 3: Review pseudo-labels
-Open `pseudo_labels/labels/` and review the `.txt` files. Delete or edit incorrect ones.
+Review pseudo-labels
+Open `pseudo_labels/labels/` and review the `.txt` files. Delete or edit incorrect 
+ones.
 
-### Step 4: Merge verified pseudo-labels into training
+Merge verified pseudo-labels into training
 ```powershell
 python -m bees.main --merge-pseudo
-```
 
-### Step 5: Retrain with expanded dataset
+Retrain with expanded dataset
 ```powershell
 python -m bees.main --train-yolo --quick-test
 ```
 
----
 
-## Workflow Summary
+### 4) Inference / validation commands
 
+```bash
+# Predict on test folder (clean output without labels/conf text)
+yolo predict model="models\yolo11s_spores\weights\best.pt" source="dataset_test" imgsz=1280 conf=0.25 save=True project="results" name="clean_predictions" show_labels=False show_conf=False
+
+# Validate trained model on generated YOLO dataset split
+yolo val model="models\yolo11s_spores\weights\best.pt" data="yolo_dataset\data.yaml" imgsz=1280
 ```
-11 labeled images (60/40 split)
-        ↓
-   Train model
-        ↓
-   Pseudo-label 25 test images
-        ↓
-   Review & verify predictions
-        ↓
-   Merge verified labels
-        ↓
-   Retrain with 11 + N images
-        ↓
-   Better accuracy!
+
+Run full pipeline with YOLO:
+```python -m bees.main --use-yolo -d dataset_test```
+
+### 5) Incremental retraining workflow
+
+1. Add a new portion folder under `dataset_train` with images + XML.
+2. Run training again:
+
+```bash
+python -m bees.main --train-yolo
 ```
+
+The dataset builder will automatically include all matching portions under `yolo_datasets_root`.

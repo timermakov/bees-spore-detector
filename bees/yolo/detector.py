@@ -108,7 +108,7 @@ class SporeDetector:
                image: Union[str, Path, Image.Image, np.ndarray],
                confidence: Optional[float] = None,
                iou_threshold: Optional[float] = None,
-               max_det: int = 1000) -> List[Detection]:
+               max_det: int = 3000) -> List[Detection]:
         """
         Detect spores in image.
         
