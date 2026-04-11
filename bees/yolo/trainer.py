@@ -94,8 +94,8 @@ class SporeTrainer:
             patience = 0
         
         # Windows: use workers=0 to avoid multiprocessing issues
-        workers = 4 if platform.system() == 'Windows' else 4
-        
+        workers = 8 if platform.system() == 'Windows' else 4
+
         # Device selection: use config device if specified, otherwise auto-detect Nvidia GPU
         if self.config.device is not None:
             device = self.config.device
@@ -121,7 +121,7 @@ class SporeTrainer:
             optimizer='AdamW',
             lr0=0.0005,
             lrf=0.01,
-            warmup_epochs=5,
+            warmup_epochs=2,
             # nbs=64,
             # Augmentations
             mosaic=aug_config['mosaic'],

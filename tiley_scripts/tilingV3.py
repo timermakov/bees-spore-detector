@@ -74,11 +74,11 @@ def main():
 
     stats = {
         'train': {'total': 0, 'objs': 0, 'empty': 0, 'box_count': 0, 'tile': args.tile},
-        'val': {'total': 0, 'objs': 0, 'empty': 0, 'box_count': 0, 'tile': args.tile * 2}
+        'val': {'total': 0, 'objs': 0, 'empty': 0, 'box_count': 0, 'tile': args.tile}
     }
 
     print(f"Нарезка тайлов...")
-    print(f"  Размер (Train/Val): {args.tile} / {args.tile * 2} px")
+    print(f"  Размер (Train/Val): {args.tile} px")
     print(f"  Negative ratio: {args.negative_ratio * 100:.0f}%")
     print(f"  Используемый Seed: {current_seed} {'(fixed)' if args.seed else '(random)'}\n")
 
@@ -92,11 +92,23 @@ def main():
         if img is None: continue
         h, w, c = img.shape
 
-        y_pos = [min(j * stride, h - t_size) for j in range((h - t_size) // stride + 2) if j * stride < h - t_size / 2]
-        x_pos = [min(j * stride, w - t_size) for j in range((w - t_size) // stride + 2) if j * stride < w - t_size / 2]
+       # y_pos = [min(j * stride, h - t_size) for j in range((h - t_size) // stride + 2) if j * stride < h - t_size / 2]
+        if h <= t_size:
+            y_pos = [0]
+        else:
+            y_pos = list(range(0, h - t_size + 1, stride))
+            if y_pos[-1] != h - t_size:
+                y_pos.append(h - t_size)
+       # x_pos = [min(j * stride, w - t_size) for j in range((w - t_size) // stride + 2) if j * stride < w - t_size / 2]
+        if w <= t_size:
+            x_pos = [0]
+        else:
+            x_pos = list(range(0, w - t_size + 1, stride))
+            if x_pos[-1] != w - t_size:
+                x_pos.append(w - t_size)
 
-        for y1 in set(y_pos):
-            for x1 in set(x_pos):
+        for y1 in y_pos:
+            for x1 in x_pos:
                 tile_bboxes = []
                 for box in data['boxes']:
                     cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
