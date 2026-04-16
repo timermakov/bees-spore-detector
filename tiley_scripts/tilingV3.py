@@ -37,7 +37,7 @@ def main():
     parser.add_argument('--out', type=str, default='datasetV3_final')
     parser.add_argument('--tile', type=int, default=512)
     parser.add_argument('--overlap', type=float, default=0.25)
-    parser.add_argument('--val_split', type=float, default=0.2)
+    #parser.add_argument('--val_split', type=float, default=0.2)
     parser.add_argument('--negative_ratio', type=float, default=0.1)
     parser.add_argument('--seed', type=int, default=None, help="Сид для рандома (по дефолту None - рандом)")
     args = parser.parse_args()
@@ -49,9 +49,8 @@ def main():
     out_path = Path(args.out)
     if out_path.exists(): shutil.rmtree(out_path)
 
-    for s in ['train', 'val']:
-        (out_path / 'images' / s).mkdir(parents=True, exist_ok=True)
-        (out_path / 'labels_xml' / s).mkdir(parents=True, exist_ok=True)
+    (out_path / 'images').mkdir(parents=True, exist_ok=True)
+    (out_path / 'labels_xml').mkdir(parents=True, exist_ok=True)
 
     tree = ET.parse(args.xml)
     root = tree.getroot()
@@ -69,23 +68,25 @@ def main():
             boxes.append([cx - rx, cy - ry, cx + rx, cy + ry])
         images_data.append({'name': img_tag.get('name'), 'boxes': boxes})
 
-    random.shuffle(images_data)
-    split_idx = int(len(images_data) * (1 - args.val_split))
+    #random.shuffle(images_data)
+    #split_idx = int(len(images_data) * (1 - args.val_split))
 
     stats = {
-        'train': {'total': 0, 'objs': 0, 'empty': 0, 'box_count': 0, 'tile': args.tile},
-        'val': {'total': 0, 'objs': 0, 'empty': 0, 'box_count': 0, 'tile': args.tile}
+        'total': 0,
+        'objs': 0,
+        'empty': 0,
+        'box_count': 0,
+        'tile': args.tile
     }
 
     print(f"Нарезка тайлов...")
-    print(f"  Размер (Train/Val): {args.tile} px")
+    print(f"  Размер: {args.tile} px")
     print(f"  Negative ratio: {args.negative_ratio * 100:.0f}%")
     print(f"  Используемый Seed: {current_seed} {'(fixed)' if args.seed else '(random)'}\n")
 
     img_id_counter = 0
-    for i, data in enumerate(images_data):
-        mode = 'train' if i < split_idx else 'val'
-        t_size = stats[mode]['tile']
+    for data in images_data:
+        t_size = stats['tile']
         stride = int(t_size * (1 - args.overlap))
 
         img = cv2.imread(str(Path(args.img) / data['name']))
@@ -118,17 +119,17 @@ def main():
 
                 if len(tile_bboxes) == 0:
                     if random.random() > args.negative_ratio: continue
-                    stats[mode]['empty'] += 1
+                    stats['empty'] += 1
                 else:
-                    stats[mode]['objs'] += 1
-                    stats[mode]['box_count'] += len(tile_bboxes)
+                    stats['objs'] += 1
+                    stats['box_count'] += len(tile_bboxes)
 
-                stats[mode]['total'] += 1
+                stats['total'] += 1
                 t_name = f"{Path(data['name']).stem}_tile_{y1}_{x1}.jpg"
-                cv2.imwrite(str(out_path / 'images' / mode / t_name), img[y1:y1 + t_size, x1:x1 + t_size])
+                cv2.imwrite(str(out_path / 'images' / t_name), img[y1:y1 + t_size, x1:x1 + t_size])
 
                 tile_xml = save_pascal_xml(t_name, tile_bboxes, (t_size, t_size, c))
-                with open(out_path / 'labels_xml' / mode / f"{t_name.replace('.jpg', '.xml')}", "w",
+                with open(out_path / 'labels_xml' / f"{t_name.replace('.jpg', '.xml')}", "w",
                           encoding="utf-8") as f:
                     f.write(minidom.parseString(ET.tostring(tile_xml)).toprettyxml(indent="   "))
 
@@ -144,10 +145,10 @@ def main():
     with open(out_path / "annotations_all.xml", "w", encoding="utf-8") as f:
         f.write(minidom.parseString(ET.tostring(common_xml_root)).toprettyxml(indent="  "))
 
-    t_all = stats['train']['total'] + stats['val']['total']
-    e_all = stats['train']['empty'] + stats['val']['empty']
-    o_all = stats['train']['objs'] + stats['val']['objs']
-    b_all = stats['train']['box_count'] + stats['val']['box_count']
+    t_all = stats['total']
+    e_all = stats['empty']
+    o_all = stats['objs']
+    b_all = stats['box_count']
 
     print(f"--- СТАТИСТИКА НАРЕЗКИ ---")
     print(f"Всего тайлов сохранено: {t_all}")
@@ -155,8 +156,6 @@ def main():
     print(f"Из них со спорами:      {o_all}")
     print(f"Из них пустых (фон):    {e_all} ({(e_all / t_all * 100 if t_all > 0 else 0):.1f}% от выборки)")
     print(f"--------------------------")
-    print(f"TRAIN: {stats['train']['total']} тайлов | {stats['train']['box_count']} спор")
-    print(f"VAL:   {stats['val']['total']} тайлов | {stats['val']['box_count']} спор")
     print(f"Seed для повтора: {current_seed}")
 
 

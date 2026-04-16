@@ -94,7 +94,7 @@ class SporeTrainer:
             patience = 0
         
         # Windows: use workers=0 to avoid multiprocessing issues
-        workers = 8 if platform.system() == 'Windows' else 4
+        workers = 0 if platform.system() == 'Windows' else 4
 
         # Device selection: use config device if specified, otherwise auto-detect Nvidia GPU
         if self.config.device is not None:
@@ -122,7 +122,7 @@ class SporeTrainer:
             lr0=0.0005,
             lrf=0.01,
             warmup_epochs=2,
-            # nbs=64,
+            #nbs=64,
             # Augmentations
             mosaic=aug_config['mosaic'],
             mixup=aug_config['mixup'],
@@ -137,8 +137,9 @@ class SporeTrainer:
             # Device - auto-select Nvidia GPU or use CPU
             device=device,
             workers=workers,
-            #cache='ram',
+            cache=False,
             verbose=True,
+            amp=True,
             # Disable text labels on visualizations (too cluttered with many detections)
             show_labels=False,
             show_conf=False,

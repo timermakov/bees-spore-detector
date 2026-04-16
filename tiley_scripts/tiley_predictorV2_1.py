@@ -84,15 +84,25 @@ def main():
 
         h, w, c = orig_img.shape
 
-        y_positions = [min(j * stride, h - args.tile_size) for j in range((h - args.tile_size) // stride + 2) if
-                       j * stride < h - args.tile_size / 2]
-        x_positions = [min(j * stride, w - args.tile_size) for j in range((w - args.tile_size) // stride + 2) if
-                       j * stride < w - args.tile_size / 2]
+        if h <= args.tile_size:
+            y_positions = [0]
+        else:
+            y_positions = list(range(0, h - args.tile_size + 1, stride))
+            if y_positions[-1] != h - args.tile_size:
+                y_positions.append(h - args.tile_size)
+
+        if w <= args.tile_size:
+            x_positions = [0]
+        else:
+            x_positions = list(range(0, w - args.tile_size + 1, stride))
+            if x_positions[-1] != w - args.tile_size:
+                x_positions.append(w - args.tile_size)
+
         boxes_list = []
         scores_list = []
 
-        for y1 in set(y_positions):
-            for x1 in set(x_positions):
+        for y1 in y_positions:
+            for x1 in x_positions:
                 tile = enhanced_img[y1:y1 + args.tile_size, x1:x1 + args.tile_size]
                 results = model.predict(tile, imgsz=args.imgsz, conf=args.conf, verbose=False)
 
