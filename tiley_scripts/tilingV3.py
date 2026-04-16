@@ -93,7 +93,7 @@ def main():
         if img is None: continue
         h, w, c = img.shape
 
-       # y_pos = [min(j * stride, h - t_size) for j in range((h - t_size) // stride + 2) if j * stride < h - t_size / 2]
+       ## y_pos = [min(j * stride, h - t_size) for j in range((h - t_size) // stride + 2) if j * stride < h - t_size / 2]
         if h <= t_size:
             y_pos = [0]
         else:

@@ -123,7 +123,7 @@ def main():
             xml_path = output_dir / (Path(filename).stem + ".xml")
             save_pascal_voc(filename, (h, w, c), final_boxes, xml_path)
 
-            # Рисуем на оригинале
+            ## Рисуем на оригинале
             for box in final_boxes:
                 x1, y1, x2, y2 = map(int, box)
                 cv2.rectangle(orig_img, (x1, y1), (x2, y2), (0, 255, 0), 2)
