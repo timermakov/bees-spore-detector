@@ -129,7 +129,7 @@ class DatasetSlicer:
         slice_height: int = 512,
         slice_width: int = 512,
         overlap_height_ratio: float = 0.25,
-        overlap_height_ratio: float = 0.25,
+        overlap_width_ratio: float = 0.25,
     ) -> dict:
         """
         Prepare complete training dataset: slice COCO data and split into train/val.
@@ -141,6 +141,8 @@ class DatasetSlicer:
             train_split: Fraction of data for training (0-1)
             slice_height: Height of each slice
             slice_width: Width of each slice
+            overlap_height_ratio: Vertical overlap ratio (0-1)
+            overlap_width_ratio: Horizontal overlap ratio (0-1)
 
         Returns:
             Dict with paths to train/val COCO JSONs and image directories
@@ -159,7 +161,7 @@ class DatasetSlicer:
             slice_height=slice_height,
             slice_width=slice_width,
             overlap_height_ratio=overlap_height_ratio,
-            overlap_width_ratio=overlap_height_ratio,
+            overlap_width_ratio=overlap_width_ratio,
         )
 
         # Step 2: Load sliced dataset and split

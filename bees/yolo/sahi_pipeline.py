@@ -78,7 +78,8 @@ class SAHIPipeline:
         coco = converter.parse_cvat_to_coco(cvat_xml, images_dir=images_dir)
         converter.export_to_coco_json(output_coco)
 
-        logger.info("✓ CVAT conversion complete"        logger.info(f"  Images: {len(coco.image_list)}")
+        logger.info("✓ CVAT conversion complete")
+        logger.info(f"  Images: {len(coco.image_list)}")
         logger.info(f"  Annotations: {sum(len(img.annotations) for img in coco.image_list)}")
 
         return output_coco
@@ -129,7 +130,8 @@ class SAHIPipeline:
             overlap_width_ratio=overlap_width_ratio,
         )
 
-        logger.info("✓ Dataset slicing complete"        logger.info(f"  Train COCO: {dataset_paths['train_coco_json']}")
+        logger.info("✓ Dataset slicing complete")
+        logger.info(f"  Train COCO: {dataset_paths['train_coco_json']}")
         logger.info(f"  Val COCO: {dataset_paths['val_coco_json']}")
 
         return dataset_paths
@@ -184,7 +186,8 @@ class SAHIPipeline:
             write_previews=write_previews,
         )
 
-        logger.info("✓ Sliced inference complete"        logger.info(f"  Images processed: {results['images']}")
+        logger.info("✓ Sliced inference complete")
+        logger.info(f"  Images processed: {results['images']}")
         logger.info(f"  Total detections: {results['detections']}")
 
         return results

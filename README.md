@@ -86,6 +86,19 @@ The system includes SAHI (Sliced Aided Hyper Inference) for advanced tiled infer
 pip install sahi>=0.11.36
 ```
 
+### SAHI Pipeline Input Requirements
+
+The SAHI pipeline requires:
+1. **CVAT annotations.xml** - A CVAT 1.1 format XML file with ellipse annotations
+   - One consolidated file containing all image annotations (not individual per-image files)
+   - Ellipses defined with `cx`, `cy`, `rx`, `ry`, `rotation` attributes
+   - All images referenced should exist in the images directory
+
+2. **Images directory** - Folder containing the JPG images referenced in annotations.xml
+
+3. **Test images directory** (optional) - Separate folder for running inference
+
+
 ### SAHI Pipeline Commands
 
 #### Complete Pipeline (CVAT → Training Dataset → Inference)
@@ -99,6 +112,13 @@ python -m bees.yolo.sahi_pipeline \
   --output-dir sahi_output \
   --model yolo11s.pt \
   --device cuda:0
+
+# CPU version (no GPU required)
+python -m bees.yolo.sahi_pipeline \
+  --cvat-xml dataset_test/annotations.xml \
+  --images-dir dataset_test \
+  --output-dir sahi_output \
+  --device cpu
 ```
 
 #### Individual Pipeline Steps
