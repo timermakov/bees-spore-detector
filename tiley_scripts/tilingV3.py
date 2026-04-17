@@ -30,6 +30,20 @@ def save_pascal_xml(filename, bboxes, size):
     return annotation
 
 
+def crop_tile_to_square(img, y1, x1, tile_size, border_mode=cv2.BORDER_REFLECT_101):
+    """Вырезает тайл и дополняет до tile_size×tile_size, чтобы не было слепых зон и фиксированный размер."""
+    h, w = img.shape[:2]
+    y2 = min(y1 + tile_size, h)
+    x2 = min(x1 + tile_size, w)
+    crop = img[y1:y2, x1:x2]
+    th, tw = crop.shape[:2]
+    pad_bottom = tile_size - th
+    pad_right = tile_size - tw
+    if pad_bottom == 0 and pad_right == 0:
+        return crop, th, tw
+    return cv2.copyMakeBorder(crop, 0, pad_bottom, 0, pad_right, border_mode), th, tw
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--xml', type=str, required=True, help="Общий XML файл")
@@ -110,12 +124,19 @@ def main():
 
         for y1 in y_pos:
             for x1 in x_pos:
+                y2 = min(y1 + t_size, h)
+                x2 = min(x1 + t_size, w)
+                crop_h, crop_w = y2 - y1, x2 - x1
                 tile_bboxes = []
                 for box in data['boxes']:
                     cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
                     if x1 <= cx < x1 + t_size and y1 <= cy < y1 + t_size:
-                        tile_bboxes.append([max(0, box[0] - x1), max(0, box[1] - y1), min(t_size, box[2] - x1),
-                                            min(t_size, box[3] - y1)])
+                        tile_bboxes.append([
+                            max(0, box[0] - x1),
+                            max(0, box[1] - y1),
+                            min(crop_w, box[2] - x1),
+                            min(crop_h, box[3] - y1),
+                        ])
 
                 if len(tile_bboxes) == 0:
                     if random.random() > args.negative_ratio: continue
@@ -126,7 +147,8 @@ def main():
 
                 stats['total'] += 1
                 t_name = f"{Path(data['name']).stem}_tile_{y1}_{x1}.jpg"
-                cv2.imwrite(str(out_path / 'images' / t_name), img[y1:y1 + t_size, x1:x1 + t_size])
+                tile_img, _, _ = crop_tile_to_square(img, y1, x1, t_size)
+                cv2.imwrite(str(out_path / 'images' / t_name), tile_img)
 
                 tile_xml = save_pascal_xml(t_name, tile_bboxes, (t_size, t_size, c))
                 with open(out_path / 'labels_xml' / f"{t_name.replace('.jpg', '.xml')}", "w",

@@ -38,6 +38,20 @@ def save_pascal_voc(filename, img_shape, bboxes, output_path):
         f.write(xml_str)
 
 
+def crop_tile_to_square(img, y1, x1, tile_size, border_mode=cv2.BORDER_REFLECT_101):
+    """Вырезает тайл и дополняет до tile_size×tile_size (края кадра не теряются при h,w < tile)."""
+    h, w = img.shape[:2]
+    y2 = min(y1 + tile_size, h)
+    x2 = min(x1 + tile_size, w)
+    crop = img[y1:y2, x1:x2]
+    th, tw = crop.shape[:2]
+    pad_bottom = tile_size - th
+    pad_right = tile_size - tw
+    if pad_bottom == 0 and pad_right == 0:
+        return crop
+    return cv2.copyMakeBorder(crop, 0, pad_bottom, 0, pad_right, border_mode)
+
+
 def apply_clahe(img):
     """Улучшает контраст, чтобы проявить бледные споры в светлых зонах."""
     lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
@@ -103,12 +117,21 @@ def main():
 
         for y1 in y_positions:
             for x1 in x_positions:
-                tile = enhanced_img[y1:y1 + args.tile_size, x1:x1 + args.tile_size]
+                tile = crop_tile_to_square(enhanced_img, y1, x1, args.tile_size)
                 results = model.predict(tile, imgsz=args.imgsz, conf=args.conf, verbose=False)
+                th = min(args.tile_size, h - y1)
+                tw = min(args.tile_size, w - x1)
 
                 for box in results[0].boxes:
                     xyxy = box.xyxy[0].cpu().numpy()
-                    boxes_list.append([xyxy[0] + x1, xyxy[1] + y1, xyxy[2] + x1, xyxy[3] + y1])
+                    # Клип к реальному кропу (без отражённого дополнения), чтобы не тянуть ложные детекции из паддинга
+                    lx1 = float(np.clip(xyxy[0], 0, tw))
+                    ly1 = float(np.clip(xyxy[1], 0, th))
+                    lx2 = float(np.clip(xyxy[2], 0, tw))
+                    ly2 = float(np.clip(xyxy[3], 0, th))
+                    if lx2 <= lx1 or ly2 <= ly1:
+                        continue
+                    boxes_list.append([lx1 + x1, ly1 + y1, lx2 + x1, ly2 + y1])
                     scores_list.append(box.conf.item())
 
         if boxes_list:

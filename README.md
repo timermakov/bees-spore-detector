@@ -387,6 +387,10 @@ python -m bees.main --train-yolo --quick-test
 
 ### 4) Inference / validation commands
 
+Make annotations for humans/CVAT -> --export-yolo-cvat
+Make labels for retraining -> --pseudo-label
+Run production analysis -> --use-yolo
+
 ```bash
 # Predict on test folder (clean output without labels/conf text)
 yolo predict model="models\yolo11s_spores\weights\best.pt" source="dataset_test" imgsz=1280 conf=0.25 save=True project="results" name="clean_predictions" show_labels=False show_conf=False
