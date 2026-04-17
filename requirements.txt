@@ -10,6 +10,8 @@ sahi>=0.11.36
 # 3. Остальные зависимости
 Pillow
 numpy
+scipy
 opencv-python
 PyYAML
+openpyxl
 psutil

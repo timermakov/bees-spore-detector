@@ -183,6 +183,84 @@ python -m bees.yolo.sahi_pipeline \
 - **Memory Efficient**: Processes large images without loading everything into memory
 - **Production Ready**: Based on 600+ academic citations and community testing
 
+## Hierarchical Analysis Pipeline
+
+For analyzing spore images organized in nested folder structures WITHOUT XML annotations.
+
+### Folder Structure
+
+```
+Вид_А/
+  Проба_001/
+    Сэмпл_1/
+      image1.jpg, image2.jpg, ...
+    Сэмпл_2/
+      image1.jpg, image2.jpg, ...
+  Проба_002/
+    Сэмпл_1/
+      image1.jpg, ...
+    Сэмпл_2/
+      image1.jpg, ...
+Вид_Б/
+  Проба_001/
+    ...
+```
+
+### Usage
+
+#### Basic Analysis with YOLO Detection
+
+```bash
+python -m bees.yolo.hierarchical_analysis \
+  --input-dir dataset_test \
+  --output-dir analysis_output
+```
+
+#### Using OpenCV Detection Instead
+
+```bash
+python -m bees.yolo.hierarchical_analysis \
+  --input-dir dataset_test \
+  --output-dir analysis_output \
+  --no-yolo
+```
+
+#### Custom Configuration
+
+```bash
+python -m bees.yolo.hierarchical_analysis \
+  --input-dir dataset_test \
+  --output-dir analysis_output \
+  --config my_config.yaml
+```
+
+### Output Files
+
+The pipeline generates:
+
+1. **hierarchical_analysis.xlsx** - Main results table with columns:
+   - Вид (Type/Species)
+   - Проба (Probe/Trial)
+   - Сэмпл (Sample)
+   - Mean Titer - Average titer value across all images in sample
+   - Std Dev - Standard deviation of titer values
+   - N - Number of measurements (images analyzed)
+   - P-value - Statistical significance from one-sample t-test
+
+2. **analysis_summary.md** - Markdown summary of results
+
+### Statistical Analysis
+
+For each sample, the pipeline:
+1. **Detects spores** in all images within that folder
+2. **Calculates titer** for each image
+3. **Computes statistics**:
+   - **Mean Titer**: Average of all titer values
+   - **Std Dev**: Standard deviation (measure of variability)
+   - **P-value**: Result of one-sample t-test against null hypothesis (μ=0)
+
+This enables statistical comparison across samples and trials.
+
 ## Configuration
 
 Create a `config.yaml` file with your analysis parameters:
