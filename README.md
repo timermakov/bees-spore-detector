@@ -14,6 +14,7 @@ The Bee Spore Counter is a Python-based tool that automates the detection and co
 - **Configurable Parameters**: Adjustable detection parameters for different image conditions
 - **Debug Output**: Comprehensive debug images for algorithm validation
 - **CVAT Export**: Export results for annotation tools like CVAT
+- **SAHI Tiling Support**: Advanced sliced inference for large images using SAHI framework
 
 ## Architecture
 
@@ -74,6 +75,93 @@ The codebase has been refactored to follow modern Python best practices with a c
 ```bash
 pip install -r requirements.txt
 ```
+
+## SAHI Tiling Support
+
+The system includes SAHI (Sliced Aided Hyper Inference) for advanced tiled inference on large images. SAHI provides production-ready sliced inference with automatic detection merging.
+
+### SAHI Installation
+
+```bash
+pip install sahi>=0.11.36
+```
+
+### SAHI Pipeline Commands
+
+#### Complete Pipeline (CVAT → Training Dataset → Inference)
+
+```bash
+# Run the complete SAHI pipeline: CVAT conversion, dataset slicing, and inference
+python -m bees.yolo.sahi_pipeline \
+  --cvat-xml dataset_test/annotations.xml \
+  --images-dir dataset_test \
+  --test-images dataset_test2 \
+  --output-dir sahi_output \
+  --model yolo11s.pt \
+  --device cuda:0
+```
+
+#### Individual Pipeline Steps
+
+**Step 1: Convert CVAT to COCO**
+```bash
+python -m bees.yolo.sahi_pipeline \
+  --step convert \
+  --cvat-xml dataset_test/annotations.xml \
+  --images-dir dataset_test \
+  --output-dir sahi_output
+```
+
+**Step 2: Slice Dataset for Training**
+```bash
+python -m bees.yolo.sahi_pipeline \
+  --step slice \
+  --coco-json sahi_output/coco/dataset.json \
+  --images-dir dataset_test \
+  --output-dir sahi_output \
+  --slice-height 512 \
+  --slice-width 512 \
+  --overlap 0.2 \
+  --train-split 0.8
+```
+
+**Step 3: Run Sliced Inference**
+```bash
+python -m bees.yolo.sahi_pipeline \
+  --step inference \
+  --test-images dataset_test2 \
+  --output-dir sahi_output \
+  --model yolo11s.pt \
+  --confidence 0.25
+```
+
+#### Custom Parameters
+
+```bash
+# Large slice size for very large images
+python -m bees.yolo.sahi_pipeline \
+  --cvat-xml dataset_test/annotations.xml \
+  --images-dir dataset_test \
+  --slice-height 1024 \
+  --slice-width 1024 \
+  --overlap 0.3 \
+  --confidence 0.5
+
+# CPU inference (slower but works without GPU)
+python -m bees.yolo.sahi_pipeline \
+  --cvat-xml dataset_test/annotations.xml \
+  --images-dir dataset_test \
+  --device cpu
+```
+
+### SAHI Pipeline Features
+
+- **Automatic Detection Merging**: No manual NMS logic required
+- **Framework Agnostic**: Works with YOLOv5/v8/v11, MMDet, HuggingFace, TorchVision
+- **Multiple Export Formats**: COCO JSON, Pascal VOC XML, CSV, FiftyOne
+- **Progress Tracking**: Real-time progress bars and statistics
+- **Memory Efficient**: Processes large images without loading everything into memory
+- **Production Ready**: Based on 600+ academic citations and community testing
 
 ## Configuration
 
