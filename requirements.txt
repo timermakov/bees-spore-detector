@@ -5,6 +5,7 @@
 torch
 torchvision
 ultralytics>=8.3.0
+sahi>=0.11.36
 
 # 3. Остальные зависимости
 Pillow
