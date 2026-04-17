@@ -48,3 +48,33 @@ yolo_epochs: 100
 yolo_batch_size: 2
 # Размер изображения для обучения/инференса (больше = точнее, но медленнее)
 yolo_imgsz: 1024
+
+# ========== Tiley (нарезка CVAT + тайловый YOLO-инференс) ==========
+# Параметры по умолчанию для: python -m bees.main --export-tiled-cvat / --predict-tiled
+# CLI-флаги при наличии переопределяют значения из этого раздела.
+tiley:
+  export:
+    # Пути к данным (если заданы — можно вызывать --export-tiled-cvat без --tiled-cvat-xml / --tiled-images-dir)
+    cvat_xml: null
+    images_dir: null
+    out: tiled_pascal_export
+    tile_size: 512
+    overlap: 0.25
+    negative_ratio: 0.1
+    # null = случайный сид при каждом запуске
+    seed: null
+  predict:
+    source: dataset_test
+    out: results/tiled_predictions
+    # null = взять yolo_imgsz из секции YOLO выше
+    tile_size: null
+    overlap: 0.2
+    merge_iou: 0.15
+    # null = взять yolo_confidence
+    conf: null
+    # null = взять yolo_imgsz
+    imgsz: null
+    use_clahe: true
+    write_previews: true
+    # null = веса по пути из YOLO (models/.../best.pt); иначе путь к .pt
+    weights: null

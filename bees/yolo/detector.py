@@ -9,6 +9,7 @@ import numpy as np
 from PIL import Image
 
 from .config import YOLOConfig
+from .tiling import apply_clahe_bgr, crop_tile_to_square, tile_axis_origins
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +104,16 @@ class SporeDetector:
             # Use pretrained model for testing
             logger.warning(f"Trained model not found, using pretrained {self.config.model_name}")
             self.model = YOLO(self.config.model_name)
+
+    def load_weights(self, weights_path: Union[str, Path]) -> None:
+        """Load a specific ``.pt`` checkpoint (e.g. for tiled inference experiments)."""
+        from ultralytics import YOLO
+
+        path = Path(weights_path)
+        if not path.is_file():
+            raise FileNotFoundError(f"Weights not found: {path}")
+        logger.info("Loading weights from %s", path)
+        self.model = YOLO(str(path))
     
     def detect(self, 
                image: Union[str, Path, Image.Image, np.ndarray],
@@ -156,6 +167,89 @@ class SporeDetector:
                     class_name=cls_name,
                 ))
         
+        return detections
+
+    def detect_tiled(
+        self,
+        image: np.ndarray,
+        *,
+        tile_size: Optional[int] = None,
+        overlap: float = 0.2,
+        merge_iou: float = 0.15,
+        confidence: Optional[float] = None,
+        imgsz: Optional[int] = None,
+        use_clahe: bool = True,
+    ) -> List[Detection]:
+        """
+        Run detection on a large BGR image using a fixed tile grid and merge with NMS.
+
+        Tiles are padded to a square when the image is smaller than ``tile_size`` on an axis.
+        """
+        if self.model is None:
+            raise RuntimeError("Model not loaded")
+
+        import torch
+        from torchvision.ops import nms
+
+        conf = confidence if confidence is not None else self.config.confidence_threshold
+        t_size = tile_size if tile_size is not None else self.config.imgsz
+        infer_sz = imgsz if imgsz is not None else self.config.imgsz
+
+        work = apply_clahe_bgr(image) if use_clahe else image
+        h, w = work.shape[:2]
+
+        y_origins = tile_axis_origins(h, t_size, overlap)
+        x_origins = tile_axis_origins(w, t_size, overlap)
+
+        boxes_list: List[List[float]] = []
+        scores_list: List[float] = []
+
+        for y1 in y_origins:
+            for x1 in x_origins:
+                tile, _, _ = crop_tile_to_square(work, y1, x1, t_size)
+                th = min(t_size, h - y1)
+                tw = min(t_size, w - x1)
+
+                results = self.model.predict(
+                    source=tile,
+                    conf=conf,
+                    iou=self.config.iou_threshold,
+                    imgsz=infer_sz,
+                    max_det=3000,
+                    verbose=False,
+                )
+                for result in results:
+                    if result.boxes is None:
+                        continue
+                    for box in result.boxes:
+                        xyxy = box.xyxy[0].cpu().numpy()
+                        lx1 = float(np.clip(xyxy[0], 0, tw))
+                        ly1 = float(np.clip(xyxy[1], 0, th))
+                        lx2 = float(np.clip(xyxy[2], 0, tw))
+                        ly2 = float(np.clip(xyxy[3], 0, th))
+                        if lx2 <= lx1 or ly2 <= ly1:
+                            continue
+                        boxes_list.append([lx1 + x1, ly1 + y1, lx2 + x1, ly2 + y1])
+                        scores_list.append(float(box.conf[0]))
+
+        if not boxes_list:
+            return []
+
+        boxes_tensor = torch.tensor(boxes_list, dtype=torch.float32)
+        scores_tensor = torch.tensor(scores_list, dtype=torch.float32)
+        keep = nms(boxes_tensor, scores_tensor, merge_iou)
+
+        detections: List[Detection] = []
+        for idx in keep.tolist():
+            x1, y1, x2, y2 = boxes_tensor[idx].tolist()
+            detections.append(
+                Detection(
+                    bbox=(x1, y1, x2, y2),
+                    confidence=scores_tensor[idx].item(),
+                    class_id=0,
+                    class_name=self.config.class_names[0] if self.config.class_names else "spore",
+                )
+            )
         return detections
     
     def detect_batch(self, 

@@ -1,184 +1,60 @@
-# нарезает датасет для обучения 
+"""
+Slice a CVAT annotation file into fixed-size training tiles (Pascal VOC per tile).
 
-import os
-import xml.etree.ElementTree as ET
-import cv2
-import shutil
-import random
+Prefer the integrated CLI (from repository root):
+
+  python -m bees.main --export-tiled-cvat
+
+Defaults: ``tiley.export`` in ``config.yaml``. This script can read the same section when
+``--xml`` / ``--img`` are omitted.
+"""
+
 import argparse
-import time
+import sys
 from pathlib import Path
-from xml.dom import minidom
+
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from bees.config_loader import create_config_manager  # noqa: E402
+from bees.yolo.cvat_tiled_export import CvatTiledPascalExporter  # noqa: E402
 
 
-def save_pascal_xml(filename, bboxes, size):
-    width, height, depth = size
-    annotation = ET.Element('annotation')
-    ET.SubElement(annotation, 'filename').text = filename
-    s_el = ET.SubElement(annotation, 'size')
-    ET.SubElement(s_el, 'width').text = str(width)
-    ET.SubElement(s_el, 'height').text = str(height)
-    ET.SubElement(s_el, 'depth').text = str(depth)
-    for box in bboxes:
-        obj = ET.SubElement(annotation, 'object')
-        ET.SubElement(obj, 'name').text = 'spore'
-        bnd = ET.SubElement(obj, 'bndbox')
-        ET.SubElement(bnd, 'xmin').text = str(int(box[0]))
-        ET.SubElement(bnd, 'ymin').text = str(int(box[1]))
-        ET.SubElement(bnd, 'xmax').text = str(int(box[2]))
-        ET.SubElement(bnd, 'ymax').text = str(int(box[3]))
-    return annotation
-
-
-def crop_tile_to_square(img, y1, x1, tile_size, border_mode=cv2.BORDER_REFLECT_101):
-    """Вырезает тайл и дополняет до tile_size×tile_size, чтобы не было слепых зон и фиксированный размер."""
-    h, w = img.shape[:2]
-    y2 = min(y1 + tile_size, h)
-    x2 = min(x1 + tile_size, w)
-    crop = img[y1:y2, x1:x2]
-    th, tw = crop.shape[:2]
-    pad_bottom = tile_size - th
-    pad_right = tile_size - tw
-    if pad_bottom == 0 and pad_right == 0:
-        return crop, th, tw
-    return cv2.copyMakeBorder(crop, 0, pad_bottom, 0, pad_right, border_mode), th, tw
-
-
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--xml', type=str, required=True, help="Общий XML файл")
-    parser.add_argument('--img', type=str, required=True, help="Папка с оригиналами")
-    parser.add_argument('--out', type=str, default='datasetV3_final')
-    parser.add_argument('--tile', type=int, default=512)
-    parser.add_argument('--overlap', type=float, default=0.25)
-    #parser.add_argument('--val_split', type=float, default=0.2)
-    parser.add_argument('--negative_ratio', type=float, default=0.1)
-    parser.add_argument('--seed', type=int, default=None, help="Сид для рандома (по дефолту None - рандом)")
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Export CVAT annotations to tiled Pascal VOC dataset")
+    parser.add_argument("-c", "--config", type=str, default="config.yaml", help="YAML config (tiley.export)")
+    parser.add_argument("--xml", type=str, default=None, help="CVAT annotations.xml (default: tiley.export.cvat_xml)")
+    parser.add_argument("--img", type=str, default=None, help="Source images folder (default: tiley.export.images_dir)")
+    parser.add_argument("--out", type=str, default=None, help="Output folder (default: tiley.export.out)")
+    parser.add_argument("--tile", type=int, default=None, help="Tile size (default: tiley.export.tile_size)")
+    parser.add_argument("--overlap", type=float, default=None, help="Overlap (default: tiley.export.overlap)")
+    parser.add_argument("--negative_ratio", type=float, default=None, help="Default: tiley.export.negative_ratio")
+    parser.add_argument("--seed", type=int, default=None, help="Seed (default: tiley.export.seed; null = random)")
     args = parser.parse_args()
 
-    # Настройка рандома
-    current_seed = args.seed if args.seed is not None else int(time.time())
-    random.seed(current_seed)
+    cm = create_config_manager(args.config)
+    e = cm.get_tiley()["export"]
+    xml = args.xml or e.get("cvat_xml")
+    img = args.img or e.get("images_dir")
+    if not xml or not img:
+        parser.error("Provide --xml and --img or set tiley.export.cvat_xml and images_dir in config.yaml")
+    out = args.out if args.out is not None else str(e["out"])
+    tile = args.tile if args.tile is not None else int(e["tile_size"])
+    overlap = args.overlap if args.overlap is not None else float(e["overlap"])
+    neg = args.negative_ratio if args.negative_ratio is not None else float(e["negative_ratio"])
+    seed = args.seed if args.seed is not None else e.get("seed")
 
-    out_path = Path(args.out)
-    if out_path.exists(): shutil.rmtree(out_path)
-
-    (out_path / 'images').mkdir(parents=True, exist_ok=True)
-    (out_path / 'labels_xml').mkdir(parents=True, exist_ok=True)
-
-    tree = ET.parse(args.xml)
-    root = tree.getroot()
-
-    # Готовим общий XML
-    common_xml_root = ET.Element("annotations")
-    meta_node = root.find('meta')
-    if meta_node is not None: common_xml_root.append(meta_node)
-
-    images_data = []
-    for img_tag in root.findall('image'):
-        boxes = []
-        for ell in img_tag.findall('ellipse'):
-            cx, cy, rx, ry = float(ell.get('cx')), float(ell.get('cy')), float(ell.get('rx')), float(ell.get('ry'))
-            boxes.append([cx - rx, cy - ry, cx + rx, cy + ry])
-        images_data.append({'name': img_tag.get('name'), 'boxes': boxes})
-
-    #random.shuffle(images_data)
-    #split_idx = int(len(images_data) * (1 - args.val_split))
-
-    stats = {
-        'total': 0,
-        'objs': 0,
-        'empty': 0,
-        'box_count': 0,
-        'tile': args.tile
-    }
-
-    print(f"Нарезка тайлов...")
-    print(f"  Размер: {args.tile} px")
-    print(f"  Negative ratio: {args.negative_ratio * 100:.0f}%")
-    print(f"  Используемый Seed: {current_seed} {'(fixed)' if args.seed else '(random)'}\n")
-
-    img_id_counter = 0
-    for data in images_data:
-        t_size = stats['tile']
-        stride = int(t_size * (1 - args.overlap))
-
-        img = cv2.imread(str(Path(args.img) / data['name']))
-        if img is None: continue
-        h, w, c = img.shape
-
-       ## y_pos = [min(j * stride, h - t_size) for j in range((h - t_size) // stride + 2) if j * stride < h - t_size / 2]
-        if h <= t_size:
-            y_pos = [0]
-        else:
-            y_pos = list(range(0, h - t_size + 1, stride))
-            if y_pos[-1] != h - t_size:
-                y_pos.append(h - t_size)
-       # x_pos = [min(j * stride, w - t_size) for j in range((w - t_size) // stride + 2) if j * stride < w - t_size / 2]
-        if w <= t_size:
-            x_pos = [0]
-        else:
-            x_pos = list(range(0, w - t_size + 1, stride))
-            if x_pos[-1] != w - t_size:
-                x_pos.append(w - t_size)
-
-        for y1 in y_pos:
-            for x1 in x_pos:
-                y2 = min(y1 + t_size, h)
-                x2 = min(x1 + t_size, w)
-                crop_h, crop_w = y2 - y1, x2 - x1
-                tile_bboxes = []
-                for box in data['boxes']:
-                    cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
-                    if x1 <= cx < x1 + t_size and y1 <= cy < y1 + t_size:
-                        tile_bboxes.append([
-                            max(0, box[0] - x1),
-                            max(0, box[1] - y1),
-                            min(crop_w, box[2] - x1),
-                            min(crop_h, box[3] - y1),
-                        ])
-
-                if len(tile_bboxes) == 0:
-                    if random.random() > args.negative_ratio: continue
-                    stats['empty'] += 1
-                else:
-                    stats['objs'] += 1
-                    stats['box_count'] += len(tile_bboxes)
-
-                stats['total'] += 1
-                t_name = f"{Path(data['name']).stem}_tile_{y1}_{x1}.jpg"
-                tile_img, _, _ = crop_tile_to_square(img, y1, x1, t_size)
-                cv2.imwrite(str(out_path / 'images' / t_name), tile_img)
-
-                tile_xml = save_pascal_xml(t_name, tile_bboxes, (t_size, t_size, c))
-                with open(out_path / 'labels_xml' / f"{t_name.replace('.jpg', '.xml')}", "w",
-                          encoding="utf-8") as f:
-                    f.write(minidom.parseString(ET.tostring(tile_xml)).toprettyxml(indent="   "))
-
-                img_el = ET.SubElement(common_xml_root, "image",
-                                       {"id": str(img_id_counter), "name": t_name, "width": str(t_size),
-                                        "height": str(t_size)})
-                for b in tile_bboxes:
-                    ET.SubElement(img_el, "box",
-                                  {"label": "spore", "xtl": str(b[0]), "ytl": str(b[1]), "xbr": str(b[2]),
-                                   "ybr": str(b[3])})
-                img_id_counter += 1
-
-    with open(out_path / "annotations_all.xml", "w", encoding="utf-8") as f:
-        f.write(minidom.parseString(ET.tostring(common_xml_root)).toprettyxml(indent="  "))
-
-    t_all = stats['total']
-    e_all = stats['empty']
-    o_all = stats['objs']
-    b_all = stats['box_count']
-
-    print(f"--- СТАТИСТИКА НАРЕЗКИ ---")
-    print(f"Всего тайлов сохранено: {t_all}")
-    print(f"Всего спор (аннотаций): {b_all}")
-    print(f"Из них со спорами:      {o_all}")
-    print(f"Из них пустых (фон):    {e_all} ({(e_all / t_all * 100 if t_all > 0 else 0):.1f}% от выборки)")
-    print(f"--------------------------")
-    print(f"Seed для повтора: {current_seed}")
+    exporter = CvatTiledPascalExporter()
+    exporter.export(
+        Path(xml),
+        Path(img),
+        Path(out),
+        tile_size=tile,
+        overlap=overlap,
+        negative_ratio=neg,
+        seed=seed,
+    )
 
 
 if __name__ == "__main__":

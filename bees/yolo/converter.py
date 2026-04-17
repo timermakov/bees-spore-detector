@@ -26,6 +26,24 @@ class EllipseAnnotation:
     label: str = "spore"
 
 
+def _ellipse_aabb_half_sizes(ellipse: EllipseAnnotation) -> Tuple[float, float]:
+    """Half-width and half-height of the axis-aligned box containing the ellipse (supports rotation)."""
+    theta = math.radians(ellipse.rotation)
+    cos_t = abs(math.cos(theta))
+    sin_t = abs(math.sin(theta))
+    rx, ry = ellipse.rx, ellipse.ry
+    half_w = rx * cos_t + ry * sin_t
+    half_h = rx * sin_t + ry * cos_t
+    return half_w, half_h
+
+
+def ellipse_to_xyxy_pixels(ellipse: EllipseAnnotation) -> Tuple[float, float, float, float]:
+    """Axis-aligned bounding box in pixel coordinates (x1, y1, x2, y2)."""
+    half_w, half_h = _ellipse_aabb_half_sizes(ellipse)
+    cx, cy = ellipse.cx, ellipse.cy
+    return (cx - half_w, cy - half_h, cx + half_w, cy + half_h)
+
+
 @dataclass
 class ImageAnnotation:
     """Represents all annotations for a single image."""
@@ -130,25 +148,11 @@ class CVATToYOLOConverter:
         Returns:
             Tuple of (x_center, y_center, width, height) normalized to [0, 1]
         """
-        cx, cy = ellipse.cx, ellipse.cy
-        rx, ry = ellipse.rx, ellipse.ry
-        rotation_deg = ellipse.rotation
-        
-        # Convert rotation to radians
-        theta = math.radians(rotation_deg)
-        
-        # Calculate AABB for rotated ellipse
-        # Width and height of AABB containing rotated ellipse
-        cos_t = abs(math.cos(theta))
-        sin_t = abs(math.sin(theta))
-        
-        bbox_half_w = rx * cos_t + ry * sin_t
-        bbox_half_h = rx * sin_t + ry * cos_t
-        
-        # Full bbox dimensions
+        bbox_half_w, bbox_half_h = _ellipse_aabb_half_sizes(ellipse)
         bbox_w = 2 * bbox_half_w
         bbox_h = 2 * bbox_half_h
-        
+        cx, cy = ellipse.cx, ellipse.cy
+
         # Normalize to [0, 1]
         x_center_norm = cx / img_width
         y_center_norm = cy / img_height

@@ -5,6 +5,7 @@ This module provides functionality for loading and managing configuration files
 in YAML format with validation and default value handling.
 """
 
+import copy
 import os
 import logging
 from pathlib import Path
@@ -23,6 +24,31 @@ logger = logging.getLogger(__name__)
 
 # Type variable for generic types
 T = TypeVar('T')
+
+# Defaults for optional nested ``tiley`` section (CVAT tiling + tiled inference)
+_TILEY_DEFAULTS: Dict[str, Dict[str, Any]] = {
+    "export": {
+        "cvat_xml": None,
+        "images_dir": None,
+        "out": "tiled_pascal_export",
+        "tile_size": 512,
+        "overlap": 0.25,
+        "negative_ratio": 0.1,
+        "seed": None,
+    },
+    "predict": {
+        "source": "dataset_test",
+        "out": "results/tiled_predictions",
+        "tile_size": None,
+        "overlap": 0.2,
+        "merge_iou": 0.15,
+        "conf": None,
+        "imgsz": None,
+        "use_clahe": True,
+        "write_previews": True,
+        "weights": None,
+    },
+}
 
 
 class ConfigurationError(Exception):
@@ -262,6 +288,22 @@ class ConfigurationManager:
     def has_param(self, key: str) -> bool:
         """Check if a parameter exists in configuration."""
         return key in self.config
+
+    def get_tiley(self) -> Dict[str, Dict[str, Any]]:
+        """
+        Return merged ``tiley`` settings from config with built-in defaults.
+
+        Top-level keys are ``export`` and ``predict``; each maps to a flat dict of options.
+        """
+        merged = copy.deepcopy(_TILEY_DEFAULTS)
+        raw = self.config.get("tiley")
+        if not isinstance(raw, dict):
+            return merged
+        for section in ("export", "predict"):
+            block = raw.get(section)
+            if isinstance(block, dict):
+                merged[section].update(block)
+        return merged
     
     def get_all_params(self) -> Dict[str, Any]:
         """Get all configuration parameters with defaults applied."""

@@ -9,20 +9,31 @@ import argparse
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Tuple, Optional
 
 from bees.config_loader import create_config_manager, ConfigurationError
 from bees.grouping import create_group_manager
 from bees.reporting import ReportManager
 from bees.cvat_exporter import CVATExporter
 from bees.spore_analysis_pipeline import SporeAnalysisPipeline
+from bees.yolo.cvat_tiled_export import CvatTiledPascalExporter
 
-# YOLO imports (optional)
+# YOLO / inference stack (optional: ultralytics, torch, …)
 try:
-    from bees.yolo import YOLOConfig, SporeDetector, SporeCounter, SporeTrainer, DatasetPreparer, PseudoLabeler
+    from bees.yolo import (
+        YOLOConfig,
+        SporeDetector,
+        SporeCounter,
+        SporeTrainer,
+        DatasetPreparer,
+        PseudoLabeler,
+    )
+    from bees.yolo.tiled_predict import run_tiled_prediction_folder
+
     YOLO_AVAILABLE = True
 except ImportError:
     YOLO_AVAILABLE = False
+    run_tiled_prediction_folder = None  # type: ignore[assignment]
 
 # Configure logging
 logging.basicConfig(
@@ -223,6 +234,133 @@ def pseudo_label(config_path: str, source_dir: str, output_dir: str = "pseudo_la
         return 1
 
 
+def _resolve_tiley_export_cli(args, config_manager) -> Dict[str, Any]:
+    """Merge ``--export-tiled-cvat`` CLI flags with ``tiley.export`` from config."""
+    e = config_manager.get_tiley()["export"]
+    return {
+        "cvat_xml": (args.tiled_cvat_xml or e.get("cvat_xml")),
+        "images_dir": (args.tiled_images_dir or e.get("images_dir")),
+        "out": args.tiled_out if args.tiled_out is not None else e["out"],
+        "tile_size": args.tiled_size if args.tiled_size is not None else int(e["tile_size"]),
+        "overlap": args.tiled_overlap if args.tiled_overlap is not None else float(e["overlap"]),
+        "negative_ratio": (
+            args.tiled_negative_ratio
+            if args.tiled_negative_ratio is not None
+            else float(e["negative_ratio"])
+        ),
+        "seed": args.tiled_seed if args.tiled_seed is not None else e.get("seed"),
+    }
+
+
+def _resolve_tiley_predict_cli(args, config_manager) -> Dict[str, Any]:
+    """Merge ``--predict-tiled`` CLI flags with ``tiley.predict`` from config."""
+    p = config_manager.get_tiley()["predict"]
+    use_clahe = bool(p["use_clahe"])
+    write_previews = bool(p["write_previews"])
+    if args.predict_tiled_no_clahe:
+        use_clahe = False
+    if args.predict_tiled_no_preview:
+        write_previews = False
+    return {
+        "source": (args.predict_tiled_source or str(p["source"])),
+        "out": (args.predict_tiled_out or str(p["out"])),
+        "tile_size": args.predict_tile_size if args.predict_tile_size is not None else p.get("tile_size"),
+        "overlap": (
+            args.predict_tile_overlap if args.predict_tile_overlap is not None else float(p["overlap"])
+        ),
+        "merge_iou": (
+            args.predict_tile_merge_iou if args.predict_tile_merge_iou is not None else float(p["merge_iou"])
+        ),
+        "conf": args.predict_tiled_conf if args.predict_tiled_conf is not None else p.get("conf"),
+        "imgsz": args.predict_tiled_imgsz if args.predict_tiled_imgsz is not None else p.get("imgsz"),
+        "use_clahe": use_clahe,
+        "write_previews": write_previews,
+        "weights": (
+            args.predict_tiled_weights
+            if args.predict_tiled_weights not in (None, "")
+            else p.get("weights")
+        ),
+    }
+
+
+def export_tiled_cvat_dataset(
+    cvat_xml: str,
+    images_dir: str,
+    output_dir: str,
+    tile_size: int = 512,
+    overlap: float = 0.25,
+    negative_ratio: float = 0.1,
+    seed: Optional[int] = None,
+) -> int:
+    """Slice CVAT-annotated images into fixed tiles with Pascal VOC XML labels."""
+    exporter = CvatTiledPascalExporter()
+    stats = exporter.export(
+        Path(cvat_xml),
+        Path(images_dir),
+        Path(output_dir),
+        tile_size=tile_size,
+        overlap=overlap,
+        negative_ratio=negative_ratio,
+        seed=seed,
+    )
+    logger.info(
+        "Tiled dataset: %s tiles, %s with objects, %s empty (kept), %s boxes, seed=%s",
+        stats.total_tiles,
+        stats.tiles_with_objects,
+        stats.empty_tiles,
+        stats.box_count,
+        stats.seed,
+    )
+    print(f"Tiled export written to: {Path(output_dir).resolve()}")
+    return 0
+
+
+def predict_tiled_folder(
+    config_path: str,
+    source_dir: str,
+    output_dir: str,
+    tile_size: Optional[int] = None,
+    overlap: float = 0.2,
+    merge_iou: float = 0.15,
+    confidence: Optional[float] = None,
+    imgsz: Optional[int] = None,
+    use_clahe: bool = True,
+    write_previews: bool = True,
+    weights_path: Optional[str] = None,
+) -> int:
+    """Run tiled YOLO detection on a folder and write Pascal VOC XML (+ optional previews)."""
+    if not YOLO_AVAILABLE or run_tiled_prediction_folder is None:
+        logger.error("YOLO module not available. Install ultralytics: pip install ultralytics")
+        return 1
+    config_manager = create_config_manager(config_path)
+    yolo_config = YOLOConfig.from_config_manager(config_manager)
+    detector = SporeDetector(yolo_config)
+    if weights_path:
+        try:
+            detector.load_weights(weights_path)
+        except FileNotFoundError as exc:
+            logger.error("%s", exc)
+            return 1
+    conf = confidence if confidence is not None else yolo_config.confidence_threshold
+    infer_imgsz = imgsz if imgsz is not None else yolo_config.imgsz
+    t_size = tile_size if tile_size is not None else yolo_config.imgsz
+    stats = run_tiled_prediction_folder(
+        detector,
+        Path(source_dir),
+        Path(output_dir),
+        tile_size=t_size,
+        overlap=overlap,
+        merge_iou=merge_iou,
+        confidence=conf,
+        imgsz=infer_imgsz,
+        use_clahe=use_clahe,
+        write_previews=write_previews,
+    )
+    logger.info("Tiled prediction: %s images, %s total detections", stats["images"], stats["detections"])
+    print(f"Tiled predictions written to: {Path(output_dir).resolve()}")
+    return 0
+
+
 def merge_pseudo_labels(config_path: str, pseudo_dir: str = "pseudo_labels") -> int:
     """Merge verified pseudo-labels into training set."""
     if not YOLO_AVAILABLE:
@@ -295,6 +433,47 @@ def main():
                        help='Max detections per image for YOLO->CVAT export (default: 1000)')
     parser.add_argument('--yolo-cvat-shape', choices=['box', 'ellipse'], default='box',
                        help='Shape for YOLO->CVAT export (box or ellipse, default: box)')
+
+    # Tiled dataset / tiled inference (large images); defaults from config.yaml → tiley
+    parser.add_argument('--export-tiled-cvat', action='store_true',
+                       help='Slice CVAT XML + images into fixed-size tiles (Pascal VOC per tile)')
+    parser.add_argument('--tiled-cvat-xml', type=str, default=None,
+                       help='CVAT annotations.xml (default: tiley.export.cvat_xml)')
+    parser.add_argument('--tiled-images-dir', type=str, default=None,
+                       help='Source images folder (default: tiley.export.images_dir)')
+    parser.add_argument('--tiled-out', type=str, default=None,
+                       help='Output folder (default: tiley.export.out)')
+    parser.add_argument('--tiled-size', type=int, default=None,
+                       help='Tile edge in pixels (default: tiley.export.tile_size)')
+    parser.add_argument('--tiled-overlap', type=float, default=None,
+                       help='Tile overlap for export (default: tiley.export.overlap)')
+    parser.add_argument('--tiled-negative-ratio', type=float, default=None,
+                       help='Keep probability for empty tiles (default: tiley.export.negative_ratio)')
+    parser.add_argument('--tiled-seed', type=int, default=None,
+                       help='Random seed for empty tiles; omit to use tiley.export.seed (null = random)')
+
+    parser.add_argument('--predict-tiled', action='store_true',
+                       help='Tiled YOLO inference on a folder (Pascal VOC XML + optional previews)')
+    parser.add_argument('--predict-tiled-source', type=str, default=None,
+                       help='Input folder (default: tiley.predict.source)')
+    parser.add_argument('--predict-tiled-out', type=str, default=None,
+                       help='Output folder (default: tiley.predict.out)')
+    parser.add_argument('--predict-tile-size', type=int, default=None,
+                       help='Tile size in pixels (default: tiley.predict.tile_size or yolo_imgsz)')
+    parser.add_argument('--predict-tile-overlap', type=float, default=None,
+                       help='Tile overlap (default: tiley.predict.overlap)')
+    parser.add_argument('--predict-tile-merge-iou', type=float, default=None,
+                       help='NMS IoU when merging tiles (default: tiley.predict.merge_iou)')
+    parser.add_argument('--predict-tiled-conf', type=float, default=None,
+                       help='Confidence (default: tiley.predict.conf or yolo_confidence)')
+    parser.add_argument('--predict-tiled-imgsz', type=int, default=None,
+                       help='YOLO letterbox size (default: tiley.predict.imgsz or yolo_imgsz)')
+    parser.add_argument('--predict-tiled-no-clahe', action='store_true',
+                       help='Disable CLAHE preprocessing for tiled prediction')
+    parser.add_argument('--predict-tiled-no-preview', action='store_true',
+                       help='Do not write pred_*.jpg preview images')
+    parser.add_argument('--predict-tiled-weights', type=str, default=None,
+                       help='Weights .pt path (default: tiley.predict.weights or YOLO default best.pt)')
     
     args = parser.parse_args()
     
@@ -308,6 +487,57 @@ def main():
     
     if args.merge_pseudo:
         return merge_pseudo_labels(args.config, args.pseudo_output)
+
+    if args.export_tiled_cvat:
+        try:
+            cm = create_config_manager(args.config)
+        except ConfigurationError as exc:
+            logger.error("%s", exc)
+            return 1
+        resolved = _resolve_tiley_export_cli(args, cm)
+        if not resolved["cvat_xml"] or not resolved["images_dir"]:
+            logger.error(
+                "export-tiled-cvat needs cvat_xml and images_dir: set tiley.export in %s "
+                "or pass --tiled-cvat-xml and --tiled-images-dir",
+                args.config,
+            )
+            return 1
+        return export_tiled_cvat_dataset(
+            str(resolved["cvat_xml"]),
+            str(resolved["images_dir"]),
+            str(resolved["out"]),
+            tile_size=int(resolved["tile_size"]),
+            overlap=float(resolved["overlap"]),
+            negative_ratio=float(resolved["negative_ratio"]),
+            seed=resolved["seed"],
+        )
+
+    if args.predict_tiled:
+        if not YOLO_AVAILABLE or run_tiled_prediction_folder is None:
+            logger.error("YOLO module not available. Install ultralytics: pip install ultralytics")
+            return 1
+        try:
+            cm = create_config_manager(args.config)
+        except ConfigurationError as exc:
+            logger.error("%s", exc)
+            return 1
+        resolved = _resolve_tiley_predict_cli(args, cm)
+        weights = resolved["weights"]
+        if weights is not None:
+            weights = str(weights)
+        return predict_tiled_folder(
+            args.config,
+            resolved["source"],
+            resolved["out"],
+            tile_size=resolved["tile_size"],
+            overlap=float(resolved["overlap"]),
+            merge_iou=float(resolved["merge_iou"]),
+            confidence=resolved["conf"],
+            imgsz=resolved["imgsz"],
+            use_clahe=bool(resolved["use_clahe"]),
+            write_previews=bool(resolved["write_previews"]),
+            weights_path=weights,
+        )
 
     if args.export_yolo_cvat:
         if not YOLO_AVAILABLE:
