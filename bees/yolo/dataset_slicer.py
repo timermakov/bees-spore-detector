@@ -1,8 +1,4 @@
-"""
-Dataset slicing utilities for SAHI-based tiling.
-
-Replaces cvat_tiled_export.py with SAHI's slice_coco functionality.
-"""
+"""Dataset slicing utilities for SAHI-based tiling."""
 
 import logging
 from dataclasses import dataclass

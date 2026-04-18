@@ -25,28 +25,25 @@ logger = logging.getLogger(__name__)
 # Type variable for generic types
 T = TypeVar('T')
 
-# Defaults for optional nested ``tiley`` section (CVAT tiling + tiled inference)
+# Defaults for optional nested ``tiley`` section (SAHI tiled export + inference)
 _TILEY_DEFAULTS: Dict[str, Dict[str, Any]] = {
     "export": {
+        "input": None,
         "cvat_xml": None,
-        "images_dir": None,
-        "out": "tiled_pascal_export",
+        "out": "sahi_tiled_export",
         "tile_size": 512,
         "overlap": 0.25,
-        "negative_ratio": 0.1,
-        "seed": None,
     },
     "predict": {
-        "source": "dataset_test",
-        "out": "results/tiled_predictions",
-        "tile_size": None,
+        "input": "dataset_test",
+        "out": "results/sahi_tiled_predictions",
+        "tile_size": 1024,
         "overlap": 0.2,
-        "merge_iou": 0.15,
-        "conf": None,
-        "imgsz": None,
-        "use_clahe": True,
+        "conf": 0.25,
         "write_previews": True,
         "weights": None,
+        "device": "cuda:0",
+        "model_type": "ultralytics",
     },
 }
 

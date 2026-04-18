@@ -49,32 +49,33 @@ yolo_batch_size: 2
 # Размер изображения для обучения/инференса (больше = точнее, но медленнее)
 yolo_imgsz: 1024
 
-# ========== Tiley (нарезка CVAT + тайловый YOLO-инференс) ==========
-# Параметры по умолчанию для: python -m bees.main --export-tiled-cvat / --predict-tiled
-# CLI-флаги при наличии переопределяют значения из этого раздела.
+# ========== Tiley / SAHI (YAML-first) ==========
+# Команды:
+#   python -m bees.main tile-export [--input ...] [--out ...]
+#   python -m bees.main tile-predict [--input ...] [--out ...]
+# Все quality/inference параметры берутся только из YAML.
 tiley:
   export:
-    # Пути к данным (если заданы — можно вызывать --export-tiled-cvat без --tiled-cvat-xml / --tiled-images-dir)
+    # Папка с исходными изображениями (можно переопределить через tile-export --input)
+    input: null
+    # Путь к CVAT XML; если null, будет попытка взять <input>/annotations.xml
     cvat_xml: null
-    images_dir: null
-    out: tiled_pascal_export
+    # Папка результата (можно переопределить через tile-export --out)
+    out: sahi_tiled_export
+    # Квадратный тайл: tile_size x tile_size
     tile_size: 512
     overlap: 0.25
-    negative_ratio: 0.1
-    # null = случайный сид при каждом запуске
-    seed: null
   predict:
-    source: dataset_test
-    out: results/tiled_predictions
-    # null = взять yolo_imgsz из секции YOLO выше
-    tile_size: null
+    # Папка с изображениями для инференса (можно переопределить через tile-predict --input)
+    input: dataset_test
+    # Папка результата (можно переопределить через tile-predict --out)
+    out: results/sahi_tiled_predictions
+    # Квадратный тайл: tile_size x tile_size
+    tile_size: 1024
     overlap: 0.2
-    merge_iou: 0.15
-    # null = взять yolo_confidence
-    conf: null
-    # null = взять yolo_imgsz
-    imgsz: null
-    use_clahe: true
+    conf: 0.25
     write_previews: true
-    # null = веса по пути из YOLO (models/.../best.pt); иначе путь к .pt
+    # null = yolo_model из секции YOLO выше
     weights: null
+    device: cuda:0
+    model_type: ultralytics

@@ -16,9 +16,8 @@ from bees.grouping import create_group_manager
 from bees.reporting import ReportManager
 from bees.cvat_exporter import CVATExporter
 from bees.spore_analysis_pipeline import SporeAnalysisPipeline
-from bees.yolo.cvat_tiled_export import CvatTiledPascalExporter
 
-# YOLO / inference stack (optional: ultralytics, torch, …)
+# YOLO / inference stack (optional: ultralytics, torch, ...)
 try:
     from bees.yolo import (
         YOLOConfig,
@@ -28,12 +27,10 @@ try:
         DatasetPreparer,
         PseudoLabeler,
     )
-    from bees.yolo.tiled_predict import run_tiled_prediction_folder
 
     YOLO_AVAILABLE = True
 except ImportError:
     YOLO_AVAILABLE = False
-    run_tiled_prediction_folder = None  # type: ignore[assignment]
 
 # Configure logging
 logging.basicConfig(
@@ -45,12 +42,12 @@ logger = logging.getLogger(__name__)
 
 class AnalysisRunner:
     """Main runner class for the analysis pipeline."""
-    
-    def __init__(self, config_path: str, data_dir: Optional[str] = None, 
+
+    def __init__(self, config_path: str, data_dir: Optional[str] = None,
                  results_dir: Optional[str] = None, use_yolo: bool = False):
         """
         Initialize the analysis runner.
-        
+
         Args:
             config_path: Path to configuration file
             data_dir: Optional override for data directory
@@ -60,89 +57,89 @@ class AnalysisRunner:
         self.config_path = Path(config_path)
         self.config_manager = create_config_manager(config_path)
         self.use_yolo = use_yolo
-        
+
         # Get directories
         self.data_dir = data_dir or self.config_manager.get_param('data_dir')
         self.results_dir = results_dir or self.config_manager.get_param('results_dir')
-        
+
         # Create pipeline
         self.pipeline = SporeAnalysisPipeline(
             self.config_manager, self.data_dir, self.results_dir, use_yolo=use_yolo
         )
-        
+
         # Create exporters
         self.cvat_exporter = CVATExporter(str(self.results_dir))
         self.report_manager = ReportManager(str(self.results_dir))
-    
+
     def run(self, export_cvat: bool = False) -> Dict[str, any]:
         """
         Run the complete analysis.
-        
+
         Args:
             export_cvat: Whether to export CVAT format
-            
+
         Returns:
             Dictionary containing analysis results and report paths
         """
         logger.info("Starting bee spore analysis")
-        
+
         try:
             # Run analysis
             groups_results = self.pipeline.run_analysis()
-            
+
             # Generate reports
             reports = self.report_manager.generate_all_reports(groups_results)
-            
+
             # Export CVAT if requested
             if export_cvat:
                 # Collect all image files and spore objects
                 image_files = []
                 spore_objects_list = []
-                
+
                 for prefix, rows in groups_results.items():
                     group_paths = self._get_group_image_paths(prefix)
                     group_objects = self._get_group_spore_objects(prefix, rows)
-                    
+
                     image_files.extend(group_paths)
                     spore_objects_list.extend(group_objects)
-                
+
                 if image_files:
                     cvat_path = self.cvat_exporter.export_task(
                         'bees_task', image_files, spore_objects_list
                     )
                     reports['cvat'] = cvat_path
-            
+
             # Save run parameters
             self._save_run_parameters()
-            
+
             logger.info("Analysis completed successfully")
             return {
                 'groups_results': groups_results,
                 'reports': reports
             }
-            
+
         except Exception as e:
             logger.error(f"Analysis failed: {e}")
             raise
-    
+
     def _get_group_image_paths(self, prefix: str) -> List[str]:
         """Get image paths for a group."""
         group_manager = create_group_manager(str(self.data_dir))
         if group_manager and group_manager.has_group(prefix):
             return group_manager.get_group(prefix)
         return []
-    
+
     def _get_group_spore_objects(self, prefix: str, rows: List[Tuple[int, float]]) -> List[List]:
         """Get spore objects for a group from stored results."""
         if hasattr(self.pipeline, 'group_results') and prefix in self.pipeline.group_results:
             return [result['spore_objects'] for result in self.pipeline.group_results[prefix]]
         # Fallback to empty lists if no stored results
         return [[] for _ in rows]
-    
+
     def _save_run_parameters(self) -> None:
         """Save run parameters for reproducibility."""
         params_txt = Path(self.results_dir) / 'params_used.txt'
-        
+
         log_lines = [
             "--------------------------------",
             f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
@@ -151,14 +148,14 @@ class AnalysisRunner:
             f"Results dir: {Path(self.results_dir).absolute()}",
             "Parameters:"
         ]
-        
+
         # Add all parameters
         all_params = self.config_manager.get_all_params()
         for key, value in all_params.items():
             log_lines.append(f"  {key}: {value}")
-        
+
         log_lines.append("--------------------------------")
-        
+
         try:
             with open(params_txt, 'a', encoding='utf-8') as f:
                 f.write('\n'.join(log_lines) + '\n')
@@ -169,7 +166,7 @@ class AnalysisRunner:
 def train_yolo_model(config_path: str, quick_test: bool = False) -> int:
     """
     Train YOLO model for spore detection.
-    
+
     Args:
         config_path: Path to config file
         quick_test: If True, use reduced settings for fast testing (~15 min)
@@ -177,27 +174,25 @@ def train_yolo_model(config_path: str, quick_test: bool = False) -> int:
     if not YOLO_AVAILABLE:
         logger.error("YOLO module not available. Install ultralytics: pip install ultralytics")
         return 1
-    
+
     try:
         config_manager = create_config_manager(config_path)
         yolo_config = YOLOConfig.from_config_manager(config_manager)
-        
+
         if quick_test:
             logger.info("Starting YOLO QUICK TEST training (30 epochs, 640px)...")
         else:
             logger.info("Starting YOLO training pipeline...")
-        
-        # Prepare dataset with 75/25 split
+
         preparer = DatasetPreparer(yolo_config)
-        data_yaml = preparer.prepare_dataset(val_split=0.4)  # 60/40 split for better validation
-        
-        # Train model
+        data_yaml = preparer.prepare_dataset(val_split=0.4)
+
         trainer = SporeTrainer(yolo_config)
         metrics = trainer.train(data_yaml, quick_test=quick_test)
-        
+
         logger.info(f"Training complete. Metrics: {metrics}")
         return 0
-        
+
     except Exception as e:
         logger.error(f"Training failed: {e}")
         return 1
@@ -208,14 +203,14 @@ def pseudo_label(config_path: str, source_dir: str, output_dir: str = "pseudo_la
     if not YOLO_AVAILABLE:
         logger.error("YOLO module not available")
         return 1
-    
+
     try:
         config_manager = create_config_manager(config_path)
         yolo_config = YOLOConfig.from_config_manager(config_manager)
-        
+
         logger.info(f"Generating pseudo-labels from {source_dir}")
         logger.info(f"Confidence threshold: {confidence}, max_det: {max_det}")
-        
+
         labeler = PseudoLabeler(yolo_config)
         stats = labeler.generate_labels(
             Path(source_dir),
@@ -223,141 +218,171 @@ def pseudo_label(config_path: str, source_dir: str, output_dir: str = "pseudo_la
             confidence=confidence,
             max_det=max_det
         )
-        
+
         logger.info(f"Pseudo-labeling complete: {stats['images']} images, {stats['detections']} detections")
         logger.info(f"Output saved to: {output_dir}")
         logger.info("Review the labels, then merge with: --merge-pseudo")
         return 0
-        
+
     except Exception as e:
         logger.error(f"Pseudo-labeling failed: {e}")
         return 1
 
 
-def _resolve_tiley_export_cli(args, config_manager) -> Dict[str, Any]:
-    """Merge ``--export-tiled-cvat`` CLI flags with ``tiley.export`` from config."""
+def _resolve_tiley_export_config(config_manager, input_override: Optional[str], out_override: Optional[str]) -> Dict[str, Any]:
     e = config_manager.get_tiley()["export"]
+    images_dir = input_override or e.get("input") or e.get("images_dir")
+    cvat_xml = e.get("cvat_xml")
+    if not cvat_xml and images_dir:
+        candidate = Path(images_dir) / "annotations.xml"
+        if candidate.exists():
+            cvat_xml = str(candidate)
     return {
-        "cvat_xml": (args.tiled_cvat_xml or e.get("cvat_xml")),
-        "images_dir": (args.tiled_images_dir or e.get("images_dir")),
-        "out": args.tiled_out if args.tiled_out is not None else e["out"],
-        "tile_size": args.tiled_size if args.tiled_size is not None else int(e["tile_size"]),
-        "overlap": args.tiled_overlap if args.tiled_overlap is not None else float(e["overlap"]),
-        "negative_ratio": (
-            args.tiled_negative_ratio
-            if args.tiled_negative_ratio is not None
-            else float(e["negative_ratio"])
-        ),
-        "seed": args.tiled_seed if args.tiled_seed is not None else e.get("seed"),
+        "images_dir": images_dir,
+        "cvat_xml": cvat_xml,
+        "out": out_override or e["out"],
+        "tile_size": int(e["tile_size"]),
+        "overlap": float(e["overlap"]),
     }
 
 
-def _resolve_tiley_predict_cli(args, config_manager) -> Dict[str, Any]:
-    """Merge ``--predict-tiled`` CLI flags with ``tiley.predict`` from config."""
+def _resolve_tiley_predict_config(config_manager, input_override: Optional[str], out_override: Optional[str]) -> Dict[str, Any]:
     p = config_manager.get_tiley()["predict"]
-    use_clahe = bool(p["use_clahe"])
-    write_previews = bool(p["write_previews"])
-    if args.predict_tiled_no_clahe:
-        use_clahe = False
-    if args.predict_tiled_no_preview:
-        write_previews = False
+    default_model = config_manager.get_param("yolo_model", "yolo11s.pt")
+    default_conf = config_manager.get_param("yolo_confidence", 0.25)
+    default_tile = config_manager.get_param("yolo_imgsz", 1024)
     return {
-        "source": (args.predict_tiled_source or str(p["source"])),
-        "out": (args.predict_tiled_out or str(p["out"])),
-        "tile_size": args.predict_tile_size if args.predict_tile_size is not None else p.get("tile_size"),
-        "overlap": (
-            args.predict_tile_overlap if args.predict_tile_overlap is not None else float(p["overlap"])
-        ),
-        "merge_iou": (
-            args.predict_tile_merge_iou if args.predict_tile_merge_iou is not None else float(p["merge_iou"])
-        ),
-        "conf": args.predict_tiled_conf if args.predict_tiled_conf is not None else p.get("conf"),
-        "imgsz": args.predict_tiled_imgsz if args.predict_tiled_imgsz is not None else p.get("imgsz"),
-        "use_clahe": use_clahe,
-        "write_previews": write_previews,
-        "weights": (
-            args.predict_tiled_weights
-            if args.predict_tiled_weights not in (None, "")
-            else p.get("weights")
-        ),
+        "source": input_override or p["input"],
+        "out": out_override or p["out"],
+        "tile_size": int(p.get("tile_size") or default_tile),
+        "overlap": float(p["overlap"]),
+        "conf": float(p.get("conf") if p.get("conf") is not None else default_conf),
+        "weights": p.get("weights") or default_model,
+        "device": p.get("device", "cuda:0"),
+        "model_type": p.get("model_type", "ultralytics"),
+        "write_previews": bool(p.get("write_previews", True)),
     }
 
 
-def export_tiled_cvat_dataset(
-    cvat_xml: str,
-    images_dir: str,
-    output_dir: str,
-    tile_size: int = 512,
-    overlap: float = 0.25,
-    negative_ratio: float = 0.1,
-    seed: Optional[int] = None,
-) -> int:
-    """Slice CVAT-annotated images into fixed tiles with Pascal VOC XML labels."""
-    exporter = CvatTiledPascalExporter()
-    stats = exporter.export(
-        Path(cvat_xml),
-        Path(images_dir),
-        Path(output_dir),
-        tile_size=tile_size,
-        overlap=overlap,
-        negative_ratio=negative_ratio,
-        seed=seed,
+def _import_sahi_export_modules():
+    try:
+        from bees.yolo.converter_coco import CVATToCocoConverter
+        from bees.yolo.dataset_slicer import DatasetSlicer
+        return CVATToCocoConverter, DatasetSlicer
+    except ImportError as exc:
+        logger.error(
+            "SAHI tiled export is unavailable: %s. Install dependencies: pip install sahi ultralytics",
+            exc,
+        )
+        return None, None
+
+
+def _import_sahi_predict_modules():
+    try:
+        from bees.yolo.sahi_inference import SAHIDetector, run_sliced_inference_folder
+        return SAHIDetector, run_sliced_inference_folder
+    except ImportError as exc:
+        logger.error(
+            "SAHI tiled prediction is unavailable: %s. Install dependencies: pip install sahi ultralytics",
+            exc,
+        )
+        return None, None
+
+
+def run_tile_export(config_path: str, input_dir: Optional[str], out_dir: Optional[str]) -> int:
+    config_manager = create_config_manager(config_path)
+    resolved = _resolve_tiley_export_config(config_manager, input_dir, out_dir)
+
+    CVATToCocoConverter, DatasetSlicer = _import_sahi_export_modules()
+    if CVATToCocoConverter is None or DatasetSlicer is None:
+        return 1
+
+    if not resolved["images_dir"] or not resolved["cvat_xml"]:
+        logger.error(
+            "tile-export needs CVAT XML and image directory from config.tiley.export (cvat_xml/input) or annotations.xml in input"
+        )
+        return 1
+
+    images_dir = Path(str(resolved["images_dir"]))
+    cvat_xml = Path(str(resolved["cvat_xml"]))
+    output_dir = Path(str(resolved["out"]))
+
+    if not images_dir.is_dir():
+        logger.error("Input images directory not found: %s", images_dir)
+        return 1
+    if not cvat_xml.is_file():
+        logger.error("CVAT XML not found: %s", cvat_xml)
+        return 1
+
+    coco_dir = output_dir / "coco"
+    sliced_dir = output_dir / "sliced"
+    coco_dir.mkdir(parents=True, exist_ok=True)
+    coco_json = coco_dir / "dataset.json"
+
+    converter = CVATToCocoConverter(class_names=["spore"])
+    converter.parse_cvat_to_coco(cvat_xml, images_dir=images_dir)
+    converter.export_to_coco_json(coco_json)
+
+    stats = DatasetSlicer.slice_coco_dataset(
+        coco_json_path=coco_json,
+        images_dir=images_dir,
+        output_dir=sliced_dir,
+        slice_height=int(resolved["tile_size"]),
+        slice_width=int(resolved["tile_size"]),
+        overlap_height_ratio=float(resolved["overlap"]),
+        overlap_width_ratio=float(resolved["overlap"]),
     )
+
     logger.info(
-        "Tiled dataset: %s tiles, %s with objects, %s empty (kept), %s boxes, seed=%s",
-        stats.total_tiles,
-        stats.tiles_with_objects,
-        stats.empty_tiles,
-        stats.box_count,
-        stats.seed,
+        "Tile export complete: %s slices (%s with objects, %s empty)",
+        stats.total_slices,
+        stats.images_with_objects,
+        stats.empty_slices,
     )
-    print(f"Tiled export written to: {Path(output_dir).resolve()}")
+    print(f"Tile export written to: {output_dir.resolve()}")
     return 0
 
 
-def predict_tiled_folder(
-    config_path: str,
-    source_dir: str,
-    output_dir: str,
-    tile_size: Optional[int] = None,
-    overlap: float = 0.2,
-    merge_iou: float = 0.15,
-    confidence: Optional[float] = None,
-    imgsz: Optional[int] = None,
-    use_clahe: bool = True,
-    write_previews: bool = True,
-    weights_path: Optional[str] = None,
-) -> int:
-    """Run tiled YOLO detection on a folder and write Pascal VOC XML (+ optional previews)."""
-    if not YOLO_AVAILABLE or run_tiled_prediction_folder is None:
-        logger.error("YOLO module not available. Install ultralytics: pip install ultralytics")
-        return 1
+def run_tile_predict(config_path: str, input_dir: Optional[str], out_dir: Optional[str]) -> int:
     config_manager = create_config_manager(config_path)
-    yolo_config = YOLOConfig.from_config_manager(config_manager)
-    detector = SporeDetector(yolo_config)
-    if weights_path:
-        try:
-            detector.load_weights(weights_path)
-        except FileNotFoundError as exc:
-            logger.error("%s", exc)
-            return 1
-    conf = confidence if confidence is not None else yolo_config.confidence_threshold
-    infer_imgsz = imgsz if imgsz is not None else yolo_config.imgsz
-    t_size = tile_size if tile_size is not None else yolo_config.imgsz
-    stats = run_tiled_prediction_folder(
-        detector,
-        Path(source_dir),
-        Path(output_dir),
-        tile_size=t_size,
-        overlap=overlap,
-        merge_iou=merge_iou,
-        confidence=conf,
-        imgsz=infer_imgsz,
-        use_clahe=use_clahe,
-        write_previews=write_previews,
+    resolved = _resolve_tiley_predict_config(config_manager, input_dir, out_dir)
+
+    SAHIDetector, run_sliced_inference_folder = _import_sahi_predict_modules()
+    if SAHIDetector is None or run_sliced_inference_folder is None:
+        return 1
+
+    source_dir = Path(str(resolved["source"]))
+    output_dir = Path(str(resolved["out"]))
+
+    if not source_dir.is_dir():
+        logger.error("Input images directory not found: %s", source_dir)
+        return 1
+
+    try:
+        detector = SAHIDetector(
+            model_path=str(resolved["weights"]),
+            model_type=str(resolved["model_type"]),
+            confidence_threshold=float(resolved["conf"]),
+            device=str(resolved["device"]),
+        )
+    except FileNotFoundError as exc:
+        logger.error("%s", exc)
+        return 1
+
+    stats = run_sliced_inference_folder(
+        detector=detector,
+        source_dir=source_dir,
+        output_dir=output_dir,
+        slice_height=int(resolved["tile_size"]),
+        slice_width=int(resolved["tile_size"]),
+        overlap_height_ratio=float(resolved["overlap"]),
+        overlap_width_ratio=float(resolved["overlap"]),
+        confidence=float(resolved["conf"]),
+        write_previews=bool(resolved["write_previews"]),
     )
-    logger.info("Tiled prediction: %s images, %s total detections", stats["images"], stats["detections"])
-    print(f"Tiled predictions written to: {Path(output_dir).resolve()}")
+
+    logger.info("Tile prediction complete: %s images, %s detections", stats["images"], stats["detections"])
+    print(f"Tile predictions written to: {output_dir.resolve()}")
     return 0
 
 
@@ -366,178 +391,124 @@ def merge_pseudo_labels(config_path: str, pseudo_dir: str = "pseudo_labels") -> 
     if not YOLO_AVAILABLE:
         logger.error("YOLO module not available")
         return 1
-    
+
     try:
         config_manager = create_config_manager(config_path)
         yolo_config = YOLOConfig.from_config_manager(config_manager)
-        
+
         logger.info(f"Merging pseudo-labels from {pseudo_dir}")
-        
+
         labeler = PseudoLabeler(yolo_config)
         stats = labeler.merge_with_training(Path(pseudo_dir))
-        
+
         logger.info(f"Merge complete: {stats['added']} images added to training set")
         return 0
-        
+
     except Exception as e:
         logger.error(f"Merge failed: {e}")
         return 1
 
 
-def main():
-    """Main entry point for the command-line interface."""
+def build_parser() -> argparse.ArgumentParser:
+    """Build command-line parser."""
     parser = argparse.ArgumentParser(description='Bees Spore Counter CLI')
-    parser.add_argument('-c', '--config', required=False, default='config.yaml', 
-                       help='Path to YAML config')
-    parser.add_argument('-d', '--data', required=False, 
-                       help='Override data directory (images)')
-    parser.add_argument('-o', '--output', required=False, 
-                       help='Override results directory')
-    parser.add_argument('--export-cvat-zip', action='store_true', 
-                       help='Export CVAT 1.1 ZIP with ellipses')
-    parser.add_argument('--verbose', '-v', action='store_true', 
-                       help='Enable verbose logging')
-    
+    parser.add_argument('-c', '--config', required=False, default='config.yaml',
+                        help='Path to YAML config')
+    parser.add_argument('-d', '--data', required=False,
+                        help='Override data directory (images)')
+    parser.add_argument('-o', '--output', required=False,
+                        help='Override results directory')
+    parser.add_argument('--export-cvat-zip', action='store_true',
+                        help='Export CVAT 1.1 ZIP with ellipses')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help='Enable verbose logging')
+
     # YOLO arguments
     parser.add_argument('--use-yolo', action='store_true',
-                       help='Use YOLO-based detection instead of OpenCV')
+                        help='Use YOLO-based detection instead of OpenCV')
     parser.add_argument('--train-yolo', action='store_true',
-                       help='Train YOLO model on annotated data')
+                        help='Train YOLO model on annotated data')
     parser.add_argument('--quick-test', action='store_true',
-                       help='Quick training mode: 30 epochs, 640px images (~15 min on CPU)')
-    
+                        help='Quick training mode: 30 epochs, 640px images (~15 min on CPU)')
+
     # Pseudo-labeling arguments
     parser.add_argument('--pseudo-label', action='store_true',
-                       help='Generate pseudo-labels for unlabeled images')
+                        help='Generate pseudo-labels for unlabeled images')
     parser.add_argument('--pseudo-source', type=str, default='dataset_test',
-                       help='Source directory for pseudo-labeling (default: dataset_test)')
+                        help='Source directory for pseudo-labeling (default: dataset_test)')
     parser.add_argument('--pseudo-output', type=str, default='pseudo_labels',
-                       help='Output directory for pseudo-labels (default: pseudo_labels)')
+                        help='Output directory for pseudo-labels (default: pseudo_labels)')
     parser.add_argument('--pseudo-conf', type=float, default=0.5,
-                       help='Confidence threshold for pseudo-labeling (default: 0.5)')
+                        help='Confidence threshold for pseudo-labeling (default: 0.5)')
     parser.add_argument('--pseudo-max-det', type=int, default=1000,
-                       help='Max detections per image for pseudo-labeling (default: 1000)')
+                        help='Max detections per image for pseudo-labeling (default: 1000)')
     parser.add_argument('--merge-pseudo', action='store_true',
-                       help='Merge pseudo-labels into training set')
+                        help='Merge pseudo-labels into training set')
     parser.add_argument('--export-yolo-cvat', action='store_true',
-                       help='Run YOLO on a folder and export predictions as CVAT ZIP (box format)')
+                        help='Run YOLO on a folder and export predictions as CVAT ZIP (box format)')
     parser.add_argument('--yolo-source', type=str, default='dataset_test',
-                       help='Source directory for YOLO->CVAT export (default: dataset_test)')
+                        help='Source directory for YOLO->CVAT export (default: dataset_test)')
     parser.add_argument('--yolo-cvat-output', type=str, default='results',
-                       help='Output directory for YOLO->CVAT export (default: results)')
+                        help='Output directory for YOLO->CVAT export (default: results)')
     parser.add_argument('--yolo-cvat-task', type=str, default='yolo_auto_annotations',
-                       help='Task name for YOLO->CVAT export ZIP/XML (default: yolo_auto_annotations)')
+                        help='Task name for YOLO->CVAT export ZIP/XML (default: yolo_auto_annotations)')
     parser.add_argument('--yolo-cvat-conf', type=float, default=None,
-                       help='Confidence threshold override for YOLO->CVAT export (default: from config)')
+                        help='Confidence threshold override for YOLO->CVAT export (default: from config)')
     parser.add_argument('--yolo-cvat-max-det', type=int, default=1000,
-                       help='Max detections per image for YOLO->CVAT export (default: 1000)')
+                        help='Max detections per image for YOLO->CVAT export (default: 1000)')
     parser.add_argument('--yolo-cvat-shape', choices=['box', 'ellipse'], default='box',
-                       help='Shape for YOLO->CVAT export (box or ellipse, default: box)')
+                        help='Shape for YOLO->CVAT export (box or ellipse, default: box)')
 
-    # Tiled dataset / tiled inference (large images); defaults from config.yaml → tiley
-    parser.add_argument('--export-tiled-cvat', action='store_true',
-                       help='Slice CVAT XML + images into fixed-size tiles (Pascal VOC per tile)')
-    parser.add_argument('--tiled-cvat-xml', type=str, default=None,
-                       help='CVAT annotations.xml (default: tiley.export.cvat_xml)')
-    parser.add_argument('--tiled-images-dir', type=str, default=None,
-                       help='Source images folder (default: tiley.export.images_dir)')
-    parser.add_argument('--tiled-out', type=str, default=None,
-                       help='Output folder (default: tiley.export.out)')
-    parser.add_argument('--tiled-size', type=int, default=None,
-                       help='Tile edge in pixels (default: tiley.export.tile_size)')
-    parser.add_argument('--tiled-overlap', type=float, default=None,
-                       help='Tile overlap for export (default: tiley.export.overlap)')
-    parser.add_argument('--tiled-negative-ratio', type=float, default=None,
-                       help='Keep probability for empty tiles (default: tiley.export.negative_ratio)')
-    parser.add_argument('--tiled-seed', type=int, default=None,
-                       help='Random seed for empty tiles; omit to use tiley.export.seed (null = random)')
+    subparsers = parser.add_subparsers(dest='command')
 
-    parser.add_argument('--predict-tiled', action='store_true',
-                       help='Tiled YOLO inference on a folder (Pascal VOC XML + optional previews)')
-    parser.add_argument('--predict-tiled-source', type=str, default=None,
-                       help='Input folder (default: tiley.predict.source)')
-    parser.add_argument('--predict-tiled-out', type=str, default=None,
-                       help='Output folder (default: tiley.predict.out)')
-    parser.add_argument('--predict-tile-size', type=int, default=None,
-                       help='Tile size in pixels (default: tiley.predict.tile_size or yolo_imgsz)')
-    parser.add_argument('--predict-tile-overlap', type=float, default=None,
-                       help='Tile overlap (default: tiley.predict.overlap)')
-    parser.add_argument('--predict-tile-merge-iou', type=float, default=None,
-                       help='NMS IoU when merging tiles (default: tiley.predict.merge_iou)')
-    parser.add_argument('--predict-tiled-conf', type=float, default=None,
-                       help='Confidence (default: tiley.predict.conf or yolo_confidence)')
-    parser.add_argument('--predict-tiled-imgsz', type=int, default=None,
-                       help='YOLO letterbox size (default: tiley.predict.imgsz or yolo_imgsz)')
-    parser.add_argument('--predict-tiled-no-clahe', action='store_true',
-                       help='Disable CLAHE preprocessing for tiled prediction')
-    parser.add_argument('--predict-tiled-no-preview', action='store_true',
-                       help='Do not write pred_*.jpg preview images')
-    parser.add_argument('--predict-tiled-weights', type=str, default=None,
-                       help='Weights .pt path (default: tiley.predict.weights or YOLO default best.pt)')
-    
+    tile_export_parser = subparsers.add_parser(
+        'tile-export',
+        help='Export tiled SAHI dataset from CVAT XML (config-driven)',
+    )
+    tile_export_parser.add_argument('--input', type=str, default=None,
+                                    help='Override input images folder (otherwise config tiley.export.input)')
+    tile_export_parser.add_argument('--out', type=str, default=None,
+                                    help='Override output folder (otherwise config tiley.export.out)')
+
+    tile_predict_parser = subparsers.add_parser(
+        'tile-predict',
+        help='Run SAHI tiled prediction for a folder (config-driven)',
+    )
+    tile_predict_parser.add_argument('--input', type=str, default=None,
+                                     help='Override input folder (otherwise config tiley.predict.input)')
+    tile_predict_parser.add_argument('--out', type=str, default=None,
+                                     help='Override output folder (otherwise config tiley.predict.out)')
+
+    return parser
+
+
+def main() -> int:
+    """Main entry point for the command-line interface."""
+    parser = build_parser()
     args = parser.parse_args()
-    
-    # Set logging level
+
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
-    
-    # Handle pseudo-labeling
+
+    if args.command == 'tile-export':
+        try:
+            return run_tile_export(args.config, args.input, args.out)
+        except ConfigurationError as exc:
+            logger.error("%s", exc)
+            return 1
+
+    if args.command == 'tile-predict':
+        try:
+            return run_tile_predict(args.config, args.input, args.out)
+        except ConfigurationError as exc:
+            logger.error("%s", exc)
+            return 1
+
     if args.pseudo_label:
         return pseudo_label(args.config, args.pseudo_source, args.pseudo_output, args.pseudo_conf, args.pseudo_max_det)
-    
+
     if args.merge_pseudo:
         return merge_pseudo_labels(args.config, args.pseudo_output)
-
-    if args.export_tiled_cvat:
-        try:
-            cm = create_config_manager(args.config)
-        except ConfigurationError as exc:
-            logger.error("%s", exc)
-            return 1
-        resolved = _resolve_tiley_export_cli(args, cm)
-        if not resolved["cvat_xml"] or not resolved["images_dir"]:
-            logger.error(
-                "export-tiled-cvat needs cvat_xml and images_dir: set tiley.export in %s "
-                "or pass --tiled-cvat-xml and --tiled-images-dir",
-                args.config,
-            )
-            return 1
-        return export_tiled_cvat_dataset(
-            str(resolved["cvat_xml"]),
-            str(resolved["images_dir"]),
-            str(resolved["out"]),
-            tile_size=int(resolved["tile_size"]),
-            overlap=float(resolved["overlap"]),
-            negative_ratio=float(resolved["negative_ratio"]),
-            seed=resolved["seed"],
-        )
-
-    if args.predict_tiled:
-        if not YOLO_AVAILABLE or run_tiled_prediction_folder is None:
-            logger.error("YOLO module not available. Install ultralytics: pip install ultralytics")
-            return 1
-        try:
-            cm = create_config_manager(args.config)
-        except ConfigurationError as exc:
-            logger.error("%s", exc)
-            return 1
-        resolved = _resolve_tiley_predict_cli(args, cm)
-        weights = resolved["weights"]
-        if weights is not None:
-            weights = str(weights)
-        return predict_tiled_folder(
-            args.config,
-            resolved["source"],
-            resolved["out"],
-            tile_size=resolved["tile_size"],
-            overlap=float(resolved["overlap"]),
-            merge_iou=float(resolved["merge_iou"]),
-            confidence=resolved["conf"],
-            imgsz=resolved["imgsz"],
-            use_clahe=bool(resolved["use_clahe"]),
-            write_previews=bool(resolved["write_previews"]),
-            weights_path=weights,
-        )
 
     if args.export_yolo_cvat:
         if not YOLO_AVAILABLE:
@@ -561,22 +532,18 @@ def main():
         except Exception as e:
             logger.error(f"YOLO -> CVAT export failed: {e}")
             return 1
-    
-    # Handle YOLO training mode
+
     if args.train_yolo:
         return train_yolo_model(args.config, quick_test=args.quick_test)
-    
-    # Check YOLO availability
+
     if args.use_yolo and not YOLO_AVAILABLE:
         logger.warning("YOLO not available, falling back to OpenCV. Install: pip install ultralytics")
         args.use_yolo = False
-    
+
     try:
-        # Create and run analysis
         runner = AnalysisRunner(args.config, args.data, args.output, use_yolo=args.use_yolo)
         results = runner.run(export_cvat=args.export_cvat_zip)
-        
-        # Print summary
+
         method = "YOLO" if args.use_yolo else "OpenCV"
         print(f"\n===== Analysis Summary ({method}) =====")
         print(f"Processed {len(results['groups_results'])} groups")
@@ -584,16 +551,16 @@ def main():
         if 'cvat' in results['reports']:
             print(f"CVAT export: {results['reports']['cvat']}")
         print("============================\n")
-        
+
     except ConfigurationError as e:
         logger.error(f"Configuration error: {e}")
         return 1
     except Exception as e:
         logger.error(f"Analysis failed: {e}")
         return 1
-    
+
     return 0
 
 
 if __name__ == '__main__':
-    exit(main()) 
+    exit(main())

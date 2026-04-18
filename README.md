@@ -86,93 +86,26 @@ The system includes SAHI (Sliced Aided Hyper Inference) for advanced tiled infer
 pip install sahi>=0.11.36
 ```
 
-### SAHI Pipeline Input Requirements
+### SAHI YAML-First Workflow
 
-The SAHI pipeline requires:
-1. **CVAT annotations.xml** - A CVAT 1.1 format XML file with ellipse annotations
-   - One consolidated file containing all image annotations (not individual per-image files)
-   - Ellipses defined with `cx`, `cy`, `rx`, `ry`, `rotation` attributes
-   - All images referenced should exist in the images directory
-
-2. **Images directory** - Folder containing the JPG images referenced in annotations.xml
-
-3. **Test images directory** (optional) - Separate folder for running inference
-
-
-### SAHI Pipeline Commands
-
-#### Complete Pipeline (CVAT → Training Dataset → Inference)
+SAHI tiled workflows are available only through `bees.main`:
 
 ```bash
-# Run the complete SAHI pipeline: CVAT conversion, dataset slicing, and inference
-python -m bees.yolo.sahi_pipeline \
-  --cvat-xml dataset_test/annotations.xml \
-  --images-dir dataset_test \
-  --test-images dataset_test2 \
-  --output-dir sahi_output \
-  --model yolo11s.pt \
-  --device cuda:0
+# Export tiled training data (CVAT XML -> COCO -> sliced tiles)
+python -m bees.main tile-export
 
-# CPU version (no GPU required)
-python -m bees.yolo.sahi_pipeline \
-  --cvat-xml dataset_test/annotations.xml \
-  --images-dir dataset_test \
-  --output-dir sahi_output \
-  --device cpu
+# Run tiled inference
+python -m bees.main tile-predict
 ```
 
-#### Individual Pipeline Steps
-
-**Step 1: Convert CVAT to COCO**
-```bash
-python -m bees.yolo.sahi_pipeline \
-  --step convert \
-  --cvat-xml dataset_test/annotations.xml \
-  --images-dir dataset_test \
-  --output-dir sahi_output
-```
-
-**Step 2: Slice Dataset for Training**
-```bash
-python -m bees.yolo.sahi_pipeline \
-  --step slice \
-  --coco-json sahi_output/coco/dataset.json \
-  --images-dir dataset_test \
-  --output-dir sahi_output \
-  --slice-height 512 \
-  --slice-width 512 \
-  --overlap 0.2 \
-  --train-split 0.8
-```
-
-**Step 3: Run Sliced Inference**
-```bash
-python -m bees.yolo.sahi_pipeline \
-  --step inference \
-  --test-images dataset_test2 \
-  --output-dir sahi_output \
-  --model yolo11s.pt \
-  --confidence 0.25
-```
-
-#### Custom Parameters
+Only path overrides are available at runtime:
 
 ```bash
-# Large slice size for very large images
-python -m bees.yolo.sahi_pipeline \
-  --cvat-xml dataset_test/annotations.xml \
-  --images-dir dataset_test \
-  --slice-height 1024 \
-  --slice-width 1024 \
-  --overlap 0.3 \
-  --confidence 0.5
-
-# CPU inference (slower but works without GPU)
-python -m bees.yolo.sahi_pipeline \
-  --cvat-xml dataset_test/annotations.xml \
-  --images-dir dataset_test \
-  --device cpu
+python -m bees.main tile-export --input dataset_test --out sahi_tiled_export
+python -m bees.main tile-predict --input dataset_test2 --out results/sahi_tiled_predictions
 ```
+
+All slicing/inference quality settings are configured in `config.yaml` under `tiley`.
 
 ### SAHI Pipeline Features
 
@@ -609,7 +542,8 @@ Export CVAT ZIP from pipeline detections (OpenCV or YOLO mode):
 ```bash
 python -m bees.main --use-yolo -d dataset_test --export-cvat-zip
 ```
-
+- Use `python -m bees.main --export-yolo-cvat ...` for model-driven CVAT export.
+- 
 ### 5) Incremental retraining workflow
 
 1. Add a new portion folder under `dataset_train` with images + XML.
@@ -621,10 +555,4 @@ python -m bees.main --train-yolo
 
 The dataset builder will automatically include all matching portions under `yolo_datasets_root`.
 
-### 6) Annotation merge scripts (when to use)
 
-- Use `python -m bees.main --export-yolo-cvat ...` for model-driven CVAT export.
-- Use `annotation_merger.py` only when you need to merge existing XML annotations from multiple sources into one CVAT XML.
-- `annotation_mergerV1.py` contains extra legacy modes (split Pascal VOC / ellipse/box switching / IoU merge). Keep it only for old workflows; for current YOLO->CVAT export it is not required.
-
-#
