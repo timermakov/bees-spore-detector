@@ -16,20 +16,24 @@ from bees.grouping import create_group_manager
 from bees.reporting import ReportManager
 from bees.cvat_exporter import CVATExporter
 from bees.spore_analysis_pipeline import SporeAnalysisPipeline
+from bees.yolo.cvat_tiled_export import CvatTiledPascalExporter
 
-# YOLO / inference stack
-from bees.yolo import (
-    YOLOConfig,
-    SporeDetector,
-    SporeCounter,
-    SporeTrainer,
-    DatasetPreparer,
-    PseudoLabeler,
-)
-from bees.yolo.sahi_inference import SAHIDetector, run_sliced_inference_folder
+# YOLO / inference stack (optional: ultralytics, torch, …)
+try:
+    from bees.yolo import (
+        YOLOConfig,
+        SporeDetector,
+        SporeCounter,
+        SporeTrainer,
+        DatasetPreparer,
+        PseudoLabeler,
+    )
+    from bees.yolo.tiled_predict import run_tiled_prediction_folder
 
-YOLO_AVAILABLE = True
-SAHI_AVAILABLE = True
+    YOLO_AVAILABLE = True
+except ImportError:
+    YOLO_AVAILABLE = False
+    run_tiled_prediction_folder = None  # type: ignore[assignment]
 
 # Configure logging
 logging.basicConfig(
