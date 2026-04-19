@@ -43,6 +43,7 @@ frontend/node_modules/
 backend/__pycache__/
 backend/.pytest_cache/
 backend/test_backend.db
+backend/*.db
 test_uploads/
 uploads/
 dist/
