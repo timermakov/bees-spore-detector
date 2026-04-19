@@ -323,9 +323,9 @@ export default function App() {
           layout={{
             width: 1000,
             height: 360,
-            title: "Mean titer per probe",
-            xaxis: { title: "Probe" },
-            yaxis: { title: "Mean titer (million spores/ml)" }
+            title: { text: "Mean titer per probe" },
+            xaxis: { title: { text: "Probe" } },
+            yaxis: { title: { text: "Mean titer (million spores/ml)" } }
           }}
         />
       </section>
