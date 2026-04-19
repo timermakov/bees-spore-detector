@@ -19,6 +19,14 @@ alembic upgrade head
 python seed.py
 ```
 
+If you run tests locally (outside Docker), install requirements first:
+
+```powershell
+cd backend
+pip install -r requirements.txt
+pytest -q
+```
+
 ## 4. Open apps
 
 - Frontend: `http://localhost:5173`

@@ -6,8 +6,9 @@ psycopg[binary]
 pydantic-settings
 python-multipart
 scipy
-pytest
 Pillow
 numpy
 opencv-python
 PyYAML
+pytest
+httpx
