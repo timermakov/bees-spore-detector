@@ -12,3 +12,4 @@ opencv-python
 PyYAML
 pytest
 httpx
+openpyxl
