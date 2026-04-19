@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      UPLOAD_DIR: ${UPLOAD_DIR}
+      ANALYSIS_MODE: ${ANALYSIS_MODE}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    env_file:
+      - .env
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+      VITE_PORT: ${VITE_PORT}
+    ports:
+      - "${VITE_PORT:-5173}:5173"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+
+volumes:
+  postgres_data:

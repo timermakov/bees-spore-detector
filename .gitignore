@@ -34,3 +34,15 @@ params_used.txt
 
 # System files
 .DS_Store
+
+# Fullstack app artifacts
+.env
+backend/.env
+frontend/.env
+frontend/node_modules/
+backend/__pycache__/
+backend/.pytest_cache/
+backend/test_backend.db
+test_uploads/
+uploads/
+dist/
