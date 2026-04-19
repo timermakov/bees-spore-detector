@@ -45,12 +45,26 @@ pytest -q
 cd backend
 pytest -q
 ```
-# Screenshots
 
-![screenshot_1](docs/images/screenshot_1.jpg)
+# DB Schema
+Entity relations diagram:
+![er_diagram](../schemas/er_diagram.png)
 
-![screenshot_2](docs/images/screenshot_2.jpg)
+# Frontend Screenshots
 
-![screenshot_3](docs/images/screenshot_3.jpg)
+![frontend_1](../images/frontend_1.jpg)
 
-![screenshot_4](docs/images/screenshot_4.jpg)
+![frontend_2](../images/frontend_2.jpg)
+
+![frontend_3](../images/frontend_3.jpg)
+
+![frontend_4](../images/frontend_4.jpg)
+
+# Backend Screenshots
+
+![backend_1](../images/backend_1.png)
+
+![backend_2](../images/backend_2.png)
+
+![backend_3](../images/backend_3.png)
+
