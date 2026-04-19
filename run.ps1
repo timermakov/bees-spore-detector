@@ -1,6 +1,23 @@
 Copy-Item ".env.example" ".env" -ErrorAction SilentlyContinue
-docker compose up -d --build
-docker compose exec backend alembic upgrade head
-docker compose exec backend python backend/seed.py
-Write-Host "Backend: http://localhost:$env:APP_PORT"
-Write-Host "Frontend: http://localhost:$env:VITE_PORT"
+docker compose up -d --build db
+docker compose run --rm backend sh -lc "cd /app/backend && alembic -c alembic.ini upgrade head || alembic -c alembic.ini stamp head"
+docker compose run --rm backend python /app/backend/seed.py
+docker compose up -d backend frontend
+
+$backendPort = "8000"
+$frontendPort = "5173"
+
+if (Test-Path ".env") {
+    $envLines = Get-Content ".env"
+    foreach ($line in $envLines) {
+        if ($line -match "^\s*APP_PORT\s*=\s*(.+)\s*$") {
+            $backendPort = $matches[1].Trim()
+        }
+        if ($line -match "^\s*VITE_PORT\s*=\s*(.+)\s*$") {
+            $frontendPort = $matches[1].Trim()
+        }
+    }
+}
+
+Write-Host "Backend: http://localhost:$backendPort"
+Write-Host "Frontend: http://localhost:$frontendPort"

@@ -39,12 +39,6 @@ upload_dir.mkdir(parents=True, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=upload_dir), name="uploads")
 
 
-@app.on_event("startup")
-def ensure_tables() -> None:
-    # Keeps API usable in local/dev sessions even before manual migration.
-    Base.metadata.create_all(bind=engine)
-
-
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}

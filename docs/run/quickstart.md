@@ -14,8 +14,10 @@ docker compose up -d --build
 ## 3. Apply migrations and seed demo data
 
 ```powershell
-docker compose exec backend alembic upgrade head
-docker compose exec backend python backend/seed.py
+docker compose up -d --build db
+docker compose run --rm backend sh -lc "cd /app/backend && alembic -c alembic.ini upgrade head"
+docker compose run --rm backend python /app/backend/seed.py
+docker compose up -d backend frontend
 ```
 
 If you run migrations from host (outside Docker), ensure `.env` has localhost DB URL:
@@ -43,3 +45,12 @@ pytest -q
 cd backend
 pytest -q
 ```
+# Screenshots
+
+![screenshot_1](docs/images/screenshot_1.jpg)
+
+![screenshot_2](docs/images/screenshot_2.jpg)
+
+![screenshot_3](docs/images/screenshot_3.jpg)
+
+![screenshot_4](docs/images/screenshot_4.jpg)
