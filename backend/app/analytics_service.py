@@ -11,7 +11,6 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 if str(ROOT_DIR) not in sys.path:
     sys.path.append(str(ROOT_DIR))
 
-from bees.image_proc import SporeDetectionPipeline
 from bees.titer import TiterCalculator
 
 
@@ -23,6 +22,9 @@ def _calc_p_value(values: list[float]) -> float | None:
 
 
 def analyze_probe(db: Session, probe_id: int, mode: str | None = None) -> models.ProbeResult:
+    # Import lazily so API startup does not fail if OpenCV libs are missing.
+    from bees.image_proc import SporeDetectionPipeline
+
     probe = crud.get_by_id(db, models.Probe, probe_id)
     if not probe:
         raise ValueError("Probe not found")
