@@ -1,0 +1,44 @@
+# Git / IDE
+.git
+.github
+.cursor
+.vscode
+.idea
+
+# Python caches / envs
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+venv/
+.venv/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Large data and artifacts
+dataset_test/
+dataset_test2/
+dataset_train/
+results/
+runs/
+yolo_dataset/
+pseudo_labels/
+sahi_tiled_export/
+test_output/
+assets/
+
+# Large model/binary files
+*.pt
+*.rar
+*.zip
+*.tar
+*.tar.gz
+*.7z
+
+# Local env / db
+.env
+backend/*.db

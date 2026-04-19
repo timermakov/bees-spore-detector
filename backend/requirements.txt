@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+sqlalchemy>=2.0
+alembic
+psycopg[binary]
+pydantic-settings
+python-multipart
+scipy
+Pillow
+numpy
+opencv-python
+PyYAML
+pytest
+httpx
+openpyxl

@@ -1,0 +1,77 @@
+@startuml
+hide methods
+hide stereotypes
+
+entity users {
+  * id : int <<PK>>
+  --
+  email : varchar
+  full_name : varchar
+}
+
+entity projects {
+  * id : int <<PK>>
+  --
+  user_id : int <<FK>>
+  name : varchar
+  description : text
+}
+
+entity species {
+  * id : int <<PK>>
+  --
+  name : varchar
+  latin_name : varchar
+}
+
+entity probes {
+  * id : int <<PK>>
+  --
+  project_id : int <<FK>>
+  species_id : int <<FK>>
+  name : varchar
+  treatment_type : varchar
+}
+
+entity samples {
+  * id : int <<PK>>
+  --
+  probe_id : int <<FK>>
+  replicate_label : varchar
+}
+
+entity micro_images {
+  * id : int <<PK>>
+  --
+  sample_id : int <<FK>>
+  filename : varchar
+  file_path : text
+}
+
+entity probe_results {
+  * id : int <<PK>>
+  --
+  probe_id : int <<FK>>
+  mean_titer : float
+  std_titer : float
+  n_measurements : int
+  p_value : float
+}
+
+entity model_weights {
+  * id : int <<PK>>
+  --
+  project_id : int <<FK>>
+  name : varchar
+  path : text
+}
+
+users ||--o{ projects
+projects ||--o{ probes
+species ||--o{ probes
+probes ||--o{ samples
+samples ||--o{ micro_images
+probes ||--|| probe_results
+projects ||--o{ model_weights
+
+@enduml
