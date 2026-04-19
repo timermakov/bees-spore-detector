@@ -57,7 +57,7 @@ yolo_imgsz: 1024
 tiley:
   export:
     # Папка с исходными изображениями (можно переопределить через tile-export --input)
-    input: dataset_train
+    input: sahi_tiled_export
     # Путь к CVAT XML; если null, будет попытка взять <input>/annotations.xml
     cvat_xml: null
     # Папка результата (можно переопределить через tile-export --out)
@@ -76,6 +76,6 @@ tiley:
     conf: 0.25
     write_previews: true
     # null = yolo_model из секции YOLO выше
-    weights: null
+    weights: path/to/your/best.pt
     device: cuda:0
     model_type: ultralytics

@@ -6,6 +6,7 @@ Replaces custom tiling and detection merging with SAHI's framework-agnostic appr
 
 import logging
 import xml.etree.ElementTree as ET
+import inspect
 from pathlib import Path
 from typing import Dict, Optional, List
 from xml.dom import minidom
@@ -143,16 +144,19 @@ class SAHIDetector:
         # Convert BGR to RGB for SAHI
         image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-        result = get_sliced_prediction(
-            image=image_rgb,
-            detection_model=self.detection_model,
-            slice_height=slice_height,
-            slice_width=slice_width,
-            overlap_height_ratio=overlap_height_ratio,
-            overlap_width_ratio=overlap_width_ratio,
-            perform_standard_pred=False,  # Only sliced
-            progress_bar=progress_bar,
-        )
+        sliced_prediction_kwargs = {
+            "image": image_rgb,
+            "detection_model": self.detection_model,
+            "slice_height": slice_height,
+            "slice_width": slice_width,
+            "overlap_height_ratio": overlap_height_ratio,
+            "overlap_width_ratio": overlap_width_ratio,
+            "perform_standard_pred": False,  # Only sliced
+        }
+        if "progress_bar" in inspect.signature(get_sliced_prediction).parameters:
+            sliced_prediction_kwargs["progress_bar"] = progress_bar
+
+        result = get_sliced_prediction(**sliced_prediction_kwargs)
 
         detections = []
         for pred in result.object_prediction_list:
