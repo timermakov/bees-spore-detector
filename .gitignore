@@ -18,11 +18,13 @@ res*/
 *.rar
 
 # Datasets (usually ignored to keep repo small)
-dataset_test*/
-dataset_train/
+#dataset_test/
+#dataset_train/
 yolo_dataset/
 pseudo_labels/
 bees_dataset*/
+sahi_output/
+sahi_tiled_export/
 
 # IDE and local notes
 .vscode/

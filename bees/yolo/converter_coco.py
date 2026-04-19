@@ -161,6 +161,8 @@ class CVATToCocoConverter:
 
         self.coco = self._initialize_coco()
         annotations = self.parse_cvat_xml(xml_path)
+        converted_images = 0
+        converted_annotations = 0
 
         for ann in annotations:
             # Resolve image path
@@ -188,19 +190,32 @@ class CVATToCocoConverter:
                 class_id = self.class_to_id.get(ellipse.label, 0)
                 class_name = ellipse.label if ellipse.label in self.class_names else self.class_names[0]
 
-                coco_image.add_annotation(
-                    CocoAnnotation(
+                # SAHI API differs across versions: some CocoAnnotation constructors
+                # support `area`, some don't. Try the richer call first, then fallback.
+                try:
+                    annotation = CocoAnnotation(
                         bbox=[x1, y1, width, height],  # COCO format: [x, y, w, h]
                         category_id=class_id,
                         category_name=class_name,
                         area=width * height,
                     )
-                )
+                except TypeError:
+                    annotation = CocoAnnotation(
+                        bbox=[x1, y1, width, height],  # COCO format: [x, y, w, h]
+                        category_id=class_id,
+                        category_name=class_name,
+                    )
+                coco_image.add_annotation(annotation)
+                converted_annotations += 1
 
             self.coco.add_image(coco_image)
+            converted_images += 1
 
-        logger.info(f"Converted to COCO: {len(self.coco.image_list)} images, "
-                    f"{sum(len(img.annotations) for img in self.coco.image_list)} annotations")
+        logger.info(
+            "Converted to COCO: %s images, %s annotations",
+            converted_images,
+            converted_annotations,
+        )
         return self.coco
 
     def _resolve_image_path(self, ann: ImageAnnotation, images_dir: Path) -> Optional[Path]:

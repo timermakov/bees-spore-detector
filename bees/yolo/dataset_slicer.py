@@ -27,6 +27,19 @@ class SlicedDatasetStats:
     overlap_height_ratio: float
     overlap_width_ratio: float
 
+    def to_dict(self) -> dict:
+        """Serialize slicing statistics for JSON export."""
+        return {
+            "total_slices": self.total_slices,
+            "images_with_objects": self.images_with_objects,
+            "empty_slices": self.empty_slices,
+            "total_annotations": self.total_annotations,
+            "slice_height": self.slice_height,
+            "slice_width": self.slice_width,
+            "overlap_height_ratio": self.overlap_height_ratio,
+            "overlap_width_ratio": self.overlap_width_ratio,
+        }
+
 
 class DatasetSlicer:
     """SAHI-based dataset slicing for creating training crops from large images."""
@@ -82,21 +95,24 @@ class DatasetSlicer:
             slice_width=slice_width,
             overlap_height_ratio=overlap_height_ratio,
             overlap_width_ratio=overlap_width_ratio,
-            min_area_filter=min_area_filter if min_area_filter > 0 else None,
-            max_area_filter=max_area_filter,
+            output_coco_annotation_file_name="coco_annotations.json",
         )
 
         logger.info(f"Sliced dataset saved to {output_dir}")
         logger.info(f"Sliced COCO JSON: {sliced_coco_path}")
 
-        # Calculate statistics
-        sliced_coco = Coco.from_coco_dict_or_path(sliced_coco_dict)
-        total_annotations = len(sliced_coco.annotations)
-        total_slices = len(sliced_coco.image_list)
-        
-        images_with_objects = sum(
-            1 for img in sliced_coco.image_list if len(img.annotations) > 0
-        )
+        # Calculate statistics from the raw COCO dict returned by SAHI.
+        # This avoids depending on SAHI Coco object attributes that vary by version.
+        raw_images = sliced_coco_dict.get("images", []) if isinstance(sliced_coco_dict, dict) else []
+        raw_annotations = sliced_coco_dict.get("annotations", []) if isinstance(sliced_coco_dict, dict) else []
+        image_ids_with_objects = {
+            annotation.get("image_id")
+            for annotation in raw_annotations
+            if isinstance(annotation, dict) and annotation.get("image_id") is not None
+        }
+        total_annotations = len(raw_annotations)
+        total_slices = len(raw_images)
+        images_with_objects = len(image_ids_with_objects)
         empty_slices = total_slices - images_with_objects
 
         stats = SlicedDatasetStats(
@@ -110,9 +126,13 @@ class DatasetSlicer:
             overlap_width_ratio=overlap_width_ratio,
         )
 
+        stats_path = output_dir / "slice_stats.json"
+        save_json(stats.to_dict(), stats_path)
+
         logger.info(f"Slicing stats: {total_slices} slices "
                     f"({images_with_objects} with objects, {empty_slices} empty), "
                     f"{total_annotations} annotations")
+        logger.info(f"Slicing stats saved to {stats_path}")
 
         return stats
 

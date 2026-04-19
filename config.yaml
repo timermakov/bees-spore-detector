@@ -57,7 +57,7 @@ yolo_imgsz: 1024
 tiley:
   export:
     # Папка с исходными изображениями (можно переопределить через tile-export --input)
-    input: null
+    input: dataset_train
     # Путь к CVAT XML; если null, будет попытка взять <input>/annotations.xml
     cvat_xml: null
     # Папка результата (можно переопределить через tile-export --out)

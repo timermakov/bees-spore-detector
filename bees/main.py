@@ -332,6 +332,7 @@ def run_tile_export(config_path: str, input_dir: Optional[str], out_dir: Optiona
         overlap_height_ratio=float(resolved["overlap"]),
         overlap_width_ratio=float(resolved["overlap"]),
     )
+    stats_path = sliced_dir / "slice_stats.json"
 
     logger.info(
         "Tile export complete: %s slices (%s with objects, %s empty)",
@@ -339,6 +340,7 @@ def run_tile_export(config_path: str, input_dir: Optional[str], out_dir: Optiona
         stats.images_with_objects,
         stats.empty_slices,
     )
+    logger.info("Tile export stats saved to %s", stats_path)
     print(f"Tile export written to: {output_dir.resolve()}")
     return 0
 
