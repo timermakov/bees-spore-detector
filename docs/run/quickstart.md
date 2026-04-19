@@ -14,9 +14,14 @@ docker compose up -d --build
 ## 3. Apply migrations and seed demo data
 
 ```powershell
-cd backend
-alembic upgrade head
-python seed.py
+docker compose exec backend alembic upgrade head
+docker compose exec backend python backend/seed.py
+```
+
+If you run migrations from host (outside Docker), ensure `.env` has localhost DB URL:
+
+```powershell
+DATABASE_URL=postgresql+psycopg://bees:bees@localhost:5432/bees_db
 ```
 
 If you run tests locally (outside Docker), install requirements first:

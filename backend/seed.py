@@ -1,10 +1,13 @@
 from sqlalchemy.orm import Session
 
 from app import models
-from app.db import SessionLocal
+from app.db import Base, SessionLocal, engine
 
 
 def seed(db: Session) -> None:
+    # Safety net for fresh environments where migrations were skipped.
+    Base.metadata.create_all(bind=engine)
+
     if not db.query(models.User).first():
         user = models.User(email="demo@bees.local", full_name="Demo Researcher")
         db.add(user)
