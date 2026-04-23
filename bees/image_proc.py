@@ -441,32 +441,6 @@ class SporeDetectionPipeline:
         
         return spores
 
-def count_spores_inside_outside(spore_objects: List[np.ndarray], 
-                            image_size: Tuple[int, int], 
-                            square_size: int) -> Tuple[int, int]:
-    """Count spores inside and outside a centered square on the image.
-    image_size: (width, height) in pixels.
-    Returns (inside_count, outside_count).
-    """
-    if square_size is None or square_size <= 0:
-        return len(spore_objects), 0
-    width, height = image_size
-    x1, y1, x2, y2 = _compute_centered_square_bounds((width, height), square_size)
-    inside = 0
-    outside = 0
-    for contour in spore_objects:
-        if len(contour) < 5:
-            continue
-        try:
-            (ex, ey), _, _ = cv2.fitEllipse(contour)
-        except Exception:
-            continue
-        if _is_point_inside((x1, y1, x2, y2), ex, ey):
-            inside += 1
-        else:
-            outside += 1
-    return inside, outside
-
 def _save_analysis_overlay_if_enabled(preprocessed: np.ndarray, 
                                       spores: List[np.ndarray], 
                                       params: dict,

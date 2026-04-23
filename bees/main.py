@@ -12,7 +12,6 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple, Optional
 
 from bees.config_loader import create_config_manager, ConfigurationError
-from bees.grouping import create_group_manager
 from bees.reporting import ReportManager
 from bees.cvat_exporter import CVATExporter
 from bees.spore_analysis_pipeline import SporeAnalysisPipeline
@@ -92,54 +91,26 @@ class AnalysisRunner:
 
             # Export CVAT if requested
             if export_cvat:
-                # Collect all image files and spore objects
-                image_files = []
-                spore_objects_list = []
-
-                for prefix, rows in groups_results.items():
-                    group_paths = self._get_group_image_paths(prefix)
-                    group_objects = self._get_group_spore_objects(prefix, rows)
-
-                    image_files.extend(group_paths)
-                    spore_objects_list.extend(group_objects)
-
-                if image_files:
+                # Получаем список всех обработанных изображений из pipeline
+                all_results = self.pipeline.group_results.get('all_images', [])
+                if all_results:
+                    image_files = [res['image_path'] for res in all_results]
+                    spore_objects_list = [res['spore_objects'] for res in all_results]
                     cvat_path = self.cvat_exporter.export_task(
                         'bees_task', image_files, spore_objects_list
                     )
                     reports['cvat'] = cvat_path
 
-            # Save run parameters
             self._save_run_parameters()
-
             logger.info("Analysis completed successfully")
-            return {
-                'groups_results': groups_results,
-                'reports': reports
-            }
-
+            return {'groups_results': groups_results, 'reports': reports}
         except Exception as e:
             logger.error(f"Analysis failed: {e}")
             raise
 
-    def _get_group_image_paths(self, prefix: str) -> List[str]:
-        """Get image paths for a group."""
-        group_manager = create_group_manager(str(self.data_dir))
-        if group_manager and group_manager.has_group(prefix):
-            return group_manager.get_group(prefix)
-        return []
-
-    def _get_group_spore_objects(self, prefix: str, rows: List[Tuple[int, float]]) -> List[List]:
-        """Get spore objects for a group from stored results."""
-        if hasattr(self.pipeline, 'group_results') and prefix in self.pipeline.group_results:
-            return [result['spore_objects'] for result in self.pipeline.group_results[prefix]]
-        # Fallback to empty lists if no stored results
-        return [[] for _ in rows]
-
     def _save_run_parameters(self) -> None:
         """Save run parameters for reproducibility."""
         params_txt = Path(self.results_dir) / 'params_used.txt'
-
         log_lines = [
             "--------------------------------",
             f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
@@ -148,19 +119,15 @@ class AnalysisRunner:
             f"Results dir: {Path(self.results_dir).absolute()}",
             "Parameters:"
         ]
-
-        # Add all parameters
         all_params = self.config_manager.get_all_params()
         for key, value in all_params.items():
             log_lines.append(f"  {key}: {value}")
-
         log_lines.append("--------------------------------")
-
         try:
             with open(params_txt, 'a', encoding='utf-8') as f:
                 f.write('\n'.join(log_lines) + '\n')
         except Exception as e:
-            logger.warning(f"Could not write parameters log: {e}")
+             logger.warning(f"Could not write parameters log: {e}")
 
 
 def train_yolo_model(config_path: str, quick_test: bool = False) -> int:
@@ -481,6 +448,36 @@ def build_parser() -> argparse.ArgumentParser:
     tile_predict_parser.add_argument('--out', type=str, default=None,
                                      help='Override output folder (otherwise config tiley.predict.out)')
 
+    # === HIERARCHICAL ANALYSIS SUBPARSER ===
+    hierarchy_parser = subparsers.add_parser(
+        'hierarchy-analyze',
+        help='Analyze nested folder structure: Type/Probe/Sample(photos)',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+    Structure:
+      input_dir/
+        Вид_А/
+          Control/
+            Сэмпл_1/          ← Repetition 1
+              photo1.jpg
+            Сэмпл_2/          ← Repetition 2
+              photo1.jpg
+          Проба_1/
+            Сэмпл_1/
+            Сэмпл_2/
+
+    Examples:
+      python -m bees.main hierarchy-analyze --input-dir ./data --output-dir ./results
+      python -m bees.main hierarchy-analyze --input-dir ./data --no-yolo
+            """
+    )
+    hierarchy_parser.add_argument('--input-dir', type=str, required=True,
+                                  help='Root directory with Type/Probe/Sample(photos) structure')
+    hierarchy_parser.add_argument('--output-dir', type=str, default='hierarchical_output',
+                                  help='Output directory (default: hierarchical_output)')
+    hierarchy_parser.add_argument('--no-yolo', action='store_true',
+                                  help='Use OpenCV instead of YOLO')
+
     return parser
 
 
@@ -504,6 +501,40 @@ def main() -> int:
             return run_tile_predict(args.config, args.input, args.out)
         except ConfigurationError as exc:
             logger.error("%s", exc)
+            return 1
+    # === HIERARCHICAL ANALYSIS HANDLER ===
+    if args.command == 'hierarchy-analyze':
+        try:
+            from .yolo.hierarchical_analysis import HierarchicalAnalyzer
+
+            logging.getLogger().setLevel(logging.INFO)
+            logger.info("Starting hierarchical analysis")
+            logger.info(f"Input: {args.input_dir}, Output: {args.output_dir}")
+
+            analyzer = HierarchicalAnalyzer(
+                config_path=args.config,
+                use_yolo=not args.no_yolo
+            )
+
+            reports = analyzer.run_complete_analysis(
+                root_dir=Path(args.input_dir),
+                output_dir=Path(args.output_dir)
+            )
+
+            if not reports:
+                logger.error("No reports generated")
+                return 1
+
+            logger.info("✓ Hierarchical analysis completed!")
+            for report_type, report_path in reports.items():
+                logger.info(f"  - {report_type}: {report_path}")
+            return 0
+
+        except ConfigurationError as exc:
+            logger.error(f"Configuration error: {exc}")
+            return 1
+        except Exception as e:
+            logger.error(f"Hierarchical analysis failed: {e}")
             return 1
 
     if args.pseudo_label:
