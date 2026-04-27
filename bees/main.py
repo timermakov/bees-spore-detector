@@ -456,15 +456,15 @@ def build_parser() -> argparse.ArgumentParser:
         epilog="""
     Structure:
       input_dir/
-        Вид_А/
+        Type_A/
           Control/
-            Сэмпл_1/          ← Repetition 1
+            Sample_1/          ← Repetition 1
               photo1.jpg
-            Сэмпл_2/          ← Repetition 2
+            Sample_2/          ← Repetition 2
               photo1.jpg
-          Проба_1/
-            Сэмпл_1/
-            Сэмпл_2/
+          Probe_1/
+            Sample_1/
+            Sample_2/
 
     Examples:
       python -m bees.main hierarchy-analyze --input-dir ./data --output-dir ./results

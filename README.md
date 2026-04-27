@@ -144,19 +144,19 @@ For analyzing spore images organized in nested folder structures WITHOUT XML ann
 ### Folder Structure
 
 ```
-Вид_А/
-  Проба_001/
-    Сэмпл_1/
+Type_A/
+  Probe_1/
+    Sample_1/
       image1.jpg, image2.jpg, ...
-    Сэмпл_2/
+    Sample_2/
       image1.jpg, image2.jpg, ...
-  Проба_002/
-    Сэмпл_1/
+  Probe_2/
+    Sample_1/
       image1.jpg, ...
-    Сэмпл_2/
+    Sample_2/
       image1.jpg, ...
-Вид_Б/
-  Проба_001/
+Type_B/
+  Probe_1/
     ...
 ```
 
@@ -194,7 +194,7 @@ The pipeline generates:
 
 1. **hierarchical_analysis.xlsx** - Main results table with columns:
    - Вид (Type/Species)
-   - Проба (Probe/Trial)
+   - Probe (Probe/Trial)
    - Сэмпл (Sample)
    - Mean Titer - Average titer value across all images in sample
    - Std Dev - Standard deviation of titer values
@@ -466,7 +466,7 @@ yolo_dataset_folder_pattern: "*"
 
 ```text
 dataset_train/
-  portion_001/
+  portion_01/
     annotations.xml
     image_1.jpg
     image_2.jpg

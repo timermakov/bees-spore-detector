@@ -17,10 +17,10 @@ logger = logging.getLogger(__name__)
 class TiterCalculator:
     """Calculator for spore titer values."""
 
-    DEFAULT_SQUARE_SIZE = 780
+    ANALYSIS_SQUARE_SIZE = 780
     VOLUME_FACTOR = 4.0
 
-    def __init__(self, square_size: int = DEFAULT_SQUARE_SIZE, volume_factor: float = VOLUME_FACTOR):
+    def __init__(self, square_size: int = ANALYSIS_SQUARE_SIZE, volume_factor: float = VOLUME_FACTOR):
         if square_size <= 0:
             raise ValueError("square_size must be positive")
         if volume_factor <= 0:
@@ -146,5 +146,6 @@ class TiterCalculator:
 
 def create_calculator_from_config(config_manager) -> TiterCalculator:
     """Factory: create TiterCalculator from ConfigurationManager."""
-    square_size = config_manager.get_int_param('analysis_square_size', 780)
-    return TiterCalculator(square_size=square_size)
+    square_size = config_manager.get_int_param('analysis_square_size', TiterCalculator.ANALYSIS_SQUARE_SIZE)
+    volume_factor = config_manager.get_float_param('volume_factor', TiterCalculator.VOLUME_FACTOR)
+    return TiterCalculator(square_size=square_size, volume_factor=volume_factor)

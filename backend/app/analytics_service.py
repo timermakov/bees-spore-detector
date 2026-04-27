@@ -56,8 +56,11 @@ def analyze_probe(db: Session, probe_id: int, mode: str | None = None) -> models
         "analysis_square_size": 780,
         "analysis_square_line_width": 2,
     }
+
+    # Collect titers per sample using the new hierarchical API
     all_titers: list[float] = []
     for sample_dir in sample_dirs:
+        photo_data: list[tuple[int, int, int]] = []
         for image_path in sorted(sample_dir.iterdir()):
             if image_path.suffix.lower() not in {".jpg", ".jpeg", ".png"}:
                 continue
@@ -66,13 +69,18 @@ def analyze_probe(db: Session, probe_id: int, mode: str | None = None) -> models
 
                 image = Image.open(image_path)
                 spores = detector.detect_spores(image, **params)
-                all_titers.append(float(titer_calculator.calculate_titer(len(spores))))
+                width, height = image.size
+                photo_data.append((len(spores), width, height))
             except Exception:
                 continue
 
+        if photo_data:
+            titer = titer_calculator.calculate_sample_titer(photo_data)
+            all_titers.append(float(titer))
+
     if not all_titers:
         # Fallback keeps API stable even on empty/failed detections.
-        all_titers = [titer_calculator.calculate_titer(0)]
+        all_titers = [0.0]
 
     mean_titer = float(mean(all_titers))
     std_titer = float(pstdev(all_titers)) if len(all_titers) > 1 else 0.0

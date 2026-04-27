@@ -43,12 +43,12 @@ class HierarchicalStructure:
 
     Example:
         types = {
-            "Вид_А": {
+            "Type_A": {
                 "Control": {
-                    "Сэмпл_1": [ImageInfo(path1, 1920, 1080), ...],
-                    "Сэмпл_2": [...]
+                    "Sample_1": [ImageInfo(path1, 1920, 1080), ...],
+                    "Sample_2": [...]
                 },
-                "Проба_1": {...}
+                "Probe_1": {...}
             }
         }
     """

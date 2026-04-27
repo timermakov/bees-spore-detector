@@ -2,32 +2,33 @@
 Hierarchical Analysis Pipeline for Nested Folder Structures
 
 Final Structure:
-  Вид_А/
-    Control/              ← Проба-контроль
-      Сэмпл_1/            ← Повторность 1 (серия фото)
+  Type_A/
+    Control/              ← Control probe
+      Sample_1/            ← Repetition 1 (photo series)
         photo1.jpg
         photo2.jpg
-      Сэмпл_2/            ← Повторность 2
+      Sample_2/            ← Repetition 2
         photo1.jpg
         photo2.jpg
-    Проба_1/              ← Проба-опыт
-      Сэмпл_1/            ← Повторность 1
+    Probe_1/              ← Test probe
+      Sample_1/            ← Repetition 1
         photo1.jpg
         photo2.jpg
-      Сэмпл_2/            ← Повторность 2
+      Sample_2/            ← Repetition 2
         photo1.jpg
         photo2.jpg
-    Проба_2/
-      Сэмпл_1/
-      Сэмпл_2/
-  Вид_Б/
+    Probe_2/
+      Sample_1/
+      Sample_2/
+  Type_B/
     Control/
-    Проба_1/
+    Probe_1/
     ...
 
 Logic:
   1. Each "sample" folder = one repetition with series of photos
-  2. Titer per sample: Σspores / (4 * (S_photo/780²) * N_photos)
+  2. Titer per sample: Σspores / (V * (S_photo/S²) * N_photos)
+     where V = volume_factor (default 4.0), S = analysis_square_size (default 780)
   3. Titer per probe = mean of sample titers (repetitions)
   4. p-value per probe = two-sample Welch's t-test: sample titers vs control sample titers
 """
@@ -152,7 +153,7 @@ class HierarchicalAnalyzer:
         self.config_manager = create_config_manager(config_path)
         self.use_yolo = use_yolo
         self.weights_path = weights_path
-        # SAHI параметры
+        # SAHI parameters
         self.weights_path = weights_path
         self.use_sahi = use_sahi and SAHI_AVAILABLE
         self.detector = None
@@ -517,20 +518,20 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Hierarchical Analysis: Вид/Проба/Сэмпл(фото)",
+        description="Hierarchical Analysis: Type/Probe/Sample(photos)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Structure:
   input_dir/
-    Вид_А/
+    Type_A/
       Control/
-        Сэмпл_1/          ← Repetition 1
+        Sample_1/          ← Repetition 1
           photo1.jpg
-        Сэмпл_2/          ← Repetition 2
+        Sample_2/          ← Repetition 2
           photo1.jpg
-      Проба_1/
-        Сэмпл_1/
-        Сэмпл_2/
+      Probe_1/
+        Sample_1/
+        Sample_2/
 
 Examples:
   python -m bees.hierarchical_analysis --input-dir ./data --output-dir ./results

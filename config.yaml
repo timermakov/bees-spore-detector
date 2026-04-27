@@ -1,28 +1,31 @@
 # ========== OpenCV Configuration ==========
-# Путь к папке с изображениями. Файлы должны иметь формат <имя>_1.jpg, <имя>_2.jpg, <имя>_3.jpg
+# Path to images folder.
 data_dir: bees_dataset#3_2025-08-22_tiles
-# Папка для результатов (.md, debug изображения, отчёт Excel)
+# Folder for results (.md, debug images, Excel report)
 results_dir: bees_dataset#3_2025-08-22_tiles
 
-# Параметры обработки (влияние на детекцию см. bees/image_proc.py)
-# Минимальная/максимальная площадь эллиптического потенциального контура (пиксели)
+# Processing parameters (see bees/image_proc.py for detection details)
+# Min/max area of elliptical potential contour (pixels)
 min_contour_area: 45
 max_contour_area: 650
-# Минимальная/максимальная площадь определённого эллипса (пиксели)
+# Min/max area of confirmed ellipse (pixels)
 min_ellipse_area: 100
 max_ellipse_area: 360
-# Пороговые значения алгоритма Canny
+# Canny algorithm threshold values
 canny_threshold1: 40
 canny_threshold2: 120
-# Минимальная длина контура (число точек) для эллипса
+# Minimum contour length (number of points) for ellipse
 min_spore_contour_length: 7
-# Порог по интенсивности: насколько средняя яркость внутри эллипса может отличаться от фона
+# Intensity threshold: how much average brightness inside ellipse can differ from background
 intensity_threshold: 36
 
-# Параметры зоны анализа (зелёный квадрат)
-# Размер квадрата в пикселях
+# Analysis zone parameters (green square)
+# Square size in pixels
 analysis_square_size: 780
-# Толщина линии квадрата в пикселях
+# Volume coefficient for titer calculation (million spores/ml)
+# Formula: titer = N_spores_on_photo / (volume_factor * (S_photo / S_analysis_square²) * N_photos)
+volume_factor: 4.0
+# Square line width in pixels (to see square on UI for user)
 analysis_square_line_width: 2
 
 # ========== YOLO Configuration ==========
@@ -36,46 +39,46 @@ yolo_dataset_folder_pattern: "*"
 # dataset_train/portion_002/...images... + annotation XML
 # dataset_train/portion_003/...images... + annotation XML
 
-# Модель YOLO11-S
+# YOLO11-S model
 yolo_model: yolo11s.pt
-# Порог уверенности детекции [0-1]
+# Detection confidence threshold [0-1]
 yolo_confidence: 0.25
-# Порог IoU для NMS [0-1]
+# IoU threshold for NMS [0-1]
 yolo_iou_threshold: 0.45
-# Количество эпох обучения
+# Number of training epochs
 yolo_epochs: 100
-# Размер батча (уменьшить при нехватке памяти)
+# Batch size (decrease if out of memory)
 yolo_batch_size: 2
-# Размер изображения для обучения/инференса (больше = точнее, но медленнее)
+# Image size for training/inference (larger = more accurate but slower)
 yolo_imgsz: 1024
 
 # ========== Tiley / SAHI (YAML-first) ==========
-# Команды:
+# Commands:
 #   python -m bees.main tile-export [--input ...] [--out ...]
 #   python -m bees.main tile-predict [--input ...] [--out ...]
-# Все quality/inference параметры берутся только из YAML.
+# All quality/inference parameters are taken from YAML only.
 tiley:
   export:
-    # Папка с исходными изображениями (можно переопределить через tile-export --input)
+    # Folder with source images (can override via tile-export --input)
     input: sahi_tiled_export
-    # Путь к CVAT XML; если null, будет попытка взять <input>/annotations.xml
+    # Path to CVAT XML; if null, will try to use <input>/annotations.xml
     cvat_xml: null
-    # Папка результата (можно переопределить через tile-export --out)
+    # Result folder (can override via tile-export --out)
     out: sahi_tiled_export
-    # Квадратный тайл: tile_size x tile_size
+    # Square tile: tile_size x tile_size
     tile_size: 512
     overlap: 0.25
   predict:
-    # Папка с изображениями для инференса (можно переопределить через tile-predict --input)
+    # Folder with images for inference (can override via tile-predict --input)
     input: dataset_test
-    # Папка результата (можно переопределить через tile-predict --out)
+    # Result folder (can override via tile-predict --out)
     out: results/sahi_tiled_predictions
-    # Квадратный тайл: tile_size x tile_size
+    # Square tile: tile_size x tile_size
     tile_size: 512
     overlap: 0.2
     conf: 0.25
     write_previews: true
-    # null = yolo_model из секции YOLO выше
+    # null = yolo_model from YOLO section above
     weights: runs/detect/models/yolo11s_spores_2026-04-15_512_1024/weights/best.pt
     device: cuda:0
     model_type: ultralytics
