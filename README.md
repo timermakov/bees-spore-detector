@@ -6,6 +6,27 @@ A computer vision-based system for detecting and counting bee spores in microsco
 
 The Bee Spore Counter is a Python-based tool that automates the detection and counting of bee spores in microscopic images. It uses advanced computer vision techniques including edge detection, morphological operations, and ellipse fitting to identify and count spores accurately.
 
+## Web Database Platform
+
+This repository now also includes a full-stack biological data platform:
+
+- `backend/` — FastAPI + SQLAlchemy + Alembic + PostgreSQL
+- `frontend/` — React + TypeScript + Plotly dashboard
+- `docs/` — architecture, API, DB schema, analytics plan, presentation outline
+
+### Quick full-stack start
+
+```powershell
+copy .env.example .env
+docker compose up -d --build
+cd backend
+alembic upgrade head
+python seed.py
+```
+
+- Open frontend: `http://localhost:5173`
+- Open API docs: `http://localhost:8000/docs`
+
 ## Features
 
 - **Automated Spore Detection**: Uses computer vision algorithms to detect spores in microscopic images
