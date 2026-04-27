@@ -22,6 +22,28 @@ jobs:
           cd backend
           pytest -q
 
+  bees-package-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install numpy pillow opencv-python-headless scipy pyyaml pandas openpyxl
+          pip install pytest
+      - name: Run OpenCV module tests
+        run: |
+          pytest tests/test_opencv.py -v
+      - name: Run YOLO module tests
+        run: |
+          pytest tests/test_yolo.py -v
+      - name: Run integration tests
+        run: |
+          pytest test_refactored.py -v
+
   frontend-build:
     runs-on: ubuntu-latest
     steps:
