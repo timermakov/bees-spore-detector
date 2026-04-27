@@ -71,11 +71,11 @@ tiley:
     # Папка результата (можно переопределить через tile-predict --out)
     out: results/sahi_tiled_predictions
     # Квадратный тайл: tile_size x tile_size
-    tile_size: 1024
+    tile_size: 512
     overlap: 0.2
     conf: 0.25
     write_previews: true
     # null = yolo_model из секции YOLO выше
-    weights: path/to/your/best.pt
+    weights: runs/detect/models/yolo11s_spores_2026-04-15_512_1024/weights/best.pt
     device: cuda:0
     model_type: ultralytics

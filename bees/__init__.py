@@ -16,7 +16,6 @@ from . import io_utils
 from . import grouping
 from . import reporting
 from . import config_loader
-
 # Import main classes for easy access
 from .image_proc import (
     ImagePreprocessor,
@@ -33,9 +32,7 @@ from .spores import (
 )
 
 from .titer import (
-    TiterCalculator,
-    create_standard_calculator,
-    create_custom_calculator
+    TiterCalculator
 )
 
 from .io_utils import (
@@ -47,11 +44,9 @@ from .io_utils import (
 )
 
 from .grouping import (
-    ImageGroupValidator,
-    ImageGrouper,
-    GroupedImageManager,
-    list_grouped_images,
-    create_group_manager
+
+    ImageInfo,  # ДОБАВЛЕНО: есть в grouping.py
+    HierarchicalStructure
 )
 
 from .reporting import (
@@ -78,11 +73,10 @@ __all__ = [
     'ImageLoader',
     'MetadataLoader',
     'FilePairFinder',
+    'ImageInfo',  # ДОБАВЛЕНО
+    'HierarchicalStructure',  # ДОБАВЛЕНО
     'CVATExporter',
     'XMLFormatter',
-    'ImageGroupValidator',
-    'ImageGrouper',
-    'GroupedImageManager',
     'MarkdownReporter',
     'ExcelReporter',
     'ReportManager',
@@ -95,10 +89,6 @@ __all__ = [
     'analyze_spore_distribution',
     'filter_spores_by_area',
     'validate_spore_contours',
-    'create_standard_calculator',
-    'create_custom_calculator',
-    'list_grouped_images',
-    'create_group_manager',
     'create_config_manager',
     'load_config_context',
     'image_proc',
@@ -108,4 +98,7 @@ __all__ = [
     'grouping',
     'reporting',
     'config_loader'
-] 
+]
+
+
+

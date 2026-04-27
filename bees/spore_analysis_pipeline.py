@@ -8,9 +8,8 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any
 
 from bees import io_utils, image_proc, spores
-from bees.grouping import create_group_manager
 from bees.image_proc import SporeDetectionPipeline
-from bees.titer import TiterCalculator
+from bees.titer import create_calculator_from_config
 
 # YOLO imports (optional)
 try:
@@ -40,7 +39,7 @@ class SporeAnalysisPipeline:
         self.results_dir = Path(results_dir)
         self.use_yolo = use_yolo and YOLO_AVAILABLE
         self.detection_pipeline = SporeDetectionPipeline()
-        self.titer_calculator = TiterCalculator()
+        self.titer_calculator = create_calculator_from_config(config_manager)
 
         # Initialize YOLO components if requested
         self.yolo_counter = None
@@ -101,28 +100,24 @@ class SporeAnalysisPipeline:
 
     def _process_image_yolo(self, image_path: str, image, metadata, debug_base: Path) -> Dict[str, Any]:
         """Process image using YOLO detector."""
-        counts, inside_dets, outside_dets = self.yolo_counter.count_with_detections(image_path)
-
-        count = counts['inside']
-        titer_value = self.titer_calculator.calculate_titer(count)
+        detections = self.yolo_counter.detector.detect(image_path)  # получаем все детекции
+        count = len(detections)
 
         # Save visualization
         vis_path = str(debug_base) + "_yolo_detections.jpg"
         self.yolo_counter.visualize(image_path, vis_path)
 
         # Convert detections to contour-like format for compatibility
-        spore_objects = self._detections_to_contours(inside_dets + outside_dets)
+        spore_objects = self._detections_to_contours(detections)
 
         return {
             'image': image,
             'spore_objects': spore_objects,
             'count': count,
-            'titer': titer_value,
             'metadata': metadata,
             'image_path': image_path,
             'debug_images': [vis_path] if Path(vis_path).exists() else [],
-            'count_inside_square': counts['inside'],
-            'count_outside_square': counts['outside'],
+            'count_outside_square': 0,
             'method': 'yolo'
         }
 
@@ -133,22 +128,7 @@ class SporeAnalysisPipeline:
         detection_pipeline = SporeDetectionPipeline(debug_path=str(debug_base))
         spore_objects = detection_pipeline.detect_spores(image, **params)
 
-        try:
-            square_size = int(self.config_manager.get_int_param('analysis_square_size'))
-        except Exception:
-            square_size = None
-
-        if square_size and square_size > 0:
-            img_width, img_height = image.size
-            inside, outside = image_proc.count_spores_inside_outside(
-                spore_objects, (img_width, img_height), square_size
-            )
-            count = inside
-        else:
-            count = spores.count_spores(spore_objects)
-        inside, outside = count, 0
-
-        titer_value = self.titer_calculator.calculate_titer(count)
+        count = len(spore_objects)
 
         if debug_prefix:
             debug_path = str(debug_prefix) + '_debug'
@@ -171,12 +151,9 @@ class SporeAnalysisPipeline:
             'image': image,
             'spore_objects': spore_objects,
             'count': count,
-            'titer': titer_value,
             'metadata': metadata,
             'image_path': image_path,
             'debug_images': debug_images,
-            'count_inside_square': inside,
-            'count_outside_square': outside,
             'method': 'opencv'
         }
 
@@ -201,70 +178,53 @@ class SporeAnalysisPipeline:
             contours.append(contour)
         return contours
 
-    def process_group(self,
-                      group_prefix: str,
-                      image_paths: List[str]) -> Tuple[List[int], float, List[Dict]]:
-        """
-        Process a group of three images.
 
-        Args:
-            group_prefix: Group prefix name
-            image_paths: List of three image paths
-
-        Returns:
-            Tuple of (counts, group_titer, results)
-        """
-        counts = []
-        results = []
-
-        for idx, image_path in enumerate(image_paths, 1):
-            xml_path = image_path + "_meta.xml"
-
-            if not os.path.exists(xml_path):
-                logger.warning(f"Metadata file not found: {xml_path}")
-                continue
-
-            debug_prefix = Path(self.results_dir) / f"{Path(image_path).stem}"
-            result = self.process_image(image_path, xml_path, debug_prefix)
-
-            counts.append(result['count'])
-            results.append(result)
-
-            logger.info(f"Processed {group_prefix} sample {idx}: {result['count']} spores")
-
-        if not counts:
-            raise ValueError(f"No valid images processed for group {group_prefix}")
-
-        group_titer = self.titer_calculator.calculate_titer(counts)
-        logger.info(f"Group {group_prefix} titer: {group_titer:.2f} million spores/ml")
-
-        return counts, group_titer, results
 
     def run_analysis(self) -> Dict[str, List[Tuple[int, float]]]:
         """
-        Run the complete analysis pipeline.
+        Run the complete analysis pipeline on all images in data_dir (no grouping).
 
         Returns:
-            Dictionary mapping group prefixes to lists of (count, titer) tuples
+            Dictionary with one key 'all_images' containing list of (count, titer) tuples.
         """
-        # Create group manager
-        group_manager = create_group_manager(str(self.data_dir))
-        if not group_manager:
-            raise RuntimeError("Failed to create group manager")
+        from bees.grouping import find_images  # вспомогательная функция для поиска изображений
 
-        logger.info(f"Found {group_manager.get_group_count()} image groups")
+        # Находим все изображения в data_dir (рекурсивно или только в корне? оставим только корень)
+        image_paths = find_images(self.data_dir)
+        if not image_paths:
+            raise RuntimeError(f"No images found in {self.data_dir}")
 
-        # Process each group
-        groups_results = {}
-        self.group_results = {}  # Store detailed results for CVAT export
+        logger.info(f"Found {len(image_paths)} images for processing")
 
-        for prefix in group_manager.list_group_prefixes():
-            image_paths = group_manager.get_group(prefix)
-            if image_paths:
-                counts, group_titer, results = self.process_group(prefix, image_paths)
-                # Store as (count, group_titer) tuples for each sample
-                groups_results[prefix] = [(count, group_titer) for count in counts]
-                # Store detailed results for CVAT export
-                self.group_results[prefix] = results
+        all_results = []
+        photo_data = []  # (count, width, height)
+
+        for img_path in image_paths:
+            # Ищем соответствующий XML (имя_файла.jpg_meta.xml)
+            xml_path = img_path.with_suffix(img_path.suffix + "_meta.xml")
+            if not xml_path.exists():
+                logger.warning(f"Metadata not found: {xml_path}, skipping {img_path.name}")
+                continue
+
+            debug_prefix = self.results_dir / img_path.stem
+            result = self.process_image(str(img_path), str(xml_path), str(debug_prefix))
+            all_results.append(result)
+
+            # Собираем данные для титра
+            photo_data.append((result['count'], result['image'].size[0], result['image'].size[1]))
+            logger.info(f"Processed {img_path.name}: {result['count']} spores")
+
+        if not photo_data:
+            raise RuntimeError("No images were successfully processed")
+
+        # Вычисляем общий титр по формуле с учётом площади
+        titer = self.titer_calculator.calculate_sample_titer(photo_data)
+
+        # Формируем результат в старом формате (для совместимости с отчётами)
+        groups_results = {
+            'all_images': [(count, titer) for count, _, _ in photo_data]
+        }
+        # Сохраняем детальные результаты для CVAT (если нужно)
+        self.group_results = {'all_images': all_results}
 
         return groups_results

@@ -14,7 +14,6 @@ from datetime import datetime
 from openpyxl import Workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
-from bees.titer import TiterCalculator
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -184,7 +183,6 @@ class ExcelReporter:
         """
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        self.titer_calculator = TiterCalculator()
     
     def export_results(self, 
                       groups_results: Dict[str, List[Tuple[int, float]]], 
@@ -259,12 +257,10 @@ class ExcelReporter:
     def _add_data(self, worksheet, groups_results: Dict[str, List[Tuple[int, float]]]) -> None:
         """Add data rows to the worksheet."""
         for group_prefix, rows in groups_results.items():
-            # Determine start row dynamically to avoid off-by-one issues
             start_row = worksheet.max_row + 1
-
-            # Calculate group titer
             group_counts = [count for count, _ in rows]
-            group_titer = self.titer_calculator.calculate_titer(group_counts)
+            # Берём общий титр группы из первой строки (для нового формата)
+            group_titer = rows[0][1] if rows else 0.0
 
             # Add data rows
             for idx, (count, _) in enumerate(rows, start=1):
@@ -334,7 +330,6 @@ class ReportManager:
             output_dir: Directory for output reports
         """
         self.output_dir = Path(output_dir)
-        self.titer_calculator = TiterCalculator()
         self.markdown_reporter = MarkdownReporter(output_dir)
         self.excel_reporter = ExcelReporter(output_dir)
     
@@ -381,10 +376,9 @@ class ReportManager:
             group_reports = {}
             for prefix, rows in groups_results.items():
                 counts = [count for count, _ in rows]
-                group_titer = self.titer_calculator.calculate_titer(counts)
-                report_path = self.markdown_reporter.write_group_report(
-                    prefix, counts, group_titer
-                )
+                group_titer = rows[0][1] if rows else 0.0  # берём из первой строки
+                report_path = self.markdown_reporter.write_group_report(prefix, counts, group_titer)
+
                 group_reports[prefix] = report_path
             reports['group_reports'] = group_reports
             
