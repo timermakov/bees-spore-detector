@@ -7,8 +7,8 @@ import logging
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any
 
-from bees import io_utils, image_proc, spores
-from bees.image_proc import SporeDetectionPipeline
+from bees import io_utils
+from bees.opencv import SporeDetectionPipeline
 from bees.titer import create_calculator_from_config
 
 # YOLO imports (optional)

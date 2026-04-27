@@ -23,7 +23,7 @@ def _calc_p_value(values: list[float]) -> float | None:
 
 def analyze_probe(db: Session, probe_id: int, mode: str | None = None) -> models.ProbeResult:
     # Import lazily so API startup does not fail if OpenCV libs are missing.
-    from bees.image_proc import SporeDetectionPipeline
+    from bees.opencv import SporeDetectionPipeline
 
     probe = crud.get_by_id(db, models.Probe, probe_id)
     if not probe:

@@ -9,27 +9,29 @@ __version__ = "2.0.0"
 __author__ = "Timofei Ermakov, ITMO University. Email: ts.ermakov@yandex.ru"
 
 # Import main modules
-from . import image_proc
-from . import spores
+from . import opencv
+from . import yolo
 from . import titer
 from . import io_utils
 from . import grouping
 from . import reporting
 from . import config_loader
-# Import main classes for easy access
-from .image_proc import (
+
+# Import from opencv module (OpenCV-based image processing)
+from .opencv import (
     ImagePreprocessor,
     EdgeDetector,
     SporeDetector,
-    SporeDetectionPipeline
-)
-
-from .spores import (
+    SporeDetectionPipeline,
     count_spores,
     analyze_spore_distribution,
     filter_spores_by_area,
     validate_spore_contours
 )
+
+# For backward compatibility, also export as submodules
+image_proc = opencv
+spores = opencv
 
 from .titer import (
     TiterCalculator
@@ -64,17 +66,23 @@ from .config_loader import (
 )
 
 __all__ = [
-    # Main classes
+    # OpenCV-based image processing classes
     'ImagePreprocessor',
-    'EdgeDetector', 
+    'EdgeDetector',
     'SporeDetector',
     'SporeDetectionPipeline',
+    # OpenCV-based spore analysis functions
+    'count_spores',
+    'analyze_spore_distribution',
+    'filter_spores_by_area',
+    'validate_spore_contours',
+    # Other modules
     'TiterCalculator',
     'ImageLoader',
     'MetadataLoader',
     'FilePairFinder',
-    'ImageInfo',  # ДОБАВЛЕНО
-    'HierarchicalStructure',  # ДОБАВЛЕНО
+    'ImageInfo',
+    'HierarchicalStructure',
     'CVATExporter',
     'XMLFormatter',
     'MarkdownReporter',
@@ -83,21 +91,20 @@ __all__ = [
     'ConfigurationLoader',
     'ConfigurationManager',
     'ConfigurationValidator',
-    
     # Functions
-    'count_spores',
-    'analyze_spore_distribution',
-    'filter_spores_by_area',
-    'validate_spore_contours',
     'create_config_manager',
     'load_config_context',
-    'image_proc',
-    'spores',
+    # Submodules
+    'opencv',
+    'yolo',
     'titer',
     'io_utils',
     'grouping',
     'reporting',
-    'config_loader'
+    'config_loader',
+    # Backward compatibility aliases
+    'image_proc',
+    'spores',
 ]
 
 
