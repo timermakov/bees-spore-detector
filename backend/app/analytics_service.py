@@ -9,7 +9,7 @@ from app import crud, models
 from app.config import get_settings
 ROOT_DIR = Path(__file__).resolve().parents[2]
 if str(ROOT_DIR) not in sys.path:
-    sys.path.append(str(ROOT_DIR))
+    sys.path.insert(0, str(ROOT_DIR))
 
 from bees.titer import TiterCalculator
 
