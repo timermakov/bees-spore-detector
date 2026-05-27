@@ -31,13 +31,25 @@ analysis_square_line_width: 2
 # ========== YOLO Configuration ==========
 yolo_datasets_root: dataset_train
 yolo_dataset_folder_pattern: "*"
-# optional parameter, needs if every portion has same xml filename:
-# yolo_annotations_filename: annotations_orig_2025-08-22.xml
+# Annotation source for training: only auto mode is supported
+yolo_annotations_format: auto
+# Unified shortcuts for auto-discovery:
+# Optional fixed relative path to annotation file inside each portion.
+yolo_annotations_relpath: null
+# Images root inside each portion.
+yolo_images_subdir: .
 
 # Use this structure for incremental retraining:
 # dataset_train/portion_001/...images... + annotation XML
 # dataset_train/portion_002/...images... + annotation XML
 # dataset_train/portion_003/...images... + annotation XML
+#
+# Current COCO example:
+# yolo_datasets_root: dataset_train
+# yolo_dataset_folder_pattern: dataset_train_2026-27-05
+# yolo_annotations_format: auto
+# yolo_annotations_relpath: sliced/coco_annotations.json_coco.json
+# yolo_images_subdir: sliced/images
 
 # YOLO11-S model
 yolo_model: yolo11s.pt

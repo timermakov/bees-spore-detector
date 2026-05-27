@@ -10,6 +10,7 @@ Tests cover:
 """
 
 import sys
+import json
 import pytest
 import numpy as np
 from pathlib import Path
@@ -53,6 +54,9 @@ class TestYOLOConfig:
         assert config.epochs == 100
         assert config.batch_size == 16
         assert config.imgsz == 960
+        assert config.annotations_format == "auto"
+        assert config.annotations_relpath is None
+        assert config.images_subdir == "."
 
     def test_config_with_custom_values(self):
         """Test creating config with custom values."""
@@ -215,6 +219,9 @@ yolo_batch_size: 8
 yolo_imgsz: 640
 analysis_square_size: 780
 yolo_datasets_root: test_datasets
+yolo_annotations_format: auto
+yolo_annotations_relpath: custom/ann.json
+yolo_images_subdir: custom/images
 """
         config_file = tmp_path / "test_config.yaml"
         config_file.write_text(config_content)
@@ -229,6 +236,136 @@ yolo_datasets_root: test_datasets
         assert yolo_config.batch_size == 8
         assert yolo_config.imgsz == 640
         assert yolo_config.analysis_square_size == 780
+        assert yolo_config.annotations_format == "auto"
+        assert yolo_config.annotations_relpath == "custom/ann.json"
+        assert yolo_config.images_subdir == "custom/images"
+
+
+@pytest.mark.skipif(not PANDAS_AVAILABLE, reason="pandas not installed")
+class TestDatasetPreparerCOCO:
+    """Tests for COCO dataset preparation path."""
+
+    @staticmethod
+    def _write_coco_json(coco_path: Path, payload: dict):
+        coco_path.parent.mkdir(parents=True, exist_ok=True)
+        coco_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    @staticmethod
+    def _write_dummy_image(image_path: Path):
+        image_path.parent.mkdir(parents=True, exist_ok=True)
+        image_path.write_bytes(b"\x89PNG\r\n\x1a\n")
+
+    def test_coco_bbox_to_yolo_line(self):
+        from bees.yolo.dataset import DatasetPreparer
+
+        line = DatasetPreparer._coco_bbox_to_yolo_line([10, 20, 30, 40], width=100, height=200, class_id=0)
+        assert line == "0 0.250000 0.200000 0.300000 0.200000"
+
+    def test_prepare_dataset_from_coco(self, tmp_path):
+        from bees.yolo.dataset import DatasetPreparer
+
+        datasets_root = tmp_path / "dataset_train"
+        portion_dir = datasets_root / "dataset_train_2026-27-05"
+        images_dir = portion_dir / "sliced" / "images"
+        coco_path = portion_dir / "sliced" / "coco_annotations.json_coco.json"
+
+        self._write_dummy_image(images_dir / "img_1.png")
+        self._write_dummy_image(images_dir / "img_2.png")
+        self._write_coco_json(
+            coco_path,
+            {
+                "images": [
+                    {"id": 1, "file_name": "img_1.png", "width": 100, "height": 100},
+                    {"id": 2, "file_name": "img_2.png", "width": 100, "height": 100},
+                ],
+                "annotations": [
+                    {"id": 1, "image_id": 1, "category_id": 1, "bbox": [10, 10, 20, 20]},
+                ],
+                "categories": [
+                    {"id": 1, "name": "spore"},
+                ],
+            },
+        )
+
+        config = YOLOConfig(
+            datasets_root=datasets_root,
+            dataset_folder_pattern="dataset_train_2026-27-05",
+            annotations_format="auto",
+            annotations_relpath="sliced/coco_annotations.json_coco.json",
+            images_subdir="sliced/images",
+            output_dir=tmp_path / "yolo_dataset",
+            models_dir=tmp_path / "models",
+        )
+
+        preparer = DatasetPreparer(config)
+        data_yaml = preparer.prepare_dataset(val_split=0.5, seed=1)
+
+        assert data_yaml.exists()
+        train_images = list((config.output_dir / "train" / "images").glob("*"))
+        val_images = list((config.output_dir / "val" / "images").glob("*"))
+        assert len(train_images) + len(val_images) == 2
+
+    def test_prepare_dataset_from_coco_fails_on_unknown_category(self, tmp_path):
+        from bees.yolo.dataset import DatasetPreparer
+
+        datasets_root = tmp_path / "dataset_train"
+        portion_dir = datasets_root / "portion_01"
+        images_dir = portion_dir / "sliced" / "images"
+        coco_path = portion_dir / "sliced" / "coco_annotations.json_coco.json"
+
+        self._write_dummy_image(images_dir / "img_1.png")
+        self._write_coco_json(
+            coco_path,
+            {
+                "images": [{"id": 1, "file_name": "img_1.png", "width": 100, "height": 100}],
+                "annotations": [{"id": 1, "image_id": 1, "category_id": 5, "bbox": [1, 1, 5, 5]}],
+                "categories": [{"id": 5, "name": "other_class"}],
+            },
+        )
+
+        config = YOLOConfig(
+            datasets_root=datasets_root,
+            dataset_folder_pattern="portion_01",
+            annotations_format="auto",
+            annotations_relpath="sliced/coco_annotations.json_coco.json",
+            images_subdir="sliced/images",
+            output_dir=tmp_path / "yolo_dataset",
+            models_dir=tmp_path / "models",
+        )
+
+        preparer = DatasetPreparer(config)
+        with pytest.raises(ValueError, match="Unknown COCO category"):
+            preparer.prepare_dataset()
+
+    def test_prepare_dataset_from_coco_fails_on_missing_image(self, tmp_path):
+        from bees.yolo.dataset import DatasetPreparer
+
+        datasets_root = tmp_path / "dataset_train"
+        portion_dir = datasets_root / "portion_01"
+        coco_path = portion_dir / "sliced" / "coco_annotations.json_coco.json"
+
+        self._write_coco_json(
+            coco_path,
+            {
+                "images": [{"id": 1, "file_name": "missing.png", "width": 100, "height": 100}],
+                "annotations": [],
+                "categories": [{"id": 1, "name": "spore"}],
+            },
+        )
+
+        config = YOLOConfig(
+            datasets_root=datasets_root,
+            dataset_folder_pattern="portion_01",
+            annotations_format="auto",
+            annotations_relpath="sliced/coco_annotations.json_coco.json",
+            images_subdir="sliced/images",
+            output_dir=tmp_path / "yolo_dataset",
+            models_dir=tmp_path / "models",
+        )
+
+        preparer = DatasetPreparer(config)
+        with pytest.raises(FileNotFoundError, match="Missing"):
+            preparer.prepare_dataset()
 
 
 if __name__ == "__main__":

@@ -149,7 +149,7 @@ def train_yolo_model(config_path: str, quick_test: bool = False) -> int:
         if quick_test:
             logger.info("Starting YOLO QUICK TEST training (30 epochs, 640px)...")
         else:
-            logger.info("Starting YOLO training pipeline...")
+            logger.info("Starting YOLO training pipeline (AUTO annotations)...")
 
         preparer = DatasetPreparer(yolo_config)
         data_yaml = preparer.prepare_dataset(val_split=0.4)
@@ -395,8 +395,8 @@ def build_parser() -> argparse.ArgumentParser:
     # YOLO arguments
     parser.add_argument('--use-yolo', action='store_true',
                         help='Use YOLO-based detection instead of OpenCV')
-    parser.add_argument('--train-yolo', action='store_true',
-                        help='Train YOLO model on annotated data')
+    parser.add_argument('--train-yolo-auto', action='store_true',
+                        help='Train YOLO model with automatic annotation discovery')
     parser.add_argument('--quick-test', action='store_true',
                         help='Quick training mode: 30 epochs, 640px images (~15 min on CPU)')
 
@@ -566,7 +566,7 @@ def main() -> int:
             logger.error(f"YOLO -> CVAT export failed: {e}")
             return 1
 
-    if args.train_yolo:
+    if args.train_yolo_auto:
         return train_yolo_model(args.config, quick_test=args.quick_test)
 
     if args.use_yolo and not YOLO_AVAILABLE:

@@ -42,6 +42,7 @@ import numpy as np
 
 from ..titer import TiterCalculator, create_calculator_from_config
 from ..config_loader import create_config_manager
+from .data_discovery import collect_image_files
 try:
     from .sahi_inference import SAHIDetector
     SAHI_AVAILABLE = True
@@ -218,17 +219,12 @@ class HierarchicalAnalyzer:
         return name.lower().strip() in control_names
 
     def find_images(self, folder: Path) -> List[Path]:
-        extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff'}
-        images = []
-        for ext in extensions:
-            images.extend(folder.glob(f"*{ext}"))
-        # Удаляем возможные дубликаты (на случай, если в папке есть файлы с разным регистром)
-        unique = {}
-        for p in images:
-            key = str(p.resolve()).lower()
-            if key not in unique:
-                unique[key] = p
-        return sorted(unique.values())
+        extensions = {".jpg", ".jpeg", ".png", ".bmp", ".tiff"}
+        return collect_image_files(
+            source_dir=folder,
+            image_extensions=extensions,
+            recursive=False,
+        )
 
     def analyze_sample_folder(self, sample_path: Path, probe_name: str, type_name: str) -> SampleResult:
         """Analyze all images in a sample folder (one repetition)."""
