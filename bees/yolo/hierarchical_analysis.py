@@ -196,8 +196,18 @@ class HierarchicalAnalyzer:
             model_type = predict_cfg.get("model_type", "ultralytics")
             self.slice_height = predict_cfg.get("tile_size", 1024)
             self.slice_width = self.slice_height
-            self.overlap_height_ratio = predict_cfg.get("overlap", 0.2)
-            self.overlap_width_ratio = self.overlap_height_ratio
+            overlap_h = predict_cfg.get("overlap_height_ratio")
+            overlap_w = predict_cfg.get("overlap_width_ratio")
+            if overlap_h is None or overlap_w is None:
+                common = predict_cfg.get("overlap")
+                if common is not None:
+                    overlap_h = overlap_h if overlap_h is not None else common
+                    overlap_w = overlap_w if overlap_w is not None else common
+                else:
+                    overlap_h = overlap_h if overlap_h is not None else 0.2
+                    overlap_w = overlap_w if overlap_w is not None else 0.2
+            self.overlap_height_ratio = float(overlap_h)
+            self.overlap_width_ratio = float(overlap_w)
 
             self.detector = SAHIDetector(
                 model_path=model_path,

@@ -94,7 +94,7 @@ class SporeTrainer:
             patience = 0
         
         # Windows: use workers=0 to avoid multiprocessing issues
-        workers = 0 if platform.system() == 'Windows' else 4
+        workers = 2 if platform.system() == 'Windows' else 4
 
         # Device selection: use config device if specified, otherwise auto-detect Nvidia GPU
         if self.config.device is not None:

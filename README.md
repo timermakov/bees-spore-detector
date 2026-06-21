@@ -1,4 +1,4 @@
-# Bee Spore Counter
+-# Bee Spore Counter
 
 A computer vision-based system for detecting and counting bee spores in microscopic images using the Goryaev chamber method.
 

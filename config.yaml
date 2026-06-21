@@ -62,7 +62,7 @@ yolo_epochs: 100
 # Batch size (decrease if out of memory)
 yolo_batch_size: 2
 # Image size for training/inference (larger = more accurate but slower)
-yolo_imgsz: 1024
+yolo_imgsz: 960
 
 # ========== Tiley / SAHI (YAML-first) ==========
 # Commands:
@@ -78,17 +78,18 @@ tiley:
     # Result folder (can override via tile-export --out)
     out: sahi_tiled_export
     # Square tile: tile_size x tile_size
-    tile_size: 512
-    overlap: 0.25
+    tile_size: 480
+    overlap_height_ratio: 0.06
+    overlap_width_ratio: 0.054
   predict:
     # Folder with images for inference (can override via tile-predict --input)
     input: dataset_test
     # Result folder (can override via tile-predict --out)
     out: results/sahi_tiled_predictions
     # Square tile: tile_size x tile_size
-    tile_size: 512
-    overlap: 0.2
-    conf: 0.25
+    tile_size: 270
+    overlap_height_ratio: 0.25
+    overlap_width_ratio: 0.25
     write_previews: true
     # null = yolo_model from YOLO section above
     weights: runs/detect/models/yolo11s_spores_2026-04-15_512_1024/weights/best.pt
