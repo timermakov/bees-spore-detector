@@ -31,13 +31,25 @@ analysis_square_line_width: 2
 # ========== YOLO Configuration ==========
 yolo_datasets_root: dataset_train
 yolo_dataset_folder_pattern: "*"
-# optional parameter, needs if every portion has same xml filename:
-# yolo_annotations_filename: annotations_orig_2025-08-22.xml
+# Annotation source for training: only auto mode is supported
+yolo_annotations_format: auto
+# Unified shortcuts for auto-discovery:
+# Optional fixed relative path to annotation file inside each portion.
+yolo_annotations_relpath: null
+# Images root inside each portion.
+yolo_images_subdir: .
 
 # Use this structure for incremental retraining:
 # dataset_train/portion_001/...images... + annotation XML
 # dataset_train/portion_002/...images... + annotation XML
 # dataset_train/portion_003/...images... + annotation XML
+#
+# Current COCO example:
+# yolo_datasets_root: dataset_train
+# yolo_dataset_folder_pattern: dataset_train_2026-27-05
+# yolo_annotations_format: auto
+# yolo_annotations_relpath: sliced/coco_annotations.json_coco.json
+# yolo_images_subdir: sliced/images
 
 # YOLO11-S model
 yolo_model: yolo11s.pt
@@ -50,7 +62,7 @@ yolo_epochs: 100
 # Batch size (decrease if out of memory)
 yolo_batch_size: 2
 # Image size for training/inference (larger = more accurate but slower)
-yolo_imgsz: 1024
+yolo_imgsz: 960
 
 # ========== Tiley / SAHI (YAML-first) ==========
 # Commands:
@@ -66,17 +78,18 @@ tiley:
     # Result folder (can override via tile-export --out)
     out: sahi_tiled_export
     # Square tile: tile_size x tile_size
-    tile_size: 512
-    overlap: 0.25
+    tile_size: 480
+    overlap_height_ratio: 0.06
+    overlap_width_ratio: 0.054
   predict:
     # Folder with images for inference (can override via tile-predict --input)
     input: dataset_test
     # Result folder (can override via tile-predict --out)
     out: results/sahi_tiled_predictions
     # Square tile: tile_size x tile_size
-    tile_size: 512
-    overlap: 0.2
-    conf: 0.25
+    tile_size: 270
+    overlap_height_ratio: 0.25
+    overlap_width_ratio: 0.25
     write_previews: true
     # null = yolo_model from YOLO section above
     weights: runs/detect/models/yolo11s_spores_2026-04-15_512_1024/weights/best.pt

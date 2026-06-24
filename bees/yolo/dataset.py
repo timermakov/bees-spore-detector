@@ -4,249 +4,340 @@ Dataset preparation for YOLO training.
 Handles train/val split, data.yaml generation, and augmentation configuration.
 """
 
+import json
+import logging
 import random
 import shutil
-from pathlib import Path
+from collections import defaultdict
 from dataclasses import dataclass
-from typing import List, Optional, Dict
-import logging
+from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
 import yaml
 
 from .config import YOLOConfig
 from .converter import CVATToYOLOConverter
+from .data_discovery import (
+    collect_image_files,
+    discover_dataset_dirs,
+    find_coco_annotation_candidates,
+    find_xml_annotation_candidates,
+    resolve_images_root,
+)
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
-class SourceAnnotation:
-    """Annotation with source dataset directory."""
-    annotation: object
+class SourceSample:
+    """Training sample with source image and precomputed YOLO label lines."""
+
     source_dir: Path
+    image_path: Path
+    annotation_name: str
+    yolo_lines: List[str]
 
 
 class DatasetPreparer:
     """Prepares dataset for YOLO training."""
-    
+
     def __init__(self, config: YOLOConfig):
-        """
-        Initialize dataset preparer.
-        
-        Args:
-            config: YOLOConfig instance
-        """
         self.config = config
         self.converter = CVATToYOLOConverter(config.class_names)
         self._image_index_cache: Dict[Path, Dict[str, Path]] = {}
-    
-    def prepare_dataset(self, 
-                        val_split: float = 0.4,
-                        seed: int = 42) -> Path:
-        """
-        Prepare complete YOLO dataset from CVAT annotations.
-        
-        Args:
-            val_split: Fraction of data for validation (default 0.4 for 60/40 split)
-            seed: Random seed for reproducibility
-            
-        Returns:
-            Path to generated data.yaml
-        """
+
+    def prepare_dataset(self, val_split: float = 0.4, seed: int = 42) -> Path:
+        """Prepare complete YOLO dataset from XML or COCO annotations."""
         random.seed(seed)
 
         if self.config.output_dir.exists():
             logger.info(f"Cleaning old dataset at {self.config.output_dir}")
-            # shutil.rmtree(self.config.output_dir) # Раскомментируй, если хочешь полную чистку
+            # shutil.rmtree(self.config.output_dir)  # Keep disabled by default.
 
         self.config.ensure_dirs()
-        
-        source_annotations = self._load_source_annotations()
-        valid_annotations = self._filter_valid_annotations(source_annotations)
 
-        if not valid_annotations:
-            raise ValueError("No matching image files found for the annotations in XML!")
+        source_samples = self._load_source_samples()
+        if not source_samples:
+            raise ValueError("No training samples found for the selected annotation source.")
 
-        # Shuffle and split
-        random.shuffle(valid_annotations)
-        val_count = max(1, int(len(valid_annotations) * val_split))
-        train_count = len(valid_annotations) - val_count
-        
-        train_annotations = valid_annotations[:train_count]
-        val_annotations = valid_annotations[train_count:]
-        
-        logger.info(f"Split: {len(train_annotations)} train, {len(val_annotations)} val")
-        
-        # Process train set
-        train_stats = self._process_split(
-            train_annotations, 
-            self.config.output_dir / "train"
-        )
-        
-        # Process val set
-        val_stats = self._process_split(
-            val_annotations,
-            self.config.output_dir / "val"
-        )
-        
-        # Generate data.yaml
+        random.shuffle(source_samples)
+        val_count = max(1, int(len(source_samples) * val_split))
+        train_count = len(source_samples) - val_count
+
+        train_samples = source_samples[:train_count]
+        val_samples = source_samples[train_count:]
+
+        logger.info(f"Split: {len(train_samples)} train, {len(val_samples)} val")
+
+        train_stats = self._process_split(train_samples, self.config.output_dir / "train")
+        val_stats = self._process_split(val_samples, self.config.output_dir / "val")
+
         data_yaml_path = self._generate_data_yaml()
-        
         logger.info(f"Dataset prepared: train={train_stats}, val={val_stats}")
         logger.info(f"Data config: {data_yaml_path}")
-        
         return data_yaml_path
-    
-    def _process_split(self, annotations: List[SourceAnnotation], output_dir: Path) -> dict:
+
+    def _load_source_samples(self) -> List[SourceSample]:
+        """Load source samples using auto annotation discovery mode."""
+        dataset_format = (self.config.annotations_format or "auto").strip().lower()
+        if dataset_format != "auto":
+            raise ValueError(
+                f"Unsupported annotation format '{dataset_format}'. Only 'auto' mode is supported."
+            )
+        return self._load_source_samples_auto()
+
+    def _process_split(self, samples: List[SourceSample], output_dir: Path) -> dict:
         """Process a dataset split (train or val)."""
         images_dir = output_dir / "images"
         labels_dir = output_dir / "labels"
         images_dir.mkdir(parents=True, exist_ok=True)
         labels_dir.mkdir(parents=True, exist_ok=True)
-        
-        stats = {'images': 0, 'annotations': 0}
+
+        stats = {"images": 0, "annotations": 0}
         used_output_stems: Dict[str, int] = {}
-        
-        for source_annotation in annotations:
-            annotation = source_annotation.annotation
-            # Find source image
-            src_image = self._find_source_image(annotation.name, source_annotation.source_dir)
-            
-            if src_image is None:
-                logger.warning(f"Image not found: {annotation.name}")
-                continue
-            
+
+        for sample in samples:
             output_stem = self._build_unique_output_stem(
-                annotation_name=annotation.name,
-                source_dir=source_annotation.source_dir,
-                used_stems=used_output_stems
+                annotation_name=sample.annotation_name,
+                source_dir=sample.source_dir,
+                used_stems=used_output_stems,
             )
 
-            # Copy image
-            dst_image = images_dir / f"{output_stem}{src_image.suffix}"
-            shutil.copy2(src_image, dst_image)
-            
-            # Generate and save labels
-            lines = self.converter.convert_annotation(annotation)
+            dst_image = images_dir / f"{output_stem}{sample.image_path.suffix}"
+            shutil.copy2(sample.image_path, dst_image)
+
             label_file = labels_dir / f"{output_stem}.txt"
-            
-            with open(label_file, 'w') as f:
-                f.write('\n'.join(lines))
-            
-            stats['images'] += 1
-            stats['annotations'] += len(lines)
-        
-        return stats
-    
-    def _discover_dataset_dirs(self) -> List[Path]:
-        """Discover dataset directories inside datasets_root."""
-        if not self.config.datasets_root.exists():
-            return []
+            with open(label_file, "w", encoding="utf-8") as file:
+                file.write("\n".join(sample.yolo_lines))
 
-        candidates = [self.config.datasets_root]
-        candidates.extend(
-            sorted(
-                p for p in self.config.datasets_root.glob(self.config.dataset_folder_pattern)
-                if p.is_dir()
-            )
+            stats["images"] += 1
+            stats["annotations"] += len(sample.yolo_lines)
+
+        return stats
+
+    def _get_dataset_dirs_or_raise(self) -> List[Path]:
+        """Return dataset directories or raise a clear configuration error."""
+        dataset_dirs = discover_dataset_dirs(self.config.datasets_root, self.config.dataset_folder_pattern)
+        if dataset_dirs:
+            return dataset_dirs
+        raise FileNotFoundError(
+            f"No dataset directories found in {self.config.datasets_root}. "
+            "Set yolo_datasets_root to a folder that contains dataset portions."
         )
 
-        unique_dirs = []
-        seen = set()
-        for directory in candidates:
-            key = str(directory.resolve())
-            if key not in seen:
-                seen.add(key)
-                unique_dirs.append(directory)
-
-        return unique_dirs
-
-    def _resolve_annotation_file(self, dataset_dir: Path) -> Optional[Path]:
-        """Resolve XML annotation file for one dataset directory."""
-        if self.config.annotations_filename:
-            candidate = dataset_dir / self.config.annotations_filename
-            return candidate if candidate.exists() else None
-
-        xml_files = sorted(dataset_dir.glob("*.xml"))
-        if not xml_files:
-            return None
-
-        if len(xml_files) > 1:
-            logger.warning(
-                "Multiple XML files found in %s, using %s",
-                dataset_dir,
-                xml_files[0].name
-            )
-
-        return xml_files[0]
-
-    def _load_source_annotations(self) -> List[SourceAnnotation]:
+    def _load_source_samples_auto(self) -> List[SourceSample]:
         """
-        Load annotations from multi-dataset root.
-        """
-        source_annotations: List[SourceAnnotation] = []
-        dataset_dirs = self._discover_dataset_dirs()
+        Auto-detect annotation format per dataset portion.
 
-        if not dataset_dirs:
-            raise FileNotFoundError(
-                f"No dataset directories found in {self.config.datasets_root}. "
-                "Set yolo_datasets_root to a folder that contains dataset portions."
-            )
+        Preference order per portion: COCO first, then XML.
+        """
+        source_samples: List[SourceSample] = []
+        dataset_dirs = self._get_dataset_dirs_or_raise()
+        seen_coco_paths = set()
+        skipped_missing_xml_images = 0
 
         for dataset_dir in dataset_dirs:
-            xml_path = self._resolve_annotation_file(dataset_dir)
-            if xml_path is None:
+            coco_candidates = find_coco_annotation_candidates(
+                dataset_dir=dataset_dir,
+                annotations_relpath=self.config.annotations_relpath,
+            )
+            if coco_candidates:
+                coco_path = coco_candidates[0]
+                coco_key = str(coco_path.resolve())
+                if coco_key not in seen_coco_paths:
+                    seen_coco_paths.add(coco_key)
+                    source_samples.extend(self._parse_coco_dataset(coco_path, dataset_dir))
                 continue
 
-            annotations = self.converter.parse_cvat_xml(xml_path)
-            logger.info(
-                "Loaded %d annotated images from %s",
-                len(annotations),
-                xml_path
+            xml_candidates = find_xml_annotation_candidates(
+                dataset_dir=dataset_dir,
+                annotations_relpath=self.config.annotations_relpath,
             )
-            source_annotations.extend(
-                SourceAnnotation(annotation=annotation, source_dir=dataset_dir)
-                for annotation in annotations
+            if not xml_candidates:
+                continue
+            source_batch, missing_count = self._collect_xml_samples_from_dataset(
+                dataset_dir=dataset_dir,
+                xml_path=xml_candidates[0],
+            )
+            source_samples.extend(source_batch)
+            skipped_missing_xml_images += missing_count
+
+        if not source_samples:
+            raise FileNotFoundError(
+                f"No XML or COCO annotations found in dataset directories under {self.config.datasets_root}."
             )
 
-        if not source_annotations:
-            if self.config.annotations_filename:
-                raise FileNotFoundError(
-                    f"No annotation XML found in dataset directories under {self.config.datasets_root}. "
-                    f"Expected file name: {self.config.annotations_filename}"
+        if skipped_missing_xml_images:
+            logger.warning(
+                "Skipped %d XML annotations due to missing source images",
+                skipped_missing_xml_images,
+            )
+
+        logger.info("Using AUTO multi-dataset mode (%d samples)", len(source_samples))
+        return source_samples
+
+    def _collect_xml_samples_from_dataset(self, dataset_dir: Path, xml_path: Path) -> Tuple[List[SourceSample], int]:
+        """Collect YOLO-ready samples from one XML file."""
+        xml_images_root = resolve_images_root(
+            dataset_dir=dataset_dir,
+            images_subdir=self.config.images_subdir,
+        )
+        annotations = self.converter.parse_cvat_xml(xml_path)
+        logger.info("Loaded %d annotated images from %s", len(annotations), xml_path)
+
+        source_samples: List[SourceSample] = []
+        missing_counter = 0
+        for annotation in annotations:
+            src_image = self._find_source_image(annotation.name, xml_images_root)
+            if src_image is None and xml_images_root != dataset_dir.resolve():
+                src_image = self._find_source_image(annotation.name, dataset_dir)
+            if src_image is None:
+                missing_counter += 1
+                logger.warning("File %s is in XML but not found in %s", annotation.name, dataset_dir)
+                continue
+
+            source_samples.append(
+                SourceSample(
+                    source_dir=dataset_dir,
+                    image_path=src_image,
+                    annotation_name=annotation.name,
+                    yolo_lines=self.converter.convert_annotation(annotation),
                 )
+            )
+        return source_samples, missing_counter
+
+    def _parse_coco_dataset(self, coco_path: Path, dataset_dir: Path) -> List[SourceSample]:
+        """Parse one COCO JSON into source samples."""
+        try:
+            with open(coco_path, "r", encoding="utf-8") as file:
+                coco_data = json.load(file)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"Invalid COCO JSON at {coco_path}: {exc}") from exc
+
+        images = coco_data.get("images")
+        annotations = coco_data.get("annotations")
+        categories = coco_data.get("categories")
+        if not isinstance(images, list) or not isinstance(annotations, list) or not isinstance(categories, list):
+            raise ValueError(
+                f"COCO JSON {coco_path} must contain list keys: images, annotations, categories"
+            )
+
+        category_id_to_name: Dict[int, str] = {}
+        for category in categories:
+            if not isinstance(category, dict) or "id" not in category or "name" not in category:
+                raise ValueError(f"Invalid category entry in {coco_path}: {category}")
+            category_id_to_name[int(category["id"])] = str(category["name"])
+
+        category_id_to_class_idx: Dict[int, int] = {}
+        for category_id, category_name in category_id_to_name.items():
+            if category_name not in self.converter.class_to_id:
+                raise ValueError(
+                    f"Unknown COCO category '{category_name}' in {coco_path}. "
+                    f"Known classes: {self.config.class_names}"
+                )
+            category_id_to_class_idx[category_id] = self.converter.class_to_id[category_name]
+
+        grouped_annotations: Dict[int, List[Tuple[int, List[float]]]] = defaultdict(list)
+        for annotation in annotations:
+            if not isinstance(annotation, dict):
+                logger.warning("Skipping malformed COCO annotation entry: %s", annotation)
+                continue
+
+            image_id = annotation.get("image_id")
+            category_id = annotation.get("category_id")
+            bbox = annotation.get("bbox")
+            if image_id is None or category_id is None or not isinstance(bbox, list) or len(bbox) < 4:
+                logger.warning("Skipping malformed COCO annotation: %s", annotation)
+                continue
+
+            category_key = int(category_id)
+            if category_key not in category_id_to_class_idx:
+                raise ValueError(
+                    f"Annotation references unknown category_id={category_id} in {coco_path}"
+                )
+
+            grouped_annotations[int(image_id)].append(
+                (category_id_to_class_idx[category_key], [float(value) for value in bbox[:4]])
+            )
+
+        images_root = resolve_images_root(
+            dataset_dir=dataset_dir,
+            images_subdir=self.config.images_subdir,
+        )
+        source_samples: List[SourceSample] = []
+        missing_images: List[str] = []
+
+        for image in images:
+            if not isinstance(image, dict):
+                logger.warning("Skipping malformed COCO image entry: %s", image)
+                continue
+
+            image_id = image.get("id")
+            file_name = str(image.get("file_name", "")).strip()
+            width = int(image.get("width", 0) or 0)
+            height = int(image.get("height", 0) or 0)
+            if image_id is None or not file_name:
+                logger.warning("Skipping COCO image with missing id/file_name: %s", image)
+                continue
+            if width <= 0 or height <= 0:
+                logger.warning("Skipping COCO image with invalid dimensions: %s", file_name)
+                continue
+
+            src_image = self._find_source_image(file_name, images_root)
+            if src_image is None and images_root != dataset_dir.resolve():
+                src_image = self._find_source_image(file_name, dataset_dir)
+            if src_image is None:
+                missing_images.append(file_name)
+                continue
+
+            yolo_lines: List[str] = []
+            for class_id, bbox in grouped_annotations.get(int(image_id), []):
+                yolo_line = self._coco_bbox_to_yolo_line(bbox, width=width, height=height, class_id=class_id)
+                if yolo_line is not None:
+                    yolo_lines.append(yolo_line)
+
+            source_samples.append(
+                SourceSample(
+                    source_dir=dataset_dir,
+                    image_path=src_image,
+                    annotation_name=file_name,
+                    yolo_lines=yolo_lines,
+                )
+            )
+
+        if missing_images:
+            preview = ", ".join(missing_images[:5])
             raise FileNotFoundError(
-                f"No XML annotation files found in dataset directories under {self.config.datasets_root}."
+                f"Missing {len(missing_images)} image files referenced by {coco_path}. "
+                f"First missing: {preview}. Checked under {images_root}."
             )
 
         logger.info(
-            "Using multi-dataset mode from %s (%d samples)",
-            self.config.datasets_root,
-            len(source_annotations)
+            "Loaded %d COCO images from %s (%d annotations)",
+            len(source_samples),
+            coco_path,
+            len(annotations),
         )
-        return source_annotations
+        return source_samples
 
-    def _filter_valid_annotations(self, source_annotations: List[SourceAnnotation]) -> List[SourceAnnotation]:
-        """Keep only annotations that have corresponding image files."""
-        valid_annotations: List[SourceAnnotation] = []
-        missing_counter = 0
+    @staticmethod
+    def _coco_bbox_to_yolo_line(bbox: List[float], width: int, height: int, class_id: int) -> Optional[str]:
+        """Convert one COCO bbox [x, y, w, h] to YOLO normalized format."""
+        x, y, bbox_w, bbox_h = bbox
+        if bbox_w <= 0 or bbox_h <= 0:
+            logger.warning("Skipping invalid COCO bbox with non-positive size: %s", bbox)
+            return None
 
-        for source_annotation in source_annotations:
-            annotation = source_annotation.annotation
-            img_path = self._find_source_image(annotation.name, source_annotation.source_dir)
-            if img_path is not None and img_path.is_file():
-                valid_annotations.append(source_annotation)
-            else:
-                missing_counter += 1
-                logger.warning(
-                    "File %s is in XML but not found in %s",
-                    annotation.name,
-                    source_annotation.source_dir
-                )
+        x_center_norm = (x + bbox_w / 2.0) / width
+        y_center_norm = (y + bbox_h / 2.0) / height
+        w_norm = bbox_w / width
+        h_norm = bbox_h / height
 
-        if missing_counter:
-            logger.warning("Skipped %d annotations due to missing source images", missing_counter)
-
-        return valid_annotations
+        x_center_norm = max(0.0, min(1.0, x_center_norm))
+        y_center_norm = max(0.0, min(1.0, y_center_norm))
+        w_norm = max(0.001, min(1.0, w_norm))
+        h_norm = max(0.001, min(1.0, h_norm))
+        return f"{class_id} {x_center_norm:.6f} {y_center_norm:.6f} {w_norm:.6f} {h_norm:.6f}"
 
     def _build_image_index(self, source_dir: Path) -> Dict[str, Path]:
         """Build lookup index for source images."""
@@ -254,19 +345,15 @@ class DatasetPreparer:
         if source_dir in self._image_index_cache:
             return self._image_index_cache[source_dir]
 
-        valid_ext = {ext.lower() for ext in self.config.image_extensions}
         index: Dict[str, Path] = {}
-
-        if source_dir.exists():
-            for file_path in source_dir.rglob("*"):
-                if not file_path.is_file():
-                    continue
-                if file_path.suffix.lower() not in valid_ext:
-                    continue
-
-                rel_key = file_path.relative_to(source_dir).as_posix()
-                index.setdefault(rel_key, file_path)
-                index.setdefault(file_path.name, file_path)
+        for file_path in collect_image_files(
+            source_dir=source_dir,
+            image_extensions=self.config.image_extensions,
+            recursive=True,
+        ):
+            rel_key = file_path.relative_to(source_dir).as_posix()
+            index.setdefault(rel_key, file_path)
+            index.setdefault(file_path.name, file_path)
 
         self._image_index_cache[source_dir] = index
         return index
@@ -274,15 +361,11 @@ class DatasetPreparer:
     def _find_source_image(self, annotation_path: str, source_dir: Path) -> Optional[Path]:
         """Find source image file from annotation path within one dataset."""
         index = self._build_image_index(source_dir)
-
         normalized = str(annotation_path).replace("\\", "/").lstrip("./")
         annotation_name = Path(normalized).name
-        candidates = [normalized, annotation_name]
-
-        for key in candidates:
+        for key in (normalized, annotation_name):
             if key in index:
                 return index[key]
-
         return None
 
     @staticmethod
@@ -291,65 +374,46 @@ class DatasetPreparer:
         base_stem = Path(annotation_name).stem
         source_tag = source_dir.name or "dataset"
         stem = f"{source_tag}__{base_stem}"
-
         if stem not in used_stems:
             used_stems[stem] = 1
             return stem
-
         used_stems[stem] += 1
         return f"{stem}__{used_stems[stem]}"
-    
+
     def _generate_data_yaml(self) -> Path:
         """Generate data.yaml for YOLO training."""
         data_yaml_path = self.config.output_dir / "data.yaml"
-        
-        # Use absolute paths for reliability
         train_path = (self.config.output_dir / "train" / "images").resolve()
         val_path = (self.config.output_dir / "val" / "images").resolve()
-        
+
         data_config = {
-            'path': str(self.config.output_dir.resolve()),
-            'train': str(train_path),
-            'val': str(val_path),
-            'names': {i: name for i, name in enumerate(self.config.class_names)},
-            'nc': len(self.config.class_names),
+            "path": str(self.config.output_dir.resolve()),
+            "train": str(train_path),
+            "val": str(val_path),
+            "names": {i: name for i, name in enumerate(self.config.class_names)},
+            "nc": len(self.config.class_names),
         }
-        
-        with open(data_yaml_path, 'w') as f:
-            yaml.dump(data_config, f, default_flow_style=False, allow_unicode=True)
-        
+
+        with open(data_yaml_path, "w", encoding="utf-8") as file:
+            yaml.dump(data_config, file, default_flow_style=False, allow_unicode=True)
         return data_yaml_path
-    
+
     def get_augmentation_config(self) -> dict:
-        """
-        Get augmentation configuration for YOLO training.
-        
-        Returns:
-            Dict of augmentation parameters
-        """
+        """Get augmentation configuration for YOLO training."""
         return {
-            'mosaic': self.config.mosaic,
-            'mixup': self.config.mixup,
-            'hsv_h': self.config.hsv_h,
-            'hsv_s': self.config.hsv_s,
-            'hsv_v': self.config.hsv_v,
-            'degrees': self.config.degrees,
-            'scale': self.config.scale,
-            'fliplr': self.config.fliplr,
-            'flipud': self.config.flipud,
+            "mosaic": self.config.mosaic,
+            "mixup": self.config.mixup,
+            "hsv_h": self.config.hsv_h,
+            "hsv_s": self.config.hsv_s,
+            "hsv_v": self.config.hsv_v,
+            "degrees": self.config.degrees,
+            "scale": self.config.scale,
+            "fliplr": self.config.fliplr,
+            "flipud": self.config.flipud,
         }
 
 
 def prepare_yolo_dataset(config: YOLOConfig, val_split: float = 0.4) -> Path:
-    """
-    Convenience function to prepare YOLO dataset.
-    
-    Args:
-        config: YOLOConfig instance
-        val_split: Validation split fraction (default 0.4 for 60/40 split)
-        
-    Returns:
-        Path to data.yaml
-    """
+    """Convenience function to prepare YOLO dataset."""
     preparer = DatasetPreparer(config)
     return preparer.prepare_dataset(val_split=val_split)

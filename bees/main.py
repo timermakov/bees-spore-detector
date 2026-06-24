@@ -149,7 +149,7 @@ def train_yolo_model(config_path: str, quick_test: bool = False) -> int:
         if quick_test:
             logger.info("Starting YOLO QUICK TEST training (30 epochs, 640px)...")
         else:
-            logger.info("Starting YOLO training pipeline...")
+            logger.info("Starting YOLO training pipeline (AUTO annotations)...")
 
         preparer = DatasetPreparer(yolo_config)
         data_yaml = preparer.prepare_dataset(val_split=0.4)
@@ -204,12 +204,24 @@ def _resolve_tiley_export_config(config_manager, input_override: Optional[str], 
         candidate = Path(images_dir) / "annotations.xml"
         if candidate.exists():
             cvat_xml = str(candidate)
+    overlap_h = e.get("overlap_height_ratio")
+    overlap_w = e.get("overlap_width_ratio")
+    if overlap_h is None or overlap_w is None:
+        common_overlap = e.get("overlap")
+        if common_overlap is not None:
+            overlap_h = overlap_h if overlap_h is not None else common_overlap
+            overlap_w = overlap_w if overlap_w is not None else common_overlap
+        else:
+            # берём дефолты из словаря (уже подставлены через get_tiley, но подстрахуемся)
+            overlap_h = overlap_h if overlap_h is not None else 0.25
+            overlap_w = overlap_w if overlap_w is not None else 0.25
     return {
         "images_dir": images_dir,
         "cvat_xml": cvat_xml,
         "out": out_override or e["out"],
         "tile_size": int(e["tile_size"]),
-        "overlap": float(e["overlap"]),
+        "overlap_height_ratio": float(overlap_h),
+        "overlap_width_ratio": float(overlap_w),
     }
 
 
@@ -218,11 +230,24 @@ def _resolve_tiley_predict_config(config_manager, input_override: Optional[str],
     default_model = config_manager.get_param("yolo_model", "yolo11s.pt")
     default_conf = config_manager.get_param("yolo_confidence", 0.25)
     default_tile = config_manager.get_param("yolo_imgsz", 1024)
+
+    overlap_h = p.get("overlap_height_ratio")
+    overlap_w = p.get("overlap_width_ratio")
+    if overlap_h is None or overlap_w is None:
+        common_overlap = p.get("overlap")
+        if common_overlap is not None:
+            overlap_h = overlap_h if overlap_h is not None else common_overlap
+            overlap_w = overlap_w if overlap_w is not None else common_overlap
+        else:
+            overlap_h = overlap_h if overlap_h is not None else 0.2
+            overlap_w = overlap_w if overlap_w is not None else 0.2
+
     return {
         "source": input_override or p["input"],
         "out": out_override or p["out"],
         "tile_size": int(p.get("tile_size") or default_tile),
-        "overlap": float(p["overlap"]),
+        "overlap_height_ratio": float(overlap_h),
+        "overlap_width_ratio": float(overlap_w),
         "conf": float(p.get("conf") if p.get("conf") is not None else default_conf),
         "weights": p.get("weights") or default_model,
         "device": p.get("device", "cuda:0"),
@@ -296,8 +321,8 @@ def run_tile_export(config_path: str, input_dir: Optional[str], out_dir: Optiona
         output_dir=sliced_dir,
         slice_height=int(resolved["tile_size"]),
         slice_width=int(resolved["tile_size"]),
-        overlap_height_ratio=float(resolved["overlap"]),
-        overlap_width_ratio=float(resolved["overlap"]),
+        overlap_height_ratio=float(resolved["overlap_height_ratio"]),
+        overlap_width_ratio=float(resolved["overlap_width_ratio"]),
     )
     stats_path = sliced_dir / "slice_stats.json"
 
@@ -344,8 +369,8 @@ def run_tile_predict(config_path: str, input_dir: Optional[str], out_dir: Option
         output_dir=output_dir,
         slice_height=int(resolved["tile_size"]),
         slice_width=int(resolved["tile_size"]),
-        overlap_height_ratio=float(resolved["overlap"]),
-        overlap_width_ratio=float(resolved["overlap"]),
+        overlap_height_ratio=float(resolved["overlap_height_ratio"]),
+        overlap_width_ratio=float(resolved["overlap_width_ratio"]),
         confidence=float(resolved["conf"]),
         write_previews=bool(resolved["write_previews"]),
     )
@@ -395,8 +420,8 @@ def build_parser() -> argparse.ArgumentParser:
     # YOLO arguments
     parser.add_argument('--use-yolo', action='store_true',
                         help='Use YOLO-based detection instead of OpenCV')
-    parser.add_argument('--train-yolo', action='store_true',
-                        help='Train YOLO model on annotated data')
+    parser.add_argument('--train-yolo-auto', action='store_true',
+                        help='Train YOLO model with automatic annotation discovery')
     parser.add_argument('--quick-test', action='store_true',
                         help='Quick training mode: 30 epochs, 640px images (~15 min on CPU)')
 
@@ -566,7 +591,7 @@ def main() -> int:
             logger.error(f"YOLO -> CVAT export failed: {e}")
             return 1
 
-    if args.train_yolo:
+    if args.train_yolo_auto:
         return train_yolo_model(args.config, quick_test=args.quick_test)
 
     if args.use_yolo and not YOLO_AVAILABLE:

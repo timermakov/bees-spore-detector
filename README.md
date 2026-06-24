@@ -1,4 +1,4 @@
-# Bee Spore Counter
+-# Bee Spore Counter
 
 A computer vision-based system for detecting and counting bee spores in microscopic images using the Goryaev chamber method.
 
@@ -458,8 +458,13 @@ yolo_datasets_root: dataset_train
 # Which subfolders of yolo_datasets_root to include
 yolo_dataset_folder_pattern: "*"
 
-# Optional: set when every portion uses the same XML filename
-# yolo_annotations_filename: annotations_orig_2025-08-22.xml
+# Training source format: auto mode (XML/COCO annotations)
+yolo_annotations_format: auto
+
+# Unified shortcuts for auto-discovery
+# Optional fixed path (set null to discover automatically)
+yolo_annotations_relpath: null
+yolo_images_subdir: .
 ```
 
 ### 2) Required folder structure
@@ -482,18 +487,28 @@ dataset_train/
 integrated graphics. You only need to manually specify the device if you want to 
 use a specific GPU or force CPU usage.
 
-- Every dataset portion must contain at least one XML file with CVAT annotations.
-- If `yolo_annotations_filename` is set, that exact filename must exist in each portion.
+- Auto mode recursively detects annotations in each portion (COCO first, then XML).
+- `yolo_annotations_relpath` + `yolo_images_subdir` are the only path knobs.
 - Add new portions into `dataset_train` and retrain; no code changes needed.
 
 ### 3) Train commands
 
 ```bash
-# Full training
-python -m bees.main --train-yolo
+# Full training with auto-discovery
+python -m bees.main --train-yolo-auto
 
-# Quick smoke training
-python -m bees.main --train-yolo --quick-test
+# Quick smoke training with auto-discovery
+python -m bees.main --train-yolo-auto --quick-test
+```
+
+COCO example for current tiled dataset:
+
+```yaml
+yolo_datasets_root: dataset_train
+yolo_dataset_folder_pattern: dataset_train_2026-27-05
+yolo_annotations_format: auto
+yolo_annotations_relpath: sliced/coco_annotations.json_coco.json
+yolo_images_subdir: sliced/images
 ```
 
 Optional device override in `config.yaml`:
@@ -521,7 +536,7 @@ python -m bees.main --merge-pseudo
 
 Retrain with expanded dataset:
 ```powershell
-python -m bees.main --train-yolo --quick-test
+python -m bees.main --train-yolo-auto --quick-test
 ```
 
 
@@ -567,11 +582,11 @@ python -m bees.main --use-yolo -d dataset_test --export-cvat-zip
 - 
 ### 5) Incremental retraining workflow
 
-1. Add a new portion folder under `dataset_train` with images + XML.
+1. Add a new portion folder under `dataset_train` with images + annotations (COCO or XML).
 2. Run training again:
 
 ```bash
-python -m bees.main --train-yolo
+python -m bees.main --train-yolo-auto
 ```
 
 The dataset builder will automatically include all matching portions under `yolo_datasets_root`.

@@ -29,7 +29,9 @@ class YOLOConfig:
     # Data paths
     datasets_root: Path = field(default_factory=lambda: Path("dataset_train"))
     dataset_folder_pattern: str = "*"
-    annotations_filename: Optional[str] = None
+    annotations_format: str = "auto"
+    annotations_relpath: Optional[str] = None
+    images_subdir: str = "."
     image_extensions: List[str] = field(default_factory=lambda: [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"])
     test_dir: Path = field(default_factory=lambda: Path("dataset_test"))
     output_dir: Path = field(default_factory=lambda: Path("yolo_dataset"))
@@ -80,7 +82,9 @@ class YOLOConfig:
             device=config_manager.get_param('yolo_device', None),  # None = auto-detect Nvidia GPU
             datasets_root=Path(config_manager.get_param('yolo_datasets_root', 'dataset_train')),
             dataset_folder_pattern=config_manager.get_param('yolo_dataset_folder_pattern', '*'),
-            annotations_filename=config_manager.get_param('yolo_annotations_filename', None),
+            annotations_format="auto",
+            annotations_relpath=config_manager.get_param('yolo_annotations_relpath', None),
+            images_subdir=config_manager.get_param('yolo_images_subdir', '.'),
         )
     
     def get_trained_model_path(self) -> Path:

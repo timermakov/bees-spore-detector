@@ -51,8 +51,8 @@ class DatasetSlicer:
         output_dir: Path,
         slice_height: int = 512,
         slice_width: int = 512,
-        overlap_height_ratio: float = 0.25,
-        overlap_width_ratio: float = 0.25,
+        overlap_height_ratio: float = 0.485,
+        overlap_width_ratio: float = 0.145,
         min_area_filter: int = 0,
         max_area_filter: Optional[int] = None,
     ) -> SlicedDatasetStats:
@@ -144,8 +144,8 @@ class DatasetSlicer:
         train_split: float = 0.85,
         slice_height: int = 512,
         slice_width: int = 512,
-        overlap_height_ratio: float = 0.25,
-        overlap_width_ratio: float = 0.25,
+        overlap_height_ratio: float = 0.485,
+        overlap_width_ratio: float = 0.145,
     ) -> dict:
         """
         Prepare complete training dataset: slice COCO data and split into train/val.
