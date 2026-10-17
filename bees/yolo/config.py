@@ -15,7 +15,7 @@ class YOLOConfig:
     """Configuration for YOLO model training and inference."""
     
     # Model settings
-    model_name: str = "yolo11s.pt"
+    model_name: str = "yolo26s.pt"
     confidence_threshold: float = 0.25
     iou_threshold: float = 0.45
     
@@ -72,7 +72,7 @@ class YOLOConfig:
     def from_config_manager(cls, config_manager) -> 'YOLOConfig':
         """Create YOLOConfig from existing ConfigurationManager."""
         return cls(
-            model_name=config_manager.get_param('yolo_model', 'yolo11s.pt'),
+            model_name=config_manager.get_param('yolo_model', 'yolo26s.pt'),
             confidence_threshold=config_manager.get_float_param('yolo_confidence', 0.25),
             iou_threshold=config_manager.get_float_param('yolo_iou_threshold', 0.45),
             epochs=config_manager.get_int_param('yolo_epochs', 100),
@@ -89,7 +89,7 @@ class YOLOConfig:
     
     def get_trained_model_path(self) -> Path:
         """Get path to the trained model."""
-        return self.models_dir / "yolo11s_spores" / "weights" / "best.pt"
+        return self.models_dir / "yolo26s_spores" / "weights" / "best.pt"
     
     
     def ensure_dirs(self):

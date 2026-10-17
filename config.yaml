@@ -79,19 +79,20 @@ tiley:
     out: sahi_tiled_export
     # Square tile: tile_size x tile_size
     tile_size: 480
-    overlap_height_ratio: 0.06
-    overlap_width_ratio: 0.054
+    overlap_height_ratio: 0.2
+    overlap_width_ratio: 0.2
+
   predict:
     # Folder with images for inference (can override via tile-predict --input)
     input: dataset_test
     # Result folder (can override via tile-predict --out)
     out: results/sahi_tiled_predictions
     # Square tile: tile_size x tile_size
-    tile_size: 270
-    overlap_height_ratio: 0.25
-    overlap_width_ratio: 0.25
+    tile_size: 480
+    overlap_height_ratio: 0.06
+    overlap_width_ratio: 0.054
     write_previews: true
     # null = yolo_model from YOLO section above
-    weights: runs/detect/models/yolo11s_spores_2026-04-15_512_1024/weights/best.pt
+    weights: runs/detect/models/yolo11s_spores_2026-06-21_480_960/weights/best.pt
     device: cuda:0
     model_type: ultralytics
