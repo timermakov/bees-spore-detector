@@ -28,13 +28,14 @@ class SporeTrainer:
         self.model = None
         self.results = None
     
-    def prepare_data(self, val_split: float = 0.4) -> Path:
+    def prepare_data(self, val_split: Optional[float] = None) -> Path:
         """
         Prepare dataset for training.
-        
+
         Args:
-            val_split: Validation split fraction (default 0.4 for 60/40 split)
-            
+            val_split: Validation split fraction. Uses ``yolo_validation_split``
+                from config.yaml when omitted.
+
         Returns:
             Path to data.yaml
         """

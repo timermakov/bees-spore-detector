@@ -46,8 +46,12 @@ class DatasetPreparer:
         self.converter = CVATToYOLOConverter(config.class_names)
         self._image_index_cache: Dict[Path, Dict[str, Path]] = {}
 
-    def prepare_dataset(self, val_split: float = 0.4, seed: int = 42) -> Path:
+    def prepare_dataset(self, val_split: Optional[float] = None, seed: Optional[int] = None) -> Path:
         """Prepare complete YOLO dataset from XML or COCO annotations."""
+        if val_split is None:
+            val_split = self.config.validation_split
+        if seed is None:
+            seed = self.config.split_seed
         random.seed(seed)
 
         if self.config.output_dir.exists():
@@ -79,7 +83,7 @@ class DatasetPreparer:
 
     def _load_source_samples(self) -> List[SourceSample]:
         """Load samples using the annotation format selected in YAML."""
-        dataset_format = (self.config.annotations_format or "auto").strip().lower()
+        dataset_format = str(self.config.annotations_format or "").strip().lower()
         if dataset_format not in {"auto", "xml", "coco"}:
             raise ValueError(
                 f"Unsupported annotation format '{dataset_format}'. Expected auto, xml, or coco."
@@ -429,7 +433,7 @@ class DatasetPreparer:
         }
 
 
-def prepare_yolo_dataset(config: YOLOConfig, val_split: float = 0.4) -> Path:
+def prepare_yolo_dataset(config: YOLOConfig, val_split: Optional[float] = None) -> Path:
     """Convenience function to prepare YOLO dataset."""
     preparer = DatasetPreparer(config)
     return preparer.prepare_dataset(val_split=val_split)

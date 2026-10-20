@@ -20,6 +20,65 @@ from dataclasses import dataclass
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from bees.yolo import YOLOConfig
+from bees.yolo.data_discovery import discover_dataset_dirs, find_coco_annotation_candidates
+
+
+def make_yolo_config(**overrides) -> YOLOConfig:
+    """Build a complete YOLOConfig for tests.
+
+    Production code loads every field from config.yaml. Tests supply explicit
+    values so they do not depend on hidden Python defaults.
+    """
+    values = {
+        "model_name": "yolo11s.pt",
+        "confidence_threshold": 0.25,
+        "iou_threshold": 0.45,
+        "epochs": 100,
+        "batch_size": 16,
+        "imgsz": 960,
+        "patience": 25,
+        "device": None,
+        "workers": 2,
+        "quick_test_epochs": 30,
+        "quick_test_imgsz": 1024,
+        "quick_test_batch_size": 8,
+        "quick_test_patience": 0,
+        "validation_split": 0.4,
+        "split_seed": 42,
+        "datasets_root": Path("dataset_train"),
+        "dataset_folder_pattern": "*",
+        "annotations_format": "auto",
+        "annotations_relpath": None,
+        "images_subdir": ".",
+        "image_extensions": [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"],
+        "test_dir": Path("dataset_test"),
+        "output_dir": Path("yolo_dataset"),
+        "models_dir": Path("models"),
+        "mosaic": 1.0,
+        "mixup": 0.15,
+        "hsv_h": 0.015,
+        "hsv_s": 0.7,
+        "hsv_v": 0.4,
+        "degrees": 15.0,
+        "scale": 0.3,
+        "fliplr": 0.5,
+        "flipud": 0.5,
+        "optimizer": "AdamW",
+        "learning_rate": 0.0005,
+        "final_learning_rate_factor": 0.01,
+        "warmup_epochs": 2,
+        "copy_paste": 0.3,
+        "cache": False,
+        "amp": True,
+        "show_labels": False,
+        "show_conf": False,
+        "pretrained": True,
+        "verbose": True,
+        "analysis_square_size": 780,
+        "class_names": ["spore"],
+    }
+    values.update(overrides)
+    return YOLOConfig(**values)
 
 # Optional imports that may fail if dependencies missing
 try:
@@ -44,23 +103,32 @@ except ImportError:
 class TestYOLOConfig:
     """Tests for YOLOConfig dataclass."""
 
-    def test_default_config_creation(self):
-        """Test creating config with defaults."""
-        config = YOLOConfig()
+    def test_repository_config_yaml_is_source_of_truth(self):
+        """Training settings come from the repository config.yaml."""
+        from bees import create_config_manager
+
+        config_path = Path(__file__).parent.parent / "config.yaml"
+        config = YOLOConfig.from_config_manager(create_config_manager(str(config_path)))
 
         assert config.model_name == "yolo11s.pt"
         assert config.confidence_threshold == 0.25
         assert config.iou_threshold == 0.45
         assert config.epochs == 100
-        assert config.batch_size == 16
+        assert config.batch_size == 2
         assert config.imgsz == 960
+        assert config.patience == 25
+        assert config.device is None
         assert config.annotations_format == "auto"
         assert config.annotations_relpath is None
         assert config.images_subdir == "."
+        assert config.class_names == ["spore"]
+        assert config.optimizer == "AdamW"
+        assert config.cache is False
+        assert config.pretrained is True
 
     def test_config_with_custom_values(self):
         """Test creating config with custom values."""
-        config = YOLOConfig(
+        config = make_yolo_config(
             model_name="custom.pt",
             confidence_threshold=0.5,
             iou_threshold=0.3,
@@ -78,7 +146,7 @@ class TestYOLOConfig:
 
     def test_config_path_conversion(self):
         """Test that string paths are converted to Path objects."""
-        config = YOLOConfig(
+        config = make_yolo_config(
             datasets_root="my_dataset",
             test_dir="test_data",
             output_dir="output",
@@ -92,7 +160,7 @@ class TestYOLOConfig:
 
     def test_ensure_dirs(self, tmp_path):
         """Test directory creation."""
-        config = YOLOConfig(
+        config = make_yolo_config(
             output_dir=tmp_path / "output",
             models_dir=tmp_path / "models"
         )
@@ -106,7 +174,7 @@ class TestYOLOConfig:
 
     def test_get_trained_model_path(self):
         """Test getting trained model path."""
-        config = YOLOConfig()
+        config = make_yolo_config()
         model_path = config.get_trained_model_path()
 
         assert isinstance(model_path, Path)
@@ -165,7 +233,7 @@ class TestSporeDetector:
 
     def test_detector_requires_config(self):
         """Test that detector requires YOLOConfig."""
-        config = YOLOConfig()
+        config = make_yolo_config()
 
         # This will fail to load model but should create detector
         try:
@@ -194,7 +262,7 @@ class TestDatasetPreparer:
 
     def test_preparer_creation(self):
         """Test creating dataset preparer."""
-        config = YOLOConfig()
+        config = make_yolo_config()
         preparer = DatasetPreparer(config)
 
         assert preparer.config == config
@@ -274,6 +342,53 @@ yolo_class_names: [spore]
         assert yolo_config.annotations_format == "auto"
         assert yolo_config.annotations_relpath == "custom/ann.json"
         assert yolo_config.images_subdir == "custom/images"
+        assert yolo_config.cache is False
+        assert yolo_config.amp is True
+        assert yolo_config.class_names == ["spore"]
+        assert yolo_config.device is None
+
+    def test_from_config_manager_requires_yaml_keys(self, tmp_path):
+        """Missing YOLO keys are reported instead of filled from Python."""
+        from bees import create_config_manager
+
+        config_file = tmp_path / "incomplete.yaml"
+        config_file.write_text("data_dir: test_data\nresults_dir: test_results\n")
+
+        config_manager = create_config_manager(str(config_file))
+        with pytest.raises(ValueError, match="yolo_model"):
+            YOLOConfig.from_config_manager(config_manager)
+
+    def test_tiley_section_is_required(self, tmp_path):
+        """SAHI settings are required in config.yaml."""
+        from bees import create_config_manager
+        from bees.config_loader import ConfigurationError
+
+        config_file = tmp_path / "no_tiley.yaml"
+        config_file.write_text("data_dir: test_data\nresults_dir: test_results\n")
+
+        config_manager = create_config_manager(str(config_file))
+        with pytest.raises(ConfigurationError, match="tiley"):
+            config_manager.get_tiley()
+
+    def test_null_predict_weights_use_yolo_model(self):
+        """A null tiley.predict.weights value selects yolo_model from YAML."""
+        from bees import create_config_manager
+        from bees.main import _resolve_tiley_export_config, _resolve_tiley_predict_config
+
+        config_path = Path(__file__).parent.parent / "config.yaml"
+        config_manager = create_config_manager(str(config_path))
+
+        predict = _resolve_tiley_predict_config(config_manager, None, None)
+        export = _resolve_tiley_export_config(config_manager, None, None)
+
+        assert predict["weights"] == "yolo11s.pt"
+        assert predict["tile_size"] == 480
+        assert predict["conf"] == 0.25
+        assert predict["overlap_height_ratio"] == 0.06
+        assert predict["device"] == "cuda:0"
+        assert predict["write_previews"] is True
+        assert export["tile_size"] == 480
+        assert export["overlap_height_ratio"] == 0.2
 
 
 @pytest.mark.skipif(not PANDAS_AVAILABLE, reason="pandas not installed")
@@ -322,7 +437,7 @@ class TestDatasetPreparerCOCO:
             },
         )
 
-        config = YOLOConfig(
+        config = make_yolo_config(
             datasets_root=datasets_root,
             dataset_folder_pattern="dataset_train_2026-27-05",
             annotations_format="auto",
@@ -358,7 +473,7 @@ class TestDatasetPreparerCOCO:
             },
         )
 
-        config = YOLOConfig(
+        config = make_yolo_config(
             datasets_root=datasets_root,
             dataset_folder_pattern="portion_01",
             annotations_format="auto",
@@ -388,7 +503,7 @@ class TestDatasetPreparerCOCO:
             },
         )
 
-        config = YOLOConfig(
+        config = make_yolo_config(
             datasets_root=datasets_root,
             dataset_folder_pattern="portion_01",
             annotations_format="auto",
@@ -401,6 +516,35 @@ class TestDatasetPreparerCOCO:
         preparer = DatasetPreparer(config)
         with pytest.raises(FileNotFoundError, match="Missing"):
             preparer.prepare_dataset()
+
+
+class TestDataDiscovery:
+    """Tests for dataset folder and annotation discovery."""
+
+    def test_discover_dataset_dirs_skips_container_root(self, tmp_path):
+        root = tmp_path / "dataset_train"
+        (root / "portion_01").mkdir(parents=True)
+        (root / "portion_02").mkdir()
+
+        found = discover_dataset_dirs(root, "*")
+
+        assert found == [root / "portion_01", root / "portion_02"]
+
+    def test_discover_dataset_dirs_uses_root_when_flat(self, tmp_path):
+        root = tmp_path / "dataset_train"
+        root.mkdir()
+
+        assert discover_dataset_dirs(root, "*") == [root]
+
+    def test_find_coco_annotation_candidates_requires_coco_collections(self, tmp_path):
+        (tmp_path / "notes.json").write_text('{"hello": 1}', encoding="utf-8")
+        coco = tmp_path / "labels.json"
+        coco.write_text(
+            json.dumps({"images": [], "annotations": [], "categories": []}),
+            encoding="utf-8",
+        )
+
+        assert find_coco_annotation_candidates(tmp_path) == [coco]
 
 
 if __name__ == "__main__":

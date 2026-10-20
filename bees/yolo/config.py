@@ -4,7 +4,7 @@ Configuration for YOLO spore detection.
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, List
+from typing import ClassVar, Optional, List
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class YOLOConfig:
     """Configuration for YOLO model training and inference."""
 
-    REQUIRED_YAML_KEYS = (
+    REQUIRED_YAML_KEYS: ClassVar[tuple[str, ...]] = (
         "yolo_model",
         "yolo_confidence",
         "yolo_iou_threshold",
@@ -132,6 +132,13 @@ class YOLOConfig:
                 "config.yaml is missing required YOLO keys: " + ", ".join(missing_keys)
             )
 
+        image_extensions = config_manager.get_param('yolo_image_extensions')
+        class_names = config_manager.get_param('yolo_class_names')
+        if not isinstance(image_extensions, list) or not all(isinstance(item, str) for item in image_extensions):
+            raise ValueError("yolo_image_extensions must be a list of file extensions")
+        if not isinstance(class_names, list) or not all(isinstance(item, str) and item for item in class_names):
+            raise ValueError("yolo_class_names must be a non-empty list of class names")
+
         return cls(
             model_name=config_manager.get_param('yolo_model'),
             confidence_threshold=config_manager.get_float_param('yolo_confidence'),
@@ -154,7 +161,7 @@ class YOLOConfig:
             annotations_format=config_manager.get_param('yolo_annotations_format'),
             annotations_relpath=config_manager.get_param('yolo_annotations_relpath'),
             images_subdir=config_manager.get_param('yolo_images_subdir'),
-            image_extensions=config_manager.get_param('yolo_image_extensions'),
+            image_extensions=image_extensions,
             test_dir=Path(config_manager.get_param('yolo_test_dir')),
             output_dir=Path(config_manager.get_param('yolo_output_dir')),
             models_dir=Path(config_manager.get_param('yolo_models_dir')),
@@ -178,7 +185,7 @@ class YOLOConfig:
             show_conf=config_manager.get_bool_param('yolo_show_conf'),
             pretrained=config_manager.get_bool_param('yolo_pretrained'),
             verbose=config_manager.get_bool_param('yolo_verbose'),
-            class_names=config_manager.get_param('yolo_class_names'),
+            class_names=class_names,
         )
     
     def get_trained_model_path(self) -> Path:
