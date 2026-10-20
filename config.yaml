@@ -31,13 +31,18 @@ analysis_square_line_width: 2
 # ========== YOLO Configuration ==========
 yolo_datasets_root: dataset_train
 yolo_dataset_folder_pattern: "*"
-# Annotation source for training: only auto mode is supported
+# Annotation source for training: auto, xml, or coco.
 yolo_annotations_format: auto
 # Unified shortcuts for auto-discovery:
 # Optional fixed relative path to annotation file inside each portion.
 yolo_annotations_relpath: null
 # Images root inside each portion.
 yolo_images_subdir: .
+yolo_image_extensions: [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"]
+yolo_test_dir: dataset_test
+yolo_output_dir: yolo_dataset
+yolo_models_dir: models
+yolo_class_names: [spore]
 
 # Use this structure for incremental retraining:
 # dataset_train/portion_001/...images... + annotation XML
@@ -51,7 +56,8 @@ yolo_images_subdir: .
 # yolo_annotations_relpath: sliced/coco_annotations.json_coco.json
 # yolo_images_subdir: sliced/images
 
-# YOLO11-S model
+# Pretrained model. Change this value (for example to yolo26s.pt) to train
+# and load a model family without changing Python code.
 yolo_model: yolo11s.pt
 # Detection confidence threshold [0-1]
 yolo_confidence: 0.25
@@ -63,6 +69,43 @@ yolo_epochs: 100
 yolo_batch_size: 2
 # Image size for training/inference (larger = more accurate but slower)
 yolo_imgsz: 960
+# Stop after this many epochs without validation improvement.
+yolo_patience: 25
+# DataLoader workers. Use 0 if multiprocessing causes issues on a host.
+yolo_workers: 2
+# null auto-selects a CUDA device when available; use "cpu" or "0" to override.
+yolo_device: null
+
+# Quick-test profile used by --quick-test.
+yolo_quick_test_epochs: 30
+yolo_quick_test_imgsz: 1024
+yolo_quick_test_batch_size: 8
+yolo_quick_test_patience: 0
+# Dataset split used for training and validation.
+yolo_validation_split: 0.4
+yolo_split_seed: 42
+
+# Training augmentations and optimizer.
+yolo_mosaic: 1.0
+yolo_mixup: 0.15
+yolo_hsv_h: 0.015
+yolo_hsv_s: 0.7
+yolo_hsv_v: 0.4
+yolo_degrees: 15.0
+yolo_scale: 0.3
+yolo_fliplr: 0.5
+yolo_flipud: 0.5
+yolo_optimizer: AdamW
+yolo_learning_rate: 0.0005
+yolo_final_learning_rate_factor: 0.01
+yolo_warmup_epochs: 2
+yolo_copy_paste: 0.3
+yolo_cache: false
+yolo_amp: true
+yolo_show_labels: false
+yolo_show_conf: false
+yolo_pretrained: true
+yolo_verbose: true
 
 # ========== Tiley / SAHI (YAML-first) ==========
 # Commands:
@@ -91,8 +134,9 @@ tiley:
     tile_size: 480
     overlap_height_ratio: 0.06
     overlap_width_ratio: 0.054
+    conf: 0.25
     write_previews: true
-    # null = yolo_model from YOLO section above
-    weights: runs/detect/models/yolo11s_spores_2026-06-21_480_960/weights/best.pt
+    # null = yolo_model from the YOLO section above; set a path to pin a checkpoint.
+    weights: null
     device: cuda:0
     model_type: ultralytics

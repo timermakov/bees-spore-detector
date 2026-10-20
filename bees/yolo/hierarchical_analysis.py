@@ -41,7 +41,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from ..titer import TiterCalculator, create_calculator_from_config
-from ..config_loader import create_config_manager
+from ..config_loader import ConfigurationError, create_config_manager
 from .data_discovery import collect_image_files
 try:
     from .sahi_inference import SAHIDetector
@@ -175,39 +175,27 @@ class HierarchicalAnalyzer:
             if not SAHI_AVAILABLE:
                 raise ImportError("SAHI not installed. Run: pip install sahi")
 
-            # Читаем настройки из секции tiley.predict конфига
-            tiley_cfg = self.config_manager.get_tiley()
-            predict_cfg = tiley_cfg.get("predict", {})
+            # Read tiley.predict from config.yaml. Null weights mean yolo_model.
+            predict_cfg = self.config_manager.get_tiley()["predict"]
 
-            # Путь к весам: приоритет у --weights, иначе из config, иначе стандартный
             if self.weights_path:
                 model_path = self.weights_path
             else:
-                weights_from_cfg = predict_cfg.get("weights")
-                if weights_from_cfg:
-                    model_path = weights_from_cfg
-                else:
-                    from bees.yolo import YOLOConfig
-                    yolo_config = YOLOConfig.from_config_manager(self.config_manager)
-                    model_path = str(yolo_config.get_trained_model_path())
+                model_path = predict_cfg["weights"]
+                if not model_path:
+                    model_path = self.config_manager.get_param("yolo_model")
+                if not model_path:
+                    raise ConfigurationError(
+                        "tiley.predict.weights is empty and config.yaml is missing yolo_model"
+                    )
 
-            conf = predict_cfg.get("conf", self.config_manager.get_float_param('yolo_confidence', 0.25))
-            device = predict_cfg.get("device", "cuda:0")
-            model_type = predict_cfg.get("model_type", "ultralytics")
-            self.slice_height = predict_cfg.get("tile_size", 1024)
+            conf = predict_cfg["conf"]
+            device = predict_cfg["device"]
+            model_type = predict_cfg["model_type"]
+            self.slice_height = int(predict_cfg["tile_size"])
             self.slice_width = self.slice_height
-            overlap_h = predict_cfg.get("overlap_height_ratio")
-            overlap_w = predict_cfg.get("overlap_width_ratio")
-            if overlap_h is None or overlap_w is None:
-                common = predict_cfg.get("overlap")
-                if common is not None:
-                    overlap_h = overlap_h if overlap_h is not None else common
-                    overlap_w = overlap_w if overlap_w is not None else common
-                else:
-                    overlap_h = overlap_h if overlap_h is not None else 0.2
-                    overlap_w = overlap_w if overlap_w is not None else 0.2
-            self.overlap_height_ratio = float(overlap_h)
-            self.overlap_width_ratio = float(overlap_w)
+            self.overlap_height_ratio = float(predict_cfg["overlap_height_ratio"])
+            self.overlap_width_ratio = float(predict_cfg["overlap_width_ratio"])
 
             self.detector = SAHIDetector(
                 model_path=model_path,

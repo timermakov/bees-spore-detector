@@ -147,12 +147,15 @@ def train_yolo_model(config_path: str, quick_test: bool = False) -> int:
         yolo_config = YOLOConfig.from_config_manager(config_manager)
 
         if quick_test:
-            logger.info("Starting YOLO QUICK TEST training (30 epochs, 640px)...")
+            logger.info("Starting YOLO quick-test training using the config.yaml profile...")
         else:
-            logger.info("Starting YOLO training pipeline (AUTO annotations)...")
+            logger.info("Starting YOLO training pipeline using config.yaml annotations...")
 
         preparer = DatasetPreparer(yolo_config)
-        data_yaml = preparer.prepare_dataset(val_split=0.4)
+        data_yaml = preparer.prepare_dataset(
+            val_split=yolo_config.validation_split,
+            seed=yolo_config.split_seed,
+        )
 
         trainer = SporeTrainer(yolo_config)
         metrics = trainer.train(data_yaml, quick_test=quick_test)
@@ -198,61 +201,43 @@ def pseudo_label(config_path: str, source_dir: str, output_dir: str = "pseudo_la
 
 def _resolve_tiley_export_config(config_manager, input_override: Optional[str], out_override: Optional[str]) -> Dict[str, Any]:
     e = config_manager.get_tiley()["export"]
-    images_dir = input_override or e.get("input") or e.get("images_dir")
-    cvat_xml = e.get("cvat_xml")
+    images_dir = input_override or e["input"]
+    cvat_xml = e["cvat_xml"]
     if not cvat_xml and images_dir:
         candidate = Path(images_dir) / "annotations.xml"
         if candidate.exists():
             cvat_xml = str(candidate)
-    overlap_h = e.get("overlap_height_ratio")
-    overlap_w = e.get("overlap_width_ratio")
-    if overlap_h is None or overlap_w is None:
-        common_overlap = e.get("overlap")
-        if common_overlap is not None:
-            overlap_h = overlap_h if overlap_h is not None else common_overlap
-            overlap_w = overlap_w if overlap_w is not None else common_overlap
-        else:
-            # берём дефолты из словаря (уже подставлены через get_tiley, но подстрахуемся)
-            overlap_h = overlap_h if overlap_h is not None else 0.25
-            overlap_w = overlap_w if overlap_w is not None else 0.25
     return {
         "images_dir": images_dir,
         "cvat_xml": cvat_xml,
         "out": out_override or e["out"],
         "tile_size": int(e["tile_size"]),
-        "overlap_height_ratio": float(overlap_h),
-        "overlap_width_ratio": float(overlap_w),
+        "overlap_height_ratio": float(e["overlap_height_ratio"]),
+        "overlap_width_ratio": float(e["overlap_width_ratio"]),
     }
 
 
 def _resolve_tiley_predict_config(config_manager, input_override: Optional[str], out_override: Optional[str]) -> Dict[str, Any]:
     p = config_manager.get_tiley()["predict"]
-    default_model = config_manager.get_param("yolo_model", "yolo11s.pt")
-    default_conf = config_manager.get_param("yolo_confidence", 0.25)
-    default_tile = config_manager.get_param("yolo_imgsz", 1024)
-
-    overlap_h = p.get("overlap_height_ratio")
-    overlap_w = p.get("overlap_width_ratio")
-    if overlap_h is None or overlap_w is None:
-        common_overlap = p.get("overlap")
-        if common_overlap is not None:
-            overlap_h = overlap_h if overlap_h is not None else common_overlap
-            overlap_w = overlap_w if overlap_w is not None else common_overlap
-        else:
-            overlap_h = overlap_h if overlap_h is not None else 0.2
-            overlap_w = overlap_w if overlap_w is not None else 0.2
+    weights = p["weights"]
+    if not weights:
+        weights = config_manager.get_param("yolo_model")
+        if not weights:
+            raise ConfigurationError(
+                "tiley.predict.weights is empty and config.yaml is missing yolo_model"
+            )
 
     return {
         "source": input_override or p["input"],
         "out": out_override or p["out"],
-        "tile_size": int(p.get("tile_size") or default_tile),
-        "overlap_height_ratio": float(overlap_h),
-        "overlap_width_ratio": float(overlap_w),
-        "conf": float(p.get("conf") if p.get("conf") is not None else default_conf),
-        "weights": p.get("weights") or default_model,
-        "device": p.get("device", "cuda:0"),
-        "model_type": p.get("model_type", "ultralytics"),
-        "write_previews": bool(p.get("write_previews", True)),
+        "tile_size": int(p["tile_size"]),
+        "overlap_height_ratio": float(p["overlap_height_ratio"]),
+        "overlap_width_ratio": float(p["overlap_width_ratio"]),
+        "conf": float(p["conf"]),
+        "weights": weights,
+        "device": p["device"],
+        "model_type": p["model_type"],
+        "write_previews": bool(p["write_previews"]),
     }
 
 
@@ -420,10 +405,10 @@ def build_parser() -> argparse.ArgumentParser:
     # YOLO arguments
     parser.add_argument('--use-yolo', action='store_true',
                         help='Use YOLO-based detection instead of OpenCV')
-    parser.add_argument('--train-yolo-auto', action='store_true',
-                        help='Train YOLO model with automatic annotation discovery')
+    parser.add_argument('--train-yolo', '--train-yolo-auto', dest='train_yolo', action='store_true',
+                        help='Train YOLO using annotation settings from config.yaml')
     parser.add_argument('--quick-test', action='store_true',
-                        help='Quick training mode: 30 epochs, 640px images (~15 min on CPU)')
+                        help='Use the quick-test profile from config.yaml')
 
     # Pseudo-labeling arguments
     parser.add_argument('--pseudo-label', action='store_true',
@@ -591,7 +576,7 @@ def main() -> int:
             logger.error(f"YOLO -> CVAT export failed: {e}")
             return 1
 
-    if args.train_yolo_auto:
+    if args.train_yolo:
         return train_yolo_model(args.config, quick_test=args.quick_test)
 
     if args.use_yolo and not YOLO_AVAILABLE:

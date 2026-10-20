@@ -28,13 +28,14 @@ class SporeTrainer:
         self.model = None
         self.results = None
     
-    def prepare_data(self, val_split: float = 0.4) -> Path:
+    def prepare_data(self, val_split: Optional[float] = None) -> Path:
         """
         Prepare dataset for training.
-        
+
         Args:
-            val_split: Validation split fraction (default 0.4 for 60/40 split)
-            
+            val_split: Validation split fraction. Uses ``yolo_validation_split``
+                from config.yaml when omitted.
+
         Returns:
             Path to data.yaml
         """
@@ -56,8 +57,6 @@ class SporeTrainer:
         Returns:
             Training results dict
         """
-        import platform
-        
         try:
             from ultralytics import YOLO
         except ImportError:
@@ -80,21 +79,25 @@ class SporeTrainer:
         preparer = DatasetPreparer(self.config)
         aug_config = preparer.get_augmentation_config()
         
-        # Quick test mode: reduced settings for ~15 min training
+        # Quick-test values come from config.yaml.
         if quick_test:
-            epochs = 30
-            imgsz = 1024  # 4x faster than 1280
-            batch_size = 8
-            patience = 0  # Disable early stopping - train all epochs
-            logger.info("QUICK TEST MODE: 30 epochs, 960px images, NO early stopping")
+            epochs = self.config.quick_test_epochs
+            imgsz = self.config.quick_test_imgsz
+            batch_size = self.config.quick_test_batch_size
+            patience = self.config.quick_test_patience
+            logger.info(
+                "QUICK TEST MODE: %d epochs, %dpx images, patience=%d",
+                epochs,
+                imgsz,
+                patience,
+            )
         else:
             epochs = self.config.epochs
             imgsz = self.config.imgsz
             batch_size = self.config.batch_size
-            patience = 25
+            patience = self.config.patience
         
-        # Windows: use workers=0 to avoid multiprocessing issues
-        workers = 2 if platform.system() == 'Windows' else 4
+        workers = self.config.workers
 
         # Device selection: use config device if specified, otherwise auto-detect Nvidia GPU
         if self.config.device is not None:
@@ -115,14 +118,13 @@ class SporeTrainer:
             batch=batch_size,
             patience=patience,
             project=str(self.config.models_dir),
-            name="yolo11s_spores",
+            name=self.config.get_training_run_name(),
             exist_ok=True,
-            pretrained=True,
-            optimizer='AdamW',
-            lr0=0.0005,
-            lrf=0.01,
-            warmup_epochs=2,
-            #nbs=64,
+            pretrained=self.config.pretrained,
+            optimizer=self.config.optimizer,
+            lr0=self.config.learning_rate,
+            lrf=self.config.final_learning_rate_factor,
+            warmup_epochs=self.config.warmup_epochs,
             # Augmentations
             mosaic=aug_config['mosaic'],
             mixup=aug_config['mixup'],
@@ -133,16 +135,15 @@ class SporeTrainer:
             scale=aug_config['scale'],
             fliplr=aug_config['fliplr'],
             flipud=aug_config['flipud'],
-            copy_paste=0.3,  # Copy-paste augmentation for small datasets
+            copy_paste=self.config.copy_paste,
             # Device - auto-select Nvidia GPU or use CPU
             device=device,
             workers=workers,
-            cache=False,
-            verbose=True,
-            amp=True,
-            # Disable text labels on visualizations (too cluttered with many detections)
-            show_labels=False,
-            show_conf=False,
+            cache=self.config.cache,
+            verbose=self.config.verbose,
+            amp=self.config.amp,
+            show_labels=self.config.show_labels,
+            show_conf=self.config.show_conf,
         )
         
         logger.info("Training completed")
