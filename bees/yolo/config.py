@@ -2,7 +2,7 @@
 Configuration for YOLO spore detection.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, List
 import logging
@@ -63,66 +63,54 @@ class YOLOConfig:
         "analysis_square_size",
     )
     
-    # Model settings
-    model_name: str = "yolo11s.pt"
-    confidence_threshold: float = 0.25
-    iou_threshold: float = 0.45
-    
-    # Training settings
-    epochs: int = 100
-    batch_size: int = 16  # Reduced for CPU memory (1280px images)
-    imgsz: int = 960
-    patience: int = 25
-    device: Optional[str] = None  # Device for training (None = auto-detect Nvidia GPU, 'cpu', 'cuda:0', etc.)
-    workers: int = 2
-    quick_test_epochs: int = 30
-    quick_test_imgsz: int = 1024
-    quick_test_batch_size: int = 8
-    quick_test_patience: int = 0
-    validation_split: float = 0.4
-    split_seed: int = 42
-    
-    # Data paths
-    datasets_root: Path = field(default_factory=lambda: Path("dataset_train"))
-    dataset_folder_pattern: str = "*"
-    annotations_format: str = "auto"
-    annotations_relpath: Optional[str] = None
-    images_subdir: str = "."
-    image_extensions: List[str] = field(default_factory=lambda: [".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"])
-    test_dir: Path = field(default_factory=lambda: Path("dataset_test"))
-    output_dir: Path = field(default_factory=lambda: Path("yolo_dataset"))
-    models_dir: Path = field(default_factory=lambda: Path("models"))
-    
-    # Export settings (not used - models stay in PyTorch format)
-    half_precision: bool = False  # FP32 precision
-    
-    # Augmentation settings
-    mosaic: float = 1.0
-    mixup: float = 0.15
-    hsv_h: float = 0.015
-    hsv_s: float = 0.7
-    hsv_v: float = 0.4
-    degrees: float = 15.0
-    scale: float = 0.3
-    fliplr: float = 0.5
-    flipud: float = 0.5
-    optimizer: str = "AdamW"
-    learning_rate: float = 0.0005
-    final_learning_rate_factor: float = 0.01
-    warmup_epochs: int = 2
-    copy_paste: float = 0.3
-    cache: bool = False
-    amp: bool = True
-    show_labels: bool = False
-    show_conf: bool = False
-    pretrained: bool = True
-    verbose: bool = True
-    
-    # Analysis zone (from main config)
-    analysis_square_size: int = 780
-    
-    # Class configuration
-    class_names: List[str] = field(default_factory=lambda: ["spore"])
+    # All values are required. ``from_config_manager`` builds this object from
+    # config.yaml; there is deliberately no second configuration in Python.
+    model_name: str
+    confidence_threshold: float
+    iou_threshold: float
+    epochs: int
+    batch_size: int
+    imgsz: int
+    patience: int
+    device: Optional[str]
+    workers: int
+    quick_test_epochs: int
+    quick_test_imgsz: int
+    quick_test_batch_size: int
+    quick_test_patience: int
+    validation_split: float
+    split_seed: int
+    datasets_root: Path
+    dataset_folder_pattern: str
+    annotations_format: str
+    annotations_relpath: Optional[str]
+    images_subdir: str
+    image_extensions: List[str]
+    test_dir: Path
+    output_dir: Path
+    models_dir: Path
+    mosaic: float
+    mixup: float
+    hsv_h: float
+    hsv_s: float
+    hsv_v: float
+    degrees: float
+    scale: float
+    fliplr: float
+    flipud: float
+    optimizer: str
+    learning_rate: float
+    final_learning_rate_factor: float
+    warmup_epochs: int
+    copy_paste: float
+    cache: bool
+    amp: bool
+    show_labels: bool
+    show_conf: bool
+    pretrained: bool
+    verbose: bool
+    analysis_square_size: int
+    class_names: List[str]
     
     def __post_init__(self):
         """Convert string paths to Path objects."""

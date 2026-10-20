@@ -5,7 +5,6 @@ This module provides functionality for loading and managing configuration files
 in YAML format with validation and default value handling.
 """
 
-import copy
 import os
 import logging
 from pathlib import Path
@@ -25,28 +24,27 @@ logger = logging.getLogger(__name__)
 # Type variable for generic types
 T = TypeVar('T')
 
-# Defaults for optional nested ``tiley`` section (SAHI tiled export + inference)
-_TILEY_DEFAULTS: Dict[str, Dict[str, Any]] = {
-    "export": {
-        "input": None,
-        "cvat_xml": None,
-        "out": "sahi_tiled_export",
-        "tile_size": 512,
-        "overlap_height_ratio": 0.25,
-        "overlap_width_ratio": 0.25,
-    },
-    "predict": {
-        "input": "dataset_test",
-        "out": "results/sahi_tiled_predictions",
-        "tile_size": 1024,
-        "overlap_height_ratio": 0.25,
-        "overlap_width_ratio": 0.25,
-        "conf": 0.25,
-        "write_previews": True,
-        "weights": None,
-        "device": "cuda:0",
-        "model_type": "ultralytics",
-    },
+_TILEY_REQUIRED_KEYS: Dict[str, tuple[str, ...]] = {
+    "export": (
+        "input",
+        "cvat_xml",
+        "out",
+        "tile_size",
+        "overlap_height_ratio",
+        "overlap_width_ratio",
+    ),
+    "predict": (
+        "input",
+        "out",
+        "tile_size",
+        "overlap_height_ratio",
+        "overlap_width_ratio",
+        "conf",
+        "write_previews",
+        "weights",
+        "device",
+        "model_type",
+    ),
 }
 
 
@@ -290,26 +288,27 @@ class ConfigurationManager:
 
     def get_tiley(self) -> Dict[str, Dict[str, Any]]:
         """
-        Return merged ``tiley`` settings from config with built-in defaults.
+        Return required ``tiley`` settings from config.yaml.
 
-        Top-level keys are ``export`` and ``predict``; each maps to a flat dict of options.
+        Top-level keys are ``export`` and ``predict``; each maps to a flat
+        dictionary. Values are intentionally not defaulted in Python.
         """
-        merged = copy.deepcopy(_TILEY_DEFAULTS)
         raw = self.config.get("tiley")
         if not isinstance(raw, dict):
-            return merged
-        for section in ("export", "predict"):
+            raise ConfigurationError("config.yaml must contain a tiley mapping")
+
+        resolved: Dict[str, Dict[str, Any]] = {}
+        for section, required_keys in _TILEY_REQUIRED_KEYS.items():
             block = raw.get(section)
-            if isinstance(block, dict):
-                merged[section].update(block)
-                # Keep existing configs with one shared overlap value working.
-                # Apply it after defaults so it is not masked by default ratios.
-                if "overlap" in block:
-                    if "overlap_height_ratio" not in block:
-                        merged[section]["overlap_height_ratio"] = block["overlap"]
-                    if "overlap_width_ratio" not in block:
-                        merged[section]["overlap_width_ratio"] = block["overlap"]
-        return merged
+            if not isinstance(block, dict):
+                raise ConfigurationError(f"config.yaml must contain tiley.{section}")
+            missing_keys = [key for key in required_keys if key not in block]
+            if missing_keys:
+                raise ConfigurationError(
+                    f"config.yaml is missing tiley.{section} keys: " + ", ".join(missing_keys)
+                )
+            resolved[section] = dict(block)
+        return resolved
     
     def get_all_params(self) -> Dict[str, Any]:
         """Get all configuration parameters with defaults applied."""
