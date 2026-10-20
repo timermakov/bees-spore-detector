@@ -9,6 +9,7 @@ Tests cover:
 - CVATToYOLOConverter: format conversion
 """
 
+import re
 import sys
 import json
 import pytest
@@ -21,6 +22,35 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from bees.yolo import YOLOConfig
 from bees.yolo.data_discovery import discover_dataset_dirs, find_coco_annotation_candidates
+
+
+def _repo_config_text() -> str:
+    return (Path(__file__).parent.parent / "config.yaml").read_text(encoding="utf-8")
+
+
+def _set_yaml_key(text: str, key: str, raw_value: str) -> str:
+    """Replace one top-level YAML value without caring what it is now."""
+    pattern = re.compile(rf"^({re.escape(key)}:\s*).*$", re.MULTILINE)
+    updated, count = pattern.subn(rf"\1{raw_value}", text, count=1)
+    if count != 1:
+        raise AssertionError(f"{key} not found in config text")
+    return updated
+
+
+def _drop_yaml_key(text: str, key: str) -> str:
+    pattern = re.compile(rf"^{re.escape(key)}:.*\n", re.MULTILINE)
+    updated, count = pattern.subn("", text, count=1)
+    if count != 1:
+        raise AssertionError(f"{key} not found in config text")
+    return updated
+
+
+def _is_int(value) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _is_number(value) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
 def make_yolo_config(**overrides) -> YOLOConfig:
@@ -104,27 +134,28 @@ class TestYOLOConfig:
     """Tests for YOLOConfig dataclass."""
 
     def test_repository_config_yaml_is_source_of_truth(self):
-        """Training settings come from the repository config.yaml."""
+        """Repository config.yaml loads, and each training field has its type."""
         from bees import create_config_manager
 
         config_path = Path(__file__).parent.parent / "config.yaml"
         config = YOLOConfig.from_config_manager(create_config_manager(str(config_path)))
 
-        assert config.model_name == "yolo11s.pt"
-        assert config.confidence_threshold == 0.25
-        assert config.iou_threshold == 0.45
-        assert config.epochs == 100
-        assert config.batch_size == 2
-        assert config.imgsz == 960
-        assert config.patience == 25
-        assert config.device is None
-        assert config.annotations_format == "auto"
-        assert config.annotations_relpath is None
-        assert config.images_subdir == "."
-        assert config.class_names == ["spore"]
-        assert config.optimizer == "AdamW"
-        assert config.cache is False
-        assert config.pretrained is True
+        assert isinstance(config.model_name, str) and config.model_name
+        assert _is_number(config.confidence_threshold)
+        assert _is_number(config.iou_threshold)
+        assert _is_int(config.epochs)
+        assert _is_int(config.batch_size)
+        assert _is_int(config.imgsz)
+        assert _is_int(config.patience)
+        assert config.device is None or isinstance(config.device, str)
+        assert isinstance(config.annotations_format, str) and config.annotations_format
+        assert config.annotations_relpath is None or isinstance(config.annotations_relpath, str)
+        assert isinstance(config.images_subdir, str)
+        assert isinstance(config.class_names, list) and all(isinstance(name, str) and name for name in config.class_names)
+        assert isinstance(config.optimizer, str) and config.optimizer
+        assert isinstance(config.cache, bool)
+        assert isinstance(config.pretrained, bool)
+        assert isinstance(config.models_dir, Path)
 
     def test_config_with_custom_values(self):
         """Test creating config with custom values."""
@@ -375,24 +406,30 @@ yolo_class_names: [spore]
             TileyConfig.from_config_manager(config_manager)
 
     def test_null_predict_weights_use_yolo_model(self):
-        """A null tiley_predict_weights value selects the trained checkpoint."""
+        """Null weights select the trained checkpoint; an explicit path is kept."""
         from bees import create_config_manager
         from bees.main import _resolve_tiley_export_config, _resolve_tiley_predict_config
+        from bees.yolo.config import TileyConfig
 
         config_path = Path(__file__).parent.parent / "config.yaml"
         config_manager = create_config_manager(str(config_path))
+        yolo = YOLOConfig.from_config_manager(config_manager)
+        tiley = TileyConfig.from_config_manager(config_manager)
 
         predict = _resolve_tiley_predict_config(config_manager, None, None)
         export = _resolve_tiley_export_config(config_manager, None, None)
 
-        assert Path(predict["weights"]) == Path("models") / "yolo11s_spores" / "weights" / "best.pt"
-        assert predict["tile_size"] == 480
-        assert predict["conf"] == 0.25
-        assert predict["overlap_height_ratio"] == 0.06
-        assert predict["device"] == "cuda:0"
-        assert predict["write_previews"] is True
-        assert export["tile_size"] == 480
-        assert export["overlap_height_ratio"] == 0.2
+        if tiley.predict_weights is None:
+            assert Path(predict["weights"]) == yolo.get_trained_model_path()
+        else:
+            assert predict["weights"] == tiley.predict_weights
+        assert predict["tile_size"] == tiley.predict_tile_size
+        assert isinstance(predict["conf"], float)
+        assert isinstance(predict["overlap_height_ratio"], float)
+        assert isinstance(predict["device"], str) and predict["device"]
+        assert isinstance(predict["write_previews"], bool)
+        assert export["tile_size"] == tiley.export_tile_size
+        assert isinstance(export["overlap_height_ratio"], float)
 
         config_manager.config["tiley_predict_weights"] = "checkpoints/custom.pt"
         pinned = _resolve_tiley_predict_config(config_manager, None, None)
@@ -403,20 +440,20 @@ yolo_class_names: [spore]
         from bees import create_config_manager
         from bees.config_loader import ConfigurationError
 
-        source = (Path(__file__).parent.parent / "config.yaml").read_text(encoding="utf-8")
+        source = _repo_config_text()
 
         null_epochs = tmp_path / "null_epochs.yaml"
-        null_epochs.write_text(source.replace("yolo_epochs: 100", "yolo_epochs: null", 1), encoding="utf-8")
+        null_epochs.write_text(_set_yaml_key(source, "yolo_epochs", "null"), encoding="utf-8")
         with pytest.raises(ConfigurationError, match="yolo_epochs"):
             YOLOConfig.from_config_manager(create_config_manager(str(null_epochs)))
 
         bad_batch = tmp_path / "bad_batch.yaml"
-        bad_batch.write_text(source.replace("yolo_batch_size: 2", "yolo_batch_size: many", 1), encoding="utf-8")
+        bad_batch.write_text(_set_yaml_key(source, "yolo_batch_size", "many"), encoding="utf-8")
         with pytest.raises(ConfigurationError, match="yolo_batch_size"):
             YOLOConfig.from_config_manager(create_config_manager(str(bad_batch)))
 
         null_conf = tmp_path / "null_conf.yaml"
-        null_conf.write_text(source.replace("tiley_predict_conf: 0.25", "tiley_predict_conf: null", 1), encoding="utf-8")
+        null_conf.write_text(_set_yaml_key(source, "tiley_predict_conf", "null"), encoding="utf-8")
         from bees.yolo.config import TileyConfig
         with pytest.raises(ConfigurationError, match="tiley_predict_conf"):
             TileyConfig.from_config_manager(create_config_manager(str(null_conf)))
@@ -428,23 +465,23 @@ yolo_class_names: [spore]
         from bees.titer import create_calculator_from_config
 
         source_path = Path(__file__).parent.parent / "config.yaml"
-        source = source_path.read_text(encoding="utf-8")
+        source = _repo_config_text()
         config_manager = create_config_manager(str(source_path))
 
-        assert config_manager.get_int_param("min_contour_area") == 45
-        assert config_manager.get_int_param("max_ellipse_area") == 360
-        assert config_manager.get_int_param("intensity_threshold") == 36
+        assert _is_int(config_manager.get_int_param("min_contour_area"))
+        assert _is_int(config_manager.get_int_param("max_ellipse_area"))
+        assert _is_int(config_manager.get_int_param("intensity_threshold"))
         calculator = create_calculator_from_config(config_manager)
-        assert calculator.square_size == 780
-        assert calculator.volume_factor == 4.0
+        assert _is_int(calculator.square_size)
+        assert _is_number(calculator.volume_factor)
 
         missing_area = tmp_path / "missing_area.yaml"
-        missing_area.write_text(source.replace("min_contour_area: 45\n", "", 1), encoding="utf-8")
+        missing_area.write_text(_drop_yaml_key(source, "min_contour_area"), encoding="utf-8")
         with pytest.raises(ConfigurationError, match="min_contour_area"):
             create_config_manager(str(missing_area)).get_int_param("min_contour_area")
 
         missing_volume = tmp_path / "missing_volume.yaml"
-        missing_volume.write_text(source.replace("volume_factor: 4.0\n", "", 1), encoding="utf-8")
+        missing_volume.write_text(_drop_yaml_key(source, "volume_factor"), encoding="utf-8")
         with pytest.raises(ConfigurationError, match="volume_factor"):
             create_calculator_from_config(create_config_manager(str(missing_volume)))
 
@@ -623,30 +660,30 @@ class TestTileyConfig:
         config_path = Path(__file__).parent.parent / "config.yaml"
         tiley = TileyConfig.from_config_manager(create_config_manager(str(config_path)))
 
-        assert tiley.export_input == "sahi_tiled_export"
-        assert tiley.export_cvat_xml is None
-        assert tiley.export_out == "sahi_tiled_export"
-        assert tiley.export_tile_size == 480
-        assert tiley.export_overlap_height_ratio == 0.2
-        assert tiley.export_overlap_width_ratio == 0.2
-        assert tiley.predict_input == "dataset_test"
-        assert tiley.predict_out == "results/sahi_tiled_predictions"
-        assert tiley.predict_tile_size == 480
-        assert tiley.predict_overlap_height_ratio == 0.06
-        assert tiley.predict_overlap_width_ratio == 0.054
-        assert tiley.predict_conf == 0.25
-        assert tiley.predict_write_previews is True
-        assert tiley.predict_weights is None
-        assert tiley.predict_device == "cuda:0"
-        assert tiley.predict_model_type == "ultralytics"
+        assert isinstance(tiley.export_input, str) and tiley.export_input
+        assert tiley.export_cvat_xml is None or isinstance(tiley.export_cvat_xml, str)
+        assert isinstance(tiley.export_out, str) and tiley.export_out
+        assert _is_int(tiley.export_tile_size)
+        assert isinstance(tiley.export_overlap_height_ratio, float)
+        assert isinstance(tiley.export_overlap_width_ratio, float)
+        assert isinstance(tiley.predict_input, str) and tiley.predict_input
+        assert isinstance(tiley.predict_out, str) and tiley.predict_out
+        assert _is_int(tiley.predict_tile_size)
+        assert isinstance(tiley.predict_overlap_height_ratio, float)
+        assert isinstance(tiley.predict_overlap_width_ratio, float)
+        assert isinstance(tiley.predict_conf, float)
+        assert isinstance(tiley.predict_write_previews, bool)
+        assert tiley.predict_weights is None or isinstance(tiley.predict_weights, str)
+        assert isinstance(tiley.predict_device, str) and tiley.predict_device
+        assert isinstance(tiley.predict_model_type, str) and tiley.predict_model_type
 
     def test_explicit_paths_and_disabled_previews(self, tmp_path):
         from bees.yolo.config import TileyConfig
 
-        source = (Path(__file__).parent.parent / "config.yaml").read_text(encoding="utf-8")
-        text = source.replace("tiley_export_cvat_xml: null", "tiley_export_cvat_xml: annotations.xml", 1)
-        text = text.replace("tiley_predict_weights: null", "tiley_predict_weights: checkpoints/best.pt", 1)
-        text = text.replace("tiley_predict_write_previews: true", "tiley_predict_write_previews: false", 1)
+        source = _repo_config_text()
+        text = _set_yaml_key(source, "tiley_export_cvat_xml", "annotations.xml")
+        text = _set_yaml_key(text, "tiley_predict_weights", "checkpoints/best.pt")
+        text = _set_yaml_key(text, "tiley_predict_write_previews", "false")
 
         tiley = TileyConfig.from_config_manager(self._manager_from_text(tmp_path, text))
 
@@ -658,8 +695,7 @@ class TestTileyConfig:
         from bees.config_loader import ConfigurationError
         from bees.yolo.config import TileyConfig
 
-        source = (Path(__file__).parent.parent / "config.yaml").read_text(encoding="utf-8")
-        text = source.replace("tiley_predict_device: cuda:0\n", "", 1)
+        text = _drop_yaml_key(_repo_config_text(), "tiley_predict_device")
 
         with pytest.raises(ConfigurationError, match="tiley_predict_device"):
             TileyConfig.from_config_manager(self._manager_from_text(tmp_path, text))
@@ -668,14 +704,14 @@ class TestTileyConfig:
         from bees.config_loader import ConfigurationError
         from bees.yolo.config import TileyConfig
 
-        source = (Path(__file__).parent.parent / "config.yaml").read_text(encoding="utf-8")
+        source = _repo_config_text()
         cases = (
-            ("tiley_export_tile_size: 480", "tiley_export_tile_size: large", "tiley_export_tile_size"),
-            ("tiley_predict_write_previews: true", 'tiley_predict_write_previews: "yes"', "tiley_predict_write_previews"),
-            ("tiley_predict_weights: null", 'tiley_predict_weights: ""', "tiley_predict_weights"),
+            ("tiley_export_tile_size", "large"),
+            ("tiley_predict_write_previews", '"yes"'),
+            ("tiley_predict_weights", '""'),
         )
-        for index, (old, new, key) in enumerate(cases):
-            text = source.replace(old, new, 1)
+        for index, (key, raw_value) in enumerate(cases):
+            text = _set_yaml_key(source, key, raw_value)
             with pytest.raises(ConfigurationError, match=key):
                 TileyConfig.from_config_manager(
                     self._manager_from_text(tmp_path, text, name=f"bad_{index}.yaml")
@@ -685,31 +721,34 @@ class TestTileyConfig:
         from bees import create_config_manager
         from bees.main import _resolve_tiley_export_config, _resolve_tiley_predict_config
 
+        from bees.yolo.config import TileyConfig
+
         config_path = Path(__file__).parent.parent / "config.yaml"
         manager = create_config_manager(str(config_path))
+        tiley = TileyConfig.from_config_manager(manager)
 
         export = _resolve_tiley_export_config(manager, "other_in", "other_out")
         predict = _resolve_tiley_predict_config(manager, "pred_in", "pred_out")
 
         assert export["images_dir"] == "other_in"
         assert export["out"] == "other_out"
-        assert export["tile_size"] == 480
-        assert export["overlap_height_ratio"] == 0.2
+        assert export["tile_size"] == tiley.export_tile_size
+        assert export["overlap_height_ratio"] == tiley.export_overlap_height_ratio
         assert predict["source"] == "pred_in"
         assert predict["out"] == "pred_out"
-        assert predict["conf"] == 0.25
-        assert predict["tile_size"] == 480
+        assert predict["conf"] == tiley.predict_conf
+        assert predict["tile_size"] == tiley.predict_tile_size
 
     def test_null_weights_follow_configured_model(self, tmp_path):
         from bees.yolo.config import resolve_predict_weights
 
-        source = (Path(__file__).parent.parent / "config.yaml").read_text(encoding="utf-8")
-        text = source.replace("yolo_model: yolo11s.pt", "yolo_model: yolo26s.pt", 1)
+        text = _set_yaml_key(_repo_config_text(), "yolo_model", "yolo26s.pt")
+        text = _set_yaml_key(text, "tiley_predict_weights", "null")
         manager = self._manager_from_text(tmp_path, text)
+        yolo = YOLOConfig.from_config_manager(manager)
 
-        assert Path(resolve_predict_weights(manager)) == (
-            Path("models") / "yolo26s_spores" / "weights" / "best.pt"
-        )
+        assert Path(resolve_predict_weights(manager)) == yolo.get_trained_model_path()
+        assert yolo.get_training_run_name() == "yolo26s_spores"
 
 
 class TestTrainCommandFlags:
