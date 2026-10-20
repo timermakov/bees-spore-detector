@@ -8,7 +8,7 @@ values raise ConfigurationError.
 
 import logging
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Union, List
+from typing import Any, Dict, Optional, Union, List
 from contextlib import contextmanager
 
 try:
@@ -59,38 +59,6 @@ def _as_text(value: Any, label: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ConfigurationError(f"config.yaml '{label}' must be a non-empty string")
     return value
-
-
-def _optional_text(value: Any, label: str) -> Optional[str]:
-    """Return a non-empty string, or null when the YAML value is null."""
-    if value is None:
-        return None
-    return _as_text(value, label)
-
-
-# Each tiley field names the check that reads it. Presence and type live here.
-_TILEY_FIELDS: Dict[str, Dict[str, Callable[[Any, str], Any]]] = {
-    "export": {
-        "input": _as_text,
-        "cvat_xml": _optional_text,
-        "out": _as_text,
-        "tile_size": _as_int,
-        "overlap_height_ratio": _as_float,
-        "overlap_width_ratio": _as_float,
-    },
-    "predict": {
-        "input": _as_text,
-        "out": _as_text,
-        "tile_size": _as_int,
-        "overlap_height_ratio": _as_float,
-        "overlap_width_ratio": _as_float,
-        "conf": _as_float,
-        "write_previews": _as_bool,
-        "weights": _optional_text,
-        "device": _as_text,
-        "model_type": _as_text,
-    },
-}
 
 
 class ConfigurationValidator:
@@ -277,33 +245,6 @@ class ConfigurationManager:
     def has_param(self, key: str) -> bool:
         """Check if a parameter exists in configuration."""
         return key in self.config
-
-    def get_tiley(self) -> Dict[str, Dict[str, Any]]:
-        """
-        Return required ``tiley`` settings from config.yaml.
-
-        Top-level keys are ``export`` and ``predict``; each maps to a flat
-        dictionary. Values are intentionally not defaulted in Python.
-        """
-        raw = self.config.get("tiley")
-        if not isinstance(raw, dict):
-            raise ConfigurationError("config.yaml must contain a tiley mapping")
-
-        resolved: Dict[str, Dict[str, Any]] = {}
-        for section, fields in _TILEY_FIELDS.items():
-            block = raw.get(section)
-            if not isinstance(block, dict):
-                raise ConfigurationError(f"config.yaml must contain tiley.{section}")
-            missing_keys = [key for key in fields if key not in block]
-            if missing_keys:
-                raise ConfigurationError(
-                    f"config.yaml is missing tiley.{section} keys: " + ", ".join(missing_keys)
-                )
-            resolved[section] = {
-                key: parse(block[key], f"tiley.{section}.{key}")
-                for key, parse in fields.items()
-            }
-        return resolved
     
     def get_all_params(self) -> Dict[str, Any]:
         """Get the configuration values loaded from YAML."""

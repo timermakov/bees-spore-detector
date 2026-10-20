@@ -369,11 +369,13 @@ yolo_class_names: [spore]
         config_file.write_text("data_dir: test_data\nresults_dir: test_results\n")
 
         config_manager = create_config_manager(str(config_file))
-        with pytest.raises(ConfigurationError, match="tiley"):
-            config_manager.get_tiley()
+        from bees.yolo.config import TileyConfig
+
+        with pytest.raises(ConfigurationError, match="tiley_export_input"):
+            TileyConfig.from_config_manager(config_manager)
 
     def test_null_predict_weights_use_yolo_model(self):
-        """A null tiley.predict.weights value selects yolo_model from YAML."""
+        """A null tiley_predict_weights value selects the trained checkpoint."""
         from bees import create_config_manager
         from bees.main import _resolve_tiley_export_config, _resolve_tiley_predict_config
 
@@ -392,7 +394,7 @@ yolo_class_names: [spore]
         assert export["tile_size"] == 480
         assert export["overlap_height_ratio"] == 0.2
 
-        config_manager.config["tiley"]["predict"]["weights"] = "checkpoints/custom.pt"
+        config_manager.config["tiley_predict_weights"] = "checkpoints/custom.pt"
         pinned = _resolve_tiley_predict_config(config_manager, None, None)
         assert pinned["weights"] == "checkpoints/custom.pt"
 
@@ -414,9 +416,10 @@ yolo_class_names: [spore]
             YOLOConfig.from_config_manager(create_config_manager(str(bad_batch)))
 
         null_conf = tmp_path / "null_conf.yaml"
-        null_conf.write_text(source.replace("conf: 0.25", "conf: null", 1), encoding="utf-8")
-        with pytest.raises(ConfigurationError, match="tiley.predict.conf"):
-            create_config_manager(str(null_conf)).get_tiley()
+        null_conf.write_text(source.replace("tiley_predict_conf: 0.25", "tiley_predict_conf: null", 1), encoding="utf-8")
+        from bees.yolo.config import TileyConfig
+        with pytest.raises(ConfigurationError, match="tiley_predict_conf"):
+            TileyConfig.from_config_manager(create_config_manager(str(null_conf)))
 
     def test_opencv_and_titer_require_yaml_values(self, tmp_path):
         """OpenCV and titer read config.yaml and do not fill Python defaults."""

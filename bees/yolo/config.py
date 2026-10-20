@@ -218,14 +218,95 @@ class YOLOConfig:
         (self.output_dir / "val" / "labels").mkdir(parents=True, exist_ok=True)
 
 
+@dataclass
+class TileyConfig:
+    """SAHI tiling settings. Built from ``tiley_*`` keys in config.yaml."""
+
+    REQUIRED_YAML_KEYS: ClassVar[tuple[str, ...]] = (
+        "tiley_export_input",
+        "tiley_export_cvat_xml",
+        "tiley_export_out",
+        "tiley_export_tile_size",
+        "tiley_export_overlap_height_ratio",
+        "tiley_export_overlap_width_ratio",
+        "tiley_predict_input",
+        "tiley_predict_out",
+        "tiley_predict_tile_size",
+        "tiley_predict_overlap_height_ratio",
+        "tiley_predict_overlap_width_ratio",
+        "tiley_predict_conf",
+        "tiley_predict_write_previews",
+        "tiley_predict_weights",
+        "tiley_predict_device",
+        "tiley_predict_model_type",
+    )
+
+    export_input: str
+    export_cvat_xml: Optional[str]
+    export_out: str
+    export_tile_size: int
+    export_overlap_height_ratio: float
+    export_overlap_width_ratio: float
+    predict_input: str
+    predict_out: str
+    predict_tile_size: int
+    predict_overlap_height_ratio: float
+    predict_overlap_width_ratio: float
+    predict_conf: float
+    predict_write_previews: bool
+    predict_weights: Optional[str]
+    predict_device: str
+    predict_model_type: str
+
+    @classmethod
+    def from_config_manager(cls, config_manager) -> "TileyConfig":
+        """Create TileyConfig from config.yaml. Missing keys are reported by name."""
+        missing_keys = [key for key in cls.REQUIRED_YAML_KEYS if not config_manager.has_param(key)]
+        if missing_keys:
+            raise ConfigurationError(
+                "config.yaml is missing required tiley keys: " + ", ".join(missing_keys)
+            )
+
+        export_cvat_xml = _optional_yaml_text(config_manager, "tiley_export_cvat_xml")
+        predict_weights = _optional_yaml_text(config_manager, "tiley_predict_weights")
+        return cls(
+            export_input=config_manager.get_string_param("tiley_export_input"),
+            export_cvat_xml=export_cvat_xml,
+            export_out=config_manager.get_string_param("tiley_export_out"),
+            export_tile_size=config_manager.get_int_param("tiley_export_tile_size"),
+            export_overlap_height_ratio=config_manager.get_float_param("tiley_export_overlap_height_ratio"),
+            export_overlap_width_ratio=config_manager.get_float_param("tiley_export_overlap_width_ratio"),
+            predict_input=config_manager.get_string_param("tiley_predict_input"),
+            predict_out=config_manager.get_string_param("tiley_predict_out"),
+            predict_tile_size=config_manager.get_int_param("tiley_predict_tile_size"),
+            predict_overlap_height_ratio=config_manager.get_float_param("tiley_predict_overlap_height_ratio"),
+            predict_overlap_width_ratio=config_manager.get_float_param("tiley_predict_overlap_width_ratio"),
+            predict_conf=config_manager.get_float_param("tiley_predict_conf"),
+            predict_write_previews=config_manager.get_bool_param("tiley_predict_write_previews"),
+            predict_weights=predict_weights,
+            predict_device=config_manager.get_string_param("tiley_predict_device"),
+            predict_model_type=config_manager.get_string_param("tiley_predict_model_type"),
+        )
+
+
+def _optional_yaml_text(config_manager, key: str) -> Optional[str]:
+    """Read a YAML string that may be null."""
+    value = config_manager.get_param(key)
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise ConfigurationError(f"config.yaml '{key}' must be a non-empty string or null")
+    return value
+
+
 def resolve_predict_weights(config_manager) -> str:
-    """Resolve ``tiley.predict.weights``.
+    """Resolve ``tiley_predict_weights``.
 
     Null selects the trained checkpoint for ``yolo_model``:
     ``<yolo_models_dir>/<model stem>_spores/weights/best.pt``.
     An explicit path pins a different checkpoint.
     """
-    weights = config_manager.get_tiley()["predict"]["weights"]
+    weights = TileyConfig.from_config_manager(config_manager).predict_weights
     if weights:
-        return str(weights)
+        return weights
     return str(YOLOConfig.from_config_manager(config_manager).get_trained_model_path())

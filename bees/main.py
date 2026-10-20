@@ -200,9 +200,11 @@ def pseudo_label(config_path: str, source_dir: str, output_dir: str = "pseudo_la
 
 
 def _resolve_tiley_export_config(config_manager, input_override: Optional[str], out_override: Optional[str]) -> Dict[str, Any]:
-    e = config_manager.get_tiley()["export"]
-    images_dir = input_override or e["input"]
-    cvat_xml = e["cvat_xml"]
+    from bees.yolo.config import TileyConfig
+
+    tiley = TileyConfig.from_config_manager(config_manager)
+    images_dir = input_override or tiley.export_input
+    cvat_xml = tiley.export_cvat_xml
     if not cvat_xml and images_dir:
         candidate = Path(images_dir) / "annotations.xml"
         if candidate.exists():
@@ -210,30 +212,28 @@ def _resolve_tiley_export_config(config_manager, input_override: Optional[str], 
     return {
         "images_dir": images_dir,
         "cvat_xml": cvat_xml,
-        "out": out_override or e["out"],
-        "tile_size": int(e["tile_size"]),
-        "overlap_height_ratio": float(e["overlap_height_ratio"]),
-        "overlap_width_ratio": float(e["overlap_width_ratio"]),
+        "out": out_override or tiley.export_out,
+        "tile_size": tiley.export_tile_size,
+        "overlap_height_ratio": tiley.export_overlap_height_ratio,
+        "overlap_width_ratio": tiley.export_overlap_width_ratio,
     }
 
 
 def _resolve_tiley_predict_config(config_manager, input_override: Optional[str], out_override: Optional[str]) -> Dict[str, Any]:
-    from bees.yolo.config import resolve_predict_weights
+    from bees.yolo.config import TileyConfig, resolve_predict_weights
 
-    p = config_manager.get_tiley()["predict"]
-    weights = resolve_predict_weights(config_manager)
-
+    tiley = TileyConfig.from_config_manager(config_manager)
     return {
-        "source": input_override or p["input"],
-        "out": out_override or p["out"],
-        "tile_size": int(p["tile_size"]),
-        "overlap_height_ratio": float(p["overlap_height_ratio"]),
-        "overlap_width_ratio": float(p["overlap_width_ratio"]),
-        "conf": float(p["conf"]),
-        "weights": weights,
-        "device": p["device"],
-        "model_type": p["model_type"],
-        "write_previews": bool(p["write_previews"]),
+        "source": input_override or tiley.predict_input,
+        "out": out_override or tiley.predict_out,
+        "tile_size": tiley.predict_tile_size,
+        "overlap_height_ratio": tiley.predict_overlap_height_ratio,
+        "overlap_width_ratio": tiley.predict_overlap_width_ratio,
+        "conf": tiley.predict_conf,
+        "weights": resolve_predict_weights(config_manager),
+        "device": tiley.predict_device,
+        "model_type": tiley.predict_model_type,
+        "write_previews": tiley.predict_write_previews,
     }
 
 
@@ -272,7 +272,7 @@ def run_tile_export(config_path: str, input_dir: Optional[str], out_dir: Optiona
 
     if not resolved["images_dir"] or not resolved["cvat_xml"]:
         logger.error(
-            "tile-export needs CVAT XML and image directory from config.tiley.export (cvat_xml/input) or annotations.xml in input"
+            "tile-export needs tiley_export_input and tiley_export_cvat_xml, or annotations.xml inside the input folder"
         )
         return 1
 
@@ -441,18 +441,18 @@ def build_parser() -> argparse.ArgumentParser:
         help='Export tiled SAHI dataset from CVAT XML (config-driven)',
     )
     tile_export_parser.add_argument('--input', type=str, default=None,
-                                    help='Override input images folder (otherwise config tiley.export.input)')
+                                    help='Override input images folder (otherwise tiley_export_input)')
     tile_export_parser.add_argument('--out', type=str, default=None,
-                                    help='Override output folder (otherwise config tiley.export.out)')
+                                    help='Override output folder (otherwise tiley_export_out)')
 
     tile_predict_parser = subparsers.add_parser(
         'tile-predict',
         help='Run SAHI tiled prediction for a folder (config-driven)',
     )
     tile_predict_parser.add_argument('--input', type=str, default=None,
-                                     help='Override input folder (otherwise config tiley.predict.input)')
+                                     help='Override input folder (otherwise tiley_predict_input)')
     tile_predict_parser.add_argument('--out', type=str, default=None,
-                                     help='Override output folder (otherwise config tiley.predict.out)')
+                                     help='Override output folder (otherwise tiley_predict_out)')
 
     # === HIERARCHICAL ANALYSIS SUBPARSER ===
     hierarchy_parser = subparsers.add_parser(

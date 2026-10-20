@@ -175,19 +175,19 @@ class HierarchicalAnalyzer:
             if not SAHI_AVAILABLE:
                 raise ImportError("SAHI not installed. Run: pip install sahi")
 
-            # Null tiley.predict.weights selects the trained checkpoint for yolo_model.
-            from bees.yolo.config import resolve_predict_weights
+            # Null tiley_predict_weights selects the trained checkpoint for yolo_model.
+            from bees.yolo.config import TileyConfig, resolve_predict_weights
 
-            predict_cfg = self.config_manager.get_tiley()["predict"]
+            tiley = TileyConfig.from_config_manager(self.config_manager)
             model_path = self.weights_path or resolve_predict_weights(self.config_manager)
 
-            conf = predict_cfg["conf"]
-            device = predict_cfg["device"]
-            model_type = predict_cfg["model_type"]
-            self.slice_height = int(predict_cfg["tile_size"])
+            conf = tiley.predict_conf
+            device = tiley.predict_device
+            model_type = tiley.predict_model_type
+            self.slice_height = tiley.predict_tile_size
             self.slice_width = self.slice_height
-            self.overlap_height_ratio = float(predict_cfg["overlap_height_ratio"])
-            self.overlap_width_ratio = float(predict_cfg["overlap_width_ratio"])
+            self.overlap_height_ratio = tiley.predict_overlap_height_ratio
+            self.overlap_width_ratio = tiley.predict_overlap_width_ratio
 
             self.detector = SAHIDetector(
                 model_path=model_path,
