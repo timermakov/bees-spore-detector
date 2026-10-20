@@ -91,7 +91,7 @@ class SporeTrainer:
             epochs = self.config.epochs
             imgsz = self.config.imgsz
             batch_size = self.config.batch_size
-            patience = 0
+            patience = 25
         
         # Windows: use workers=0 to avoid multiprocessing issues
         workers = 2 if platform.system() == 'Windows' else 4
