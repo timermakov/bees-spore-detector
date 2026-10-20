@@ -6,10 +6,9 @@ in YAML format. Required values come from the file; missing or mistyped
 values raise ConfigurationError.
 """
 
-import os
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional, Union, List
+from typing import Any, Callable, Dict, Optional, Union, List
 from contextlib import contextmanager
 
 try:
@@ -22,54 +21,10 @@ except ImportError:
 # Configure logging
 logger = logging.getLogger(__name__)
 
-_UNSET = object()
 
-_TILEY_REQUIRED_KEYS: Dict[str, tuple[str, ...]] = {
-    "export": (
-        "input",
-        "cvat_xml",
-        "out",
-        "tile_size",
-        "overlap_height_ratio",
-        "overlap_width_ratio",
-    ),
-    "predict": (
-        "input",
-        "out",
-        "tile_size",
-        "overlap_height_ratio",
-        "overlap_width_ratio",
-        "conf",
-        "write_previews",
-        "weights",
-        "device",
-        "model_type",
-    ),
-}
-
-_TILEY_INT_KEYS: Dict[str, tuple[str, ...]] = {
-    "export": ("tile_size",),
-    "predict": ("tile_size",),
-}
-
-_TILEY_FLOAT_KEYS: Dict[str, tuple[str, ...]] = {
-    "export": ("overlap_height_ratio", "overlap_width_ratio"),
-    "predict": ("overlap_height_ratio", "overlap_width_ratio", "conf"),
-}
-
-_TILEY_BOOL_KEYS: Dict[str, tuple[str, ...]] = {
-    "predict": ("write_previews",),
-}
-
-_TILEY_TEXT_KEYS: Dict[str, tuple[str, ...]] = {
-    "export": ("input", "out"),
-    "predict": ("input", "out", "device", "model_type"),
-}
-
-_TILEY_NULLABLE_TEXT_KEYS: Dict[str, tuple[str, ...]] = {
-    "export": ("cvat_xml",),
-    "predict": ("weights",),
-}
+class ConfigurationError(Exception):
+    """Raised when there's an error with configuration loading or validation."""
+    pass
 
 
 def _as_int(value: Any, label: str) -> int:
@@ -99,18 +54,43 @@ def _as_bool(value: Any, label: str) -> bool:
     return value
 
 
-def _as_text(value: Any, label: str, allow_null: bool = False) -> Optional[str]:
-    """Return a non-empty string. Null is accepted only when allow_null is set."""
-    if value is None and allow_null:
-        return None
+def _as_text(value: Any, label: str) -> str:
+    """Return a non-empty string."""
     if not isinstance(value, str) or not value.strip():
         raise ConfigurationError(f"config.yaml '{label}' must be a non-empty string")
     return value
 
 
-class ConfigurationError(Exception):
-    """Raised when there's an error with configuration loading or validation."""
-    pass
+def _optional_text(value: Any, label: str) -> Optional[str]:
+    """Return a non-empty string, or null when the YAML value is null."""
+    if value is None:
+        return None
+    return _as_text(value, label)
+
+
+# Each tiley field names the check that reads it. Presence and type live here.
+_TILEY_FIELDS: Dict[str, Dict[str, Callable[[Any, str], Any]]] = {
+    "export": {
+        "input": _as_text,
+        "cvat_xml": _optional_text,
+        "out": _as_text,
+        "tile_size": _as_int,
+        "overlap_height_ratio": _as_float,
+        "overlap_width_ratio": _as_float,
+    },
+    "predict": {
+        "input": _as_text,
+        "out": _as_text,
+        "tile_size": _as_int,
+        "overlap_height_ratio": _as_float,
+        "overlap_width_ratio": _as_float,
+        "conf": _as_float,
+        "write_previews": _as_bool,
+        "weights": _optional_text,
+        "device": _as_text,
+        "model_type": _as_text,
+    },
+}
 
 
 class ConfigurationValidator:
@@ -266,66 +246,33 @@ class ConfigurationManager:
             config: Configuration dictionary
         """
         self.config = config
-    
-    def get_param(self, key: str, default: Any = _UNSET) -> Any:
-        """
-        Get a configuration parameter.
 
-        Args:
-            key: Parameter key
-            default: Value used only when the key is absent
-
-        Returns:
-            Parameter value, including null when the key is present
-
-        Raises:
-            ConfigurationError: If the key is absent and no default was given
-        """
-        if key in self.config:
-            value = self.config[key]
-        elif default is not _UNSET:
-            value = default
-        else:
+    def _value(self, key: str) -> Any:
+        if key not in self.config:
             raise ConfigurationError(f"config.yaml is missing '{key}'")
+        return self.config[key]
+    
+    def get_param(self, key: str) -> Any:
+        """Return a configuration value. Null is preserved when the key is present."""
+        value = self._value(key)
         logger.debug(f"Config parameter '{key}' = {value}")
         return value
     
-    def get_int_param(self, key: str, default: Any = _UNSET) -> int:
+    def get_int_param(self, key: str) -> int:
         """Get an integer parameter. Null and non-numeric values are rejected."""
-        if key not in self.config:
-            if default is _UNSET:
-                raise ConfigurationError(f"config.yaml is missing '{key}'")
-            return _as_int(default, key)
-        return _as_int(self.config[key], key)
+        return _as_int(self._value(key), key)
     
-    def get_float_param(self, key: str, default: Any = _UNSET) -> float:
+    def get_float_param(self, key: str) -> float:
         """Get a float parameter. Null and non-numeric values are rejected."""
-        if key not in self.config:
-            if default is _UNSET:
-                raise ConfigurationError(f"config.yaml is missing '{key}'")
-            return _as_float(default, key)
-        return _as_float(self.config[key], key)
+        return _as_float(self._value(key), key)
     
-    def get_string_param(self, key: str, default: Any = _UNSET) -> str:
+    def get_string_param(self, key: str) -> str:
         """Get a non-empty string parameter."""
-        if key not in self.config:
-            if default is _UNSET:
-                raise ConfigurationError(f"config.yaml is missing '{key}'")
-            value = default
-        else:
-            value = self.config[key]
-        text = _as_text(value, key)
-        if text is None:
-            raise ConfigurationError(f"config.yaml '{key}' must be a non-empty string")
-        return text
+        return _as_text(self._value(key), key)
     
-    def get_bool_param(self, key: str, default: Any = _UNSET) -> bool:
+    def get_bool_param(self, key: str) -> bool:
         """Get a boolean parameter. Only real true/false values are accepted."""
-        if key not in self.config:
-            if default is _UNSET:
-                raise ConfigurationError(f"config.yaml is missing '{key}'")
-            return _as_bool(default, key)
-        return _as_bool(self.config[key], key)
+        return _as_bool(self._value(key), key)
     
     def has_param(self, key: str) -> bool:
         """Check if a parameter exists in configuration."""
@@ -343,29 +290,19 @@ class ConfigurationManager:
             raise ConfigurationError("config.yaml must contain a tiley mapping")
 
         resolved: Dict[str, Dict[str, Any]] = {}
-        for section, required_keys in _TILEY_REQUIRED_KEYS.items():
+        for section, fields in _TILEY_FIELDS.items():
             block = raw.get(section)
             if not isinstance(block, dict):
                 raise ConfigurationError(f"config.yaml must contain tiley.{section}")
-            missing_keys = [key for key in required_keys if key not in block]
+            missing_keys = [key for key in fields if key not in block]
             if missing_keys:
                 raise ConfigurationError(
                     f"config.yaml is missing tiley.{section} keys: " + ", ".join(missing_keys)
                 )
-            resolved_block = dict(block)
-            for key in _TILEY_INT_KEYS.get(section, ()):
-                resolved_block[key] = _as_int(resolved_block[key], f"tiley.{section}.{key}")
-            for key in _TILEY_FLOAT_KEYS.get(section, ()):
-                resolved_block[key] = _as_float(resolved_block[key], f"tiley.{section}.{key}")
-            for key in _TILEY_BOOL_KEYS.get(section, ()):
-                resolved_block[key] = _as_bool(resolved_block[key], f"tiley.{section}.{key}")
-            for key in _TILEY_TEXT_KEYS.get(section, ()):
-                resolved_block[key] = _as_text(resolved_block[key], f"tiley.{section}.{key}")
-            for key in _TILEY_NULLABLE_TEXT_KEYS.get(section, ()):
-                resolved_block[key] = _as_text(
-                    resolved_block[key], f"tiley.{section}.{key}", allow_null=True
-                )
-            resolved[section] = resolved_block
+            resolved[section] = {
+                key: parse(block[key], f"tiley.{section}.{key}")
+                for key, parse in fields.items()
+            }
         return resolved
     
     def get_all_params(self) -> Dict[str, Any]:
