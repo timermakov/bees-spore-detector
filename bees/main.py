@@ -147,12 +147,15 @@ def train_yolo_model(config_path: str, quick_test: bool = False) -> int:
         yolo_config = YOLOConfig.from_config_manager(config_manager)
 
         if quick_test:
-            logger.info("Starting YOLO QUICK TEST training (30 epochs, 640px)...")
+            logger.info("Starting YOLO quick-test training using the config.yaml profile...")
         else:
-            logger.info("Starting YOLO training pipeline (AUTO annotations)...")
+            logger.info("Starting YOLO training pipeline using config.yaml annotations...")
 
         preparer = DatasetPreparer(yolo_config)
-        data_yaml = preparer.prepare_dataset(val_split=0.4)
+        data_yaml = preparer.prepare_dataset(
+            val_split=yolo_config.validation_split,
+            seed=yolo_config.split_seed,
+        )
 
         trainer = SporeTrainer(yolo_config)
         metrics = trainer.train(data_yaml, quick_test=quick_test)
@@ -420,10 +423,10 @@ def build_parser() -> argparse.ArgumentParser:
     # YOLO arguments
     parser.add_argument('--use-yolo', action='store_true',
                         help='Use YOLO-based detection instead of OpenCV')
-    parser.add_argument('--train-yolo-auto', action='store_true',
-                        help='Train YOLO model with automatic annotation discovery')
+    parser.add_argument('--train-yolo', '--train-yolo-auto', dest='train_yolo', action='store_true',
+                        help='Train YOLO using annotation settings from config.yaml')
     parser.add_argument('--quick-test', action='store_true',
-                        help='Quick training mode: 30 epochs, 640px images (~15 min on CPU)')
+                        help='Use the quick-test profile from config.yaml')
 
     # Pseudo-labeling arguments
     parser.add_argument('--pseudo-label', action='store_true',
@@ -591,7 +594,7 @@ def main() -> int:
             logger.error(f"YOLO -> CVAT export failed: {e}")
             return 1
 
-    if args.train_yolo_auto:
+    if args.train_yolo:
         return train_yolo_model(args.config, quick_test=args.quick_test)
 
     if args.use_yolo and not YOLO_AVAILABLE:

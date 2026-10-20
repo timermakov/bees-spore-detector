@@ -78,13 +78,13 @@ class DatasetPreparer:
         return data_yaml_path
 
     def _load_source_samples(self) -> List[SourceSample]:
-        """Load source samples using auto annotation discovery mode."""
+        """Load samples using the annotation format selected in YAML."""
         dataset_format = (self.config.annotations_format or "auto").strip().lower()
-        if dataset_format != "auto":
+        if dataset_format not in {"auto", "xml", "coco"}:
             raise ValueError(
-                f"Unsupported annotation format '{dataset_format}'. Only 'auto' mode is supported."
+                f"Unsupported annotation format '{dataset_format}'. Expected auto, xml, or coco."
             )
-        return self._load_source_samples_auto()
+        return self._load_source_samples_for_format(dataset_format)
 
     def _process_split(self, samples: List[SourceSample], output_dir: Path) -> dict:
         """Process a dataset split (train or val)."""
@@ -125,28 +125,33 @@ class DatasetPreparer:
             "Set yolo_datasets_root to a folder that contains dataset portions."
         )
 
-    def _load_source_samples_auto(self) -> List[SourceSample]:
+    def _load_source_samples_for_format(self, dataset_format: str) -> List[SourceSample]:
         """
-        Auto-detect annotation format per dataset portion.
+        Load annotations from each dataset portion.
 
-        Preference order per portion: COCO first, then XML.
+        Auto mode prefers COCO, then XML. Explicit modes use only their
+        requested format.
         """
         source_samples: List[SourceSample] = []
         dataset_dirs = self._get_dataset_dirs_or_raise()
-        seen_coco_paths = set()
+        seen_annotation_paths = set()
         skipped_missing_xml_images = 0
 
         for dataset_dir in dataset_dirs:
-            coco_candidates = find_coco_annotation_candidates(
-                dataset_dir=dataset_dir,
-                annotations_relpath=self.config.annotations_relpath,
-            )
-            if coco_candidates:
-                coco_path = coco_candidates[0]
-                coco_key = str(coco_path.resolve())
-                if coco_key not in seen_coco_paths:
-                    seen_coco_paths.add(coco_key)
-                    source_samples.extend(self._parse_coco_dataset(coco_path, dataset_dir))
+            if dataset_format in {"auto", "coco"}:
+                coco_candidates = find_coco_annotation_candidates(
+                    dataset_dir=dataset_dir,
+                    annotations_relpath=self.config.annotations_relpath,
+                )
+                if coco_candidates:
+                    coco_path = coco_candidates[0]
+                    coco_key = str(coco_path.resolve())
+                    if coco_key not in seen_annotation_paths:
+                        seen_annotation_paths.add(coco_key)
+                        source_samples.extend(self._parse_coco_dataset(coco_path, dataset_dir))
+                    continue
+
+            if dataset_format not in {"auto", "xml"}:
                 continue
 
             xml_candidates = find_xml_annotation_candidates(
@@ -155,9 +160,20 @@ class DatasetPreparer:
             )
             if not xml_candidates:
                 continue
+            xml_path = xml_candidates[0]
+            xml_key = str(xml_path.resolve())
+            if xml_key in seen_annotation_paths:
+                continue
+            seen_annotation_paths.add(xml_key)
+            if len(xml_candidates) > 1:
+                logger.warning(
+                    "Multiple XML annotations found in %s; using %s. Set yolo_annotations_relpath to select one.",
+                    dataset_dir,
+                    xml_path.name,
+                )
             source_batch, missing_count = self._collect_xml_samples_from_dataset(
                 dataset_dir=dataset_dir,
-                xml_path=xml_candidates[0],
+                xml_path=xml_path,
             )
             source_samples.extend(source_batch)
             skipped_missing_xml_images += missing_count
@@ -173,7 +189,7 @@ class DatasetPreparer:
                 skipped_missing_xml_images,
             )
 
-        logger.info("Using AUTO multi-dataset mode (%d samples)", len(source_samples))
+        logger.info("Using %s multi-dataset mode (%d samples)", dataset_format.upper(), len(source_samples))
         return source_samples
 
     def _collect_xml_samples_from_dataset(self, dataset_dir: Path, xml_path: Path) -> Tuple[List[SourceSample], int]:

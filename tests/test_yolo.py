@@ -217,11 +217,46 @@ yolo_iou_threshold: 0.4
 yolo_epochs: 50
 yolo_batch_size: 8
 yolo_imgsz: 640
+yolo_patience: 25
+yolo_device: null
+yolo_workers: 2
+yolo_quick_test_epochs: 30
+yolo_quick_test_imgsz: 1024
+yolo_quick_test_batch_size: 8
+yolo_quick_test_patience: 0
+yolo_validation_split: 0.4
+yolo_split_seed: 42
 analysis_square_size: 780
 yolo_datasets_root: test_datasets
+yolo_dataset_folder_pattern: "*"
 yolo_annotations_format: auto
 yolo_annotations_relpath: custom/ann.json
 yolo_images_subdir: custom/images
+yolo_image_extensions: [".jpg", ".png"]
+yolo_test_dir: dataset_test
+yolo_output_dir: yolo_dataset
+yolo_models_dir: models
+yolo_mosaic: 1.0
+yolo_mixup: 0.15
+yolo_hsv_h: 0.015
+yolo_hsv_s: 0.7
+yolo_hsv_v: 0.4
+yolo_degrees: 15.0
+yolo_scale: 0.3
+yolo_fliplr: 0.5
+yolo_flipud: 0.5
+yolo_optimizer: AdamW
+yolo_learning_rate: 0.0005
+yolo_final_learning_rate_factor: 0.01
+yolo_warmup_epochs: 2
+yolo_copy_paste: 0.3
+yolo_cache: false
+yolo_amp: true
+yolo_show_labels: false
+yolo_show_conf: false
+yolo_pretrained: true
+yolo_verbose: true
+yolo_class_names: [spore]
 """
         config_file = tmp_path / "test_config.yaml"
         config_file.write_text(config_content)

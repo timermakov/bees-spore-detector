@@ -449,7 +449,7 @@ The training process automatically detects and uses the first available Nvidia G
 
 YOLO training now uses a strict multi-dataset layout. Legacy single-folder mode is removed.
 
-### 1) Required `config.yaml` keys
+### 1) Dataset fields in `config.yaml`
 
 ```yaml
 # YOLO dataset root (contains dataset portions)
@@ -458,7 +458,7 @@ yolo_datasets_root: dataset_train
 # Which subfolders of yolo_datasets_root to include
 yolo_dataset_folder_pattern: "*"
 
-# Training source format: auto mode (XML/COCO annotations)
+# Training source format: auto, xml, or coco
 yolo_annotations_format: auto
 
 # Unified shortcuts for auto-discovery
@@ -466,6 +466,10 @@ yolo_annotations_format: auto
 yolo_annotations_relpath: null
 yolo_images_subdir: .
 ```
+
+`config.yaml` is the complete training configuration. Keep the remaining
+`yolo_*` settings in that file when creating a custom configuration; the CLI
+reports every missing required key instead of applying hidden Python defaults.
 
 ### 2) Required folder structure
 
@@ -494,11 +498,11 @@ use a specific GPU or force CPU usage.
 ### 3) Train commands
 
 ```bash
-# Full training with auto-discovery
-python -m bees.main --train-yolo-auto
+# Full training using config.yaml
+python -m bees.main --train-yolo
 
-# Quick smoke training with auto-discovery
-python -m bees.main --train-yolo-auto --quick-test
+# Quick smoke training using the config.yaml quick-test profile
+python -m bees.main --train-yolo --quick-test
 ```
 
 COCO example for current tiled dataset:
@@ -536,7 +540,7 @@ python -m bees.main --merge-pseudo
 
 Retrain with expanded dataset:
 ```powershell
-python -m bees.main --train-yolo-auto --quick-test
+python -m bees.main --train-yolo --quick-test
 ```
 
 
@@ -586,7 +590,7 @@ python -m bees.main --use-yolo -d dataset_test --export-cvat-zip
 2. Run training again:
 
 ```bash
-python -m bees.main --train-yolo-auto
+python -m bees.main --train-yolo
 ```
 
 The dataset builder will automatically include all matching portions under `yolo_datasets_root`.

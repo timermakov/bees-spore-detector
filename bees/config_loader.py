@@ -302,6 +302,13 @@ class ConfigurationManager:
             block = raw.get(section)
             if isinstance(block, dict):
                 merged[section].update(block)
+                # Keep existing configs with one shared overlap value working.
+                # Apply it after defaults so it is not masked by default ratios.
+                if "overlap" in block:
+                    if "overlap_height_ratio" not in block:
+                        merged[section]["overlap_height_ratio"] = block["overlap"]
+                    if "overlap_width_ratio" not in block:
+                        merged[section]["overlap_width_ratio"] = block["overlap"]
         return merged
     
     def get_all_params(self) -> Dict[str, Any]:
