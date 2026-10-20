@@ -44,6 +44,70 @@ def ellipse_to_xyxy_pixels(ellipse: EllipseAnnotation) -> Tuple[float, float, fl
     return (cx - half_w, cy - half_h, cx + half_w, cy + half_h)
 
 
+def clip_xyxy_to_image(
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
+    img_width: int,
+    img_height: int,
+) -> Optional[Tuple[float, float, float, float]]:
+    """Clip box corners to the image. None when no area remains inside."""
+    if img_width <= 0 or img_height <= 0:
+        raise ValueError(
+            f"Image width and height must be positive, got {img_width}x{img_height}"
+        )
+
+    width = float(img_width)
+    height = float(img_height)
+    left = max(0.0, min(width, min(x1, x2)))
+    top = max(0.0, min(height, min(y1, y2)))
+    right = max(0.0, min(width, max(x1, x2)))
+    bottom = max(0.0, min(height, max(y1, y2)))
+    if right <= left or bottom <= top:
+        return None
+    return left, top, right, bottom
+
+
+def normalized_yolo_box(
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
+    img_width: int,
+    img_height: int,
+) -> Optional[Tuple[float, float, float, float]]:
+    """Clip corners, then return YOLO center and size in 0..1."""
+    clipped = clip_xyxy_to_image(x1, y1, x2, y2, img_width, img_height)
+    if clipped is None:
+        return None
+
+    left, top, right, bottom = clipped
+    return (
+        ((left + right) / 2.0) / img_width,
+        ((top + bottom) / 2.0) / img_height,
+        (right - left) / img_width,
+        (bottom - top) / img_height,
+    )
+
+
+def xyxy_to_yolo_line(
+    x1: float,
+    y1: float,
+    x2: float,
+    y2: float,
+    img_width: int,
+    img_height: int,
+    class_id: int,
+) -> Optional[str]:
+    """Clip corners, then format one YOLO label line."""
+    box = normalized_yolo_box(x1, y1, x2, y2, img_width, img_height)
+    if box is None:
+        return None
+    x_center, y_center, w_norm, h_norm = box
+    return f"{class_id} {x_center:.6f} {y_center:.6f} {w_norm:.6f} {h_norm:.6f}"
+
+
 @dataclass
 class ImageAnnotation:
     """Represents all annotations for a single image."""
@@ -148,44 +212,50 @@ class CVATToYOLOConverter:
         Returns:
             Tuple of (x_center, y_center, width, height) normalized to [0, 1]
         """
-        bbox_half_w, bbox_half_h = _ellipse_aabb_half_sizes(ellipse)
-        bbox_w = 2 * bbox_half_w
-        bbox_h = 2 * bbox_half_h
-        cx, cy = ellipse.cx, ellipse.cy
+        x1, y1, x2, y2 = ellipse_to_xyxy_pixels(ellipse)
+        box = normalized_yolo_box(x1, y1, x2, y2, img_width, img_height)
+        if box is None:
+            raise ValueError("Bounding box is outside the image")
+        return box
 
-        # Normalize to [0, 1]
-        x_center_norm = cx / img_width
-        y_center_norm = cy / img_height
-        w_norm = bbox_w / img_width
-        h_norm = bbox_h / img_height
-        
-        # Clamp to valid range
-        x_center_norm = max(0.0, min(1.0, x_center_norm))
-        y_center_norm = max(0.0, min(1.0, y_center_norm))
-        w_norm = max(0.001, min(1.0, w_norm))
-        h_norm = max(0.001, min(1.0, h_norm))
-        
-        return x_center_norm, y_center_norm, w_norm, h_norm
-    
     def convert_annotation(self, annotation: ImageAnnotation) -> List[str]:
         """
         Convert ImageAnnotation to YOLO format lines.
-        
-        Args:
-            annotation: ImageAnnotation object
-            
-        Returns:
-            List of YOLO format strings (one per object)
+
+        Unknown labels are rejected. Box corners are clipped to the image
+        before the center and size are calculated.
         """
-        lines = []
-        
-        for ellipse in annotation.ellipses:
-            class_id = self.class_to_id.get(ellipse.label, 0)
-            x, y, w, h = self.ellipse_to_bbox(
-                ellipse, annotation.width, annotation.height
+        if annotation.width <= 0 or annotation.height <= 0:
+            raise ValueError(
+                f"Image '{annotation.name}' has non-positive size "
+                f"{annotation.width}x{annotation.height}"
             )
-            lines.append(f"{class_id} {x:.6f} {y:.6f} {w:.6f} {h:.6f}")
-        
+
+        lines = []
+        for ellipse in annotation.ellipses:
+            if ellipse.label not in self.class_to_id:
+                raise ValueError(
+                    f"Unknown label '{ellipse.label}'. Known classes: {self.class_names}"
+                )
+            x1, y1, x2, y2 = ellipse_to_xyxy_pixels(ellipse)
+            line = xyxy_to_yolo_line(
+                x1,
+                y1,
+                x2,
+                y2,
+                annotation.width,
+                annotation.height,
+                self.class_to_id[ellipse.label],
+            )
+            if line is None:
+                logger.warning(
+                    "Skipping box outside image %s for label %s",
+                    annotation.name,
+                    ellipse.label,
+                )
+                continue
+            lines.append(line)
+
         return lines
     
     def convert_and_save(self, 

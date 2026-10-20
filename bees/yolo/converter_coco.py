@@ -17,6 +17,8 @@ try:
 except ImportError:
     raise ImportError("sahi package required. Install with: pip install sahi")
 
+from .converter import clip_xyxy_to_image
+
 logger = logging.getLogger(__name__)
 
 
@@ -180,28 +182,44 @@ class CVATToCocoConverter:
                 width=ann.width,
             )
 
+            if ann.width <= 0 or ann.height <= 0:
+                raise ValueError(
+                    f"Image '{ann.name}' has non-positive size {ann.width}x{ann.height}"
+                )
+
             # Add annotations (convert ellipses to bboxes in COCO format [x, y, w, h])
             for ellipse in ann.ellipses:
+                if ellipse.label not in self.class_to_id:
+                    raise ValueError(
+                        f"Unknown label '{ellipse.label}'. Known classes: {self.class_names}"
+                    )
                 x1, y1, x2, y2 = ellipse_to_xyxy_pixels(ellipse)
-                width = x2 - x1
-                height = y2 - y1
-
-                # Get class ID
-                class_id = self.class_to_id.get(ellipse.label, 0)
-                class_name = ellipse.label if ellipse.label in self.class_names else self.class_names[0]
+                clipped = clip_xyxy_to_image(x1, y1, x2, y2, ann.width, ann.height)
+                if clipped is None:
+                    logger.warning(
+                        "Skipping box outside image %s for label %s",
+                        ann.name,
+                        ellipse.label,
+                    )
+                    continue
+                left, top, right, bottom = clipped
+                width = right - left
+                height = bottom - top
+                class_id = self.class_to_id[ellipse.label]
+                class_name = ellipse.label
 
                 # SAHI API differs across versions: some CocoAnnotation constructors
                 # support `area`, some don't. Try the richer call first, then fallback.
                 try:
                     annotation = CocoAnnotation(
-                        bbox=[x1, y1, width, height],  # COCO format: [x, y, w, h]
+                        bbox=[left, top, width, height],  # COCO format: [x, y, w, h]
                         category_id=class_id,
                         category_name=class_name,
                         area=width * height,
                     )
                 except TypeError:
                     annotation = CocoAnnotation(
-                        bbox=[x1, y1, width, height],  # COCO format: [x, y, w, h]
+                        bbox=[left, top, width, height],  # COCO format: [x, y, w, h]
                         category_id=class_id,
                         category_name=class_name,
                     )

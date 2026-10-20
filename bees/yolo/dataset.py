@@ -8,6 +8,7 @@ import json
 import logging
 import random
 import shutil
+import tempfile
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
@@ -16,7 +17,7 @@ from typing import Dict, List, Optional, Tuple
 import yaml
 
 from .config import YOLOConfig
-from .converter import CVATToYOLOConverter
+from .converter import CVATToYOLOConverter, xyxy_to_yolo_line
 from .data_discovery import (
     collect_image_files,
     discover_dataset_dirs,
@@ -26,6 +27,8 @@ from .data_discovery import (
 )
 
 logger = logging.getLogger(__name__)
+
+_PREPARED_NAMES = ("train", "val", "data.yaml")
 
 
 @dataclass
@@ -54,12 +57,6 @@ class DatasetPreparer:
             seed = self.config.split_seed
         random.seed(seed)
 
-        if self.config.output_dir.exists():
-            logger.info(f"Cleaning old dataset at {self.config.output_dir}")
-            # shutil.rmtree(self.config.output_dir)  # Keep disabled by default.
-
-        self.config.ensure_dirs()
-
         source_samples = self._load_source_samples()
         if not source_samples:
             raise ValueError("No training samples found for the selected annotation source.")
@@ -73,10 +70,19 @@ class DatasetPreparer:
 
         logger.info(f"Split: {len(train_samples)} train, {len(val_samples)} val")
 
-        train_stats = self._process_split(train_samples, self.config.output_dir / "train")
-        val_stats = self._process_split(val_samples, self.config.output_dir / "val")
+        parent = self.config.output_dir.parent
+        parent.mkdir(parents=True, exist_ok=True)
+        staging = Path(tempfile.mkdtemp(prefix=".yolo-prepare-", dir=parent))
+        try:
+            train_stats = self._process_split(train_samples, staging / "train")
+            val_stats = self._process_split(val_samples, staging / "val")
+            self._generate_data_yaml(staging)
+            data_yaml_path = self._publish_prepared_dataset(staging)
+        finally:
+            if staging.exists():
+                shutil.rmtree(staging, ignore_errors=True)
 
-        data_yaml_path = self._generate_data_yaml()
+        self.config.models_dir.mkdir(parents=True, exist_ok=True)
         logger.info(f"Dataset prepared: train={train_stats}, val={val_stats}")
         logger.info(f"Data config: {data_yaml_path}")
         return data_yaml_path
@@ -147,6 +153,8 @@ class DatasetPreparer:
                     dataset_dir=dataset_dir,
                     annotations_relpath=self.config.annotations_relpath,
                 )
+                if len(coco_candidates) > 1:
+                    raise _multiple_annotations_error(dataset_dir, "COCO", coco_candidates)
                 if coco_candidates:
                     coco_path = coco_candidates[0]
                     coco_key = str(coco_path.resolve())
@@ -164,17 +172,13 @@ class DatasetPreparer:
             )
             if not xml_candidates:
                 continue
+            if len(xml_candidates) > 1:
+                raise _multiple_annotations_error(dataset_dir, "XML", xml_candidates)
             xml_path = xml_candidates[0]
             xml_key = str(xml_path.resolve())
             if xml_key in seen_annotation_paths:
                 continue
             seen_annotation_paths.add(xml_key)
-            if len(xml_candidates) > 1:
-                logger.warning(
-                    "Multiple XML annotations found in %s; using %s. Set yolo_annotations_relpath to select one.",
-                    dataset_dir,
-                    xml_path.name,
-                )
             source_batch, missing_count = self._collect_xml_samples_from_dataset(
                 dataset_dir=dataset_dir,
                 xml_path=xml_path,
@@ -348,16 +352,10 @@ class DatasetPreparer:
             logger.warning("Skipping invalid COCO bbox with non-positive size: %s", bbox)
             return None
 
-        x_center_norm = (x + bbox_w / 2.0) / width
-        y_center_norm = (y + bbox_h / 2.0) / height
-        w_norm = bbox_w / width
-        h_norm = bbox_h / height
-
-        x_center_norm = max(0.0, min(1.0, x_center_norm))
-        y_center_norm = max(0.0, min(1.0, y_center_norm))
-        w_norm = max(0.001, min(1.0, w_norm))
-        h_norm = max(0.001, min(1.0, h_norm))
-        return f"{class_id} {x_center_norm:.6f} {y_center_norm:.6f} {w_norm:.6f} {h_norm:.6f}"
+        line = xyxy_to_yolo_line(x, y, x + bbox_w, y + bbox_h, width, height, class_id)
+        if line is None:
+            logger.warning("Skipping COCO bbox outside the image: %s", bbox)
+        return line
 
     def _build_image_index(self, source_dir: Path) -> Dict[str, Path]:
         """Build lookup index for source images."""
@@ -400,11 +398,32 @@ class DatasetPreparer:
         used_stems[stem] += 1
         return f"{stem}__{used_stems[stem]}"
 
-    def _generate_data_yaml(self) -> Path:
+    def _publish_prepared_dataset(self, staging: Path) -> Path:
+        """Replace train, val, and data.yaml only after the new build exists."""
+        output = self.config.output_dir
+        output.mkdir(parents=True, exist_ok=True)
+        backup = Path(tempfile.mkdtemp(prefix=".yolo-prepare-backup-", dir=output.parent))
+        published: List[str] = []
+        try:
+            for name in _PREPARED_NAMES:
+                current = output / name
+                if current.exists():
+                    shutil.move(str(current), str(backup / name))
+                shutil.move(str(staging / name), str(output / name))
+                published.append(name)
+        except Exception:
+            _restore_prepared_dataset(output, backup, published)
+            raise
+        shutil.rmtree(backup, ignore_errors=True)
+        return output / "data.yaml"
+
+    def _generate_data_yaml(self, directory: Optional[Path] = None) -> Path:
         """Generate data.yaml for YOLO training."""
-        data_yaml_path = self.config.output_dir / "data.yaml"
-        train_path = (self.config.output_dir / "train" / "images").resolve()
-        val_path = (self.config.output_dir / "val" / "images").resolve()
+        directory = self.config.output_dir if directory is None else directory
+        data_yaml_path = directory / "data.yaml"
+        output_dir = self.config.output_dir.resolve()
+        train_path = output_dir / "train" / "images"
+        val_path = output_dir / "val" / "images"
 
         data_config = {
             "path": str(self.config.output_dir.resolve()),
@@ -431,6 +450,43 @@ class DatasetPreparer:
             "fliplr": self.config.fliplr,
             "flipud": self.config.flipud,
         }
+
+
+def _remove_path(path: Path) -> None:
+    if path.is_dir():
+        shutil.rmtree(path)
+    elif path.exists():
+        path.unlink()
+
+
+def _restore_prepared_dataset(output: Path, backup: Path, published: List[str]) -> None:
+    """Drop a partial publish and put the previous train, val, and data.yaml back."""
+    for name in reversed(published):
+        _remove_path(output / name)
+        saved = backup / name
+        if saved.exists():
+            shutil.move(str(saved), str(output / name))
+    for name in _PREPARED_NAMES:
+        saved = backup / name
+        current = output / name
+        if saved.exists() and not current.exists():
+            shutil.move(str(saved), str(current))
+    shutil.rmtree(backup, ignore_errors=True)
+
+
+def _multiple_annotations_error(dataset_dir: Path, kind: str, candidates: List[Path]) -> ValueError:
+    """Name every candidate and the config key that selects one."""
+    shown = []
+    for path in candidates:
+        try:
+            shown.append(path.relative_to(dataset_dir).as_posix())
+        except ValueError:
+            shown.append(path.name)
+    joined = ", ".join(shown)
+    return ValueError(
+        f"Multiple {kind} annotations found in {dataset_dir}: {joined}. "
+        "Set yolo_annotations_relpath to select one."
+    )
 
 
 def prepare_yolo_dataset(config: YOLOConfig, val_split: Optional[float] = None) -> Path:
