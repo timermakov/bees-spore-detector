@@ -605,5 +605,125 @@ class TestDataDiscovery:
         assert find_coco_annotation_candidates(tmp_path) == [coco]
 
 
+class TestTileyConfig:
+    """SAHI settings load from top-level tiley_* keys, the same way as yolo_*."""
+
+    @staticmethod
+    def _manager_from_text(tmp_path: Path, text: str, name: str = "config.yaml"):
+        from bees import create_config_manager
+
+        config_file = tmp_path / name
+        config_file.write_text(text, encoding="utf-8")
+        return create_config_manager(str(config_file))
+
+    def test_repository_yaml_loads_every_field(self):
+        from bees import create_config_manager
+        from bees.yolo.config import TileyConfig
+
+        config_path = Path(__file__).parent.parent / "config.yaml"
+        tiley = TileyConfig.from_config_manager(create_config_manager(str(config_path)))
+
+        assert tiley.export_input == "sahi_tiled_export"
+        assert tiley.export_cvat_xml is None
+        assert tiley.export_out == "sahi_tiled_export"
+        assert tiley.export_tile_size == 480
+        assert tiley.export_overlap_height_ratio == 0.2
+        assert tiley.export_overlap_width_ratio == 0.2
+        assert tiley.predict_input == "dataset_test"
+        assert tiley.predict_out == "results/sahi_tiled_predictions"
+        assert tiley.predict_tile_size == 480
+        assert tiley.predict_overlap_height_ratio == 0.06
+        assert tiley.predict_overlap_width_ratio == 0.054
+        assert tiley.predict_conf == 0.25
+        assert tiley.predict_write_previews is True
+        assert tiley.predict_weights is None
+        assert tiley.predict_device == "cuda:0"
+        assert tiley.predict_model_type == "ultralytics"
+
+    def test_explicit_paths_and_disabled_previews(self, tmp_path):
+        from bees.yolo.config import TileyConfig
+
+        source = (Path(__file__).parent.parent / "config.yaml").read_text(encoding="utf-8")
+        text = source.replace("tiley_export_cvat_xml: null", "tiley_export_cvat_xml: annotations.xml", 1)
+        text = text.replace("tiley_predict_weights: null", "tiley_predict_weights: checkpoints/best.pt", 1)
+        text = text.replace("tiley_predict_write_previews: true", "tiley_predict_write_previews: false", 1)
+
+        tiley = TileyConfig.from_config_manager(self._manager_from_text(tmp_path, text))
+
+        assert tiley.export_cvat_xml == "annotations.xml"
+        assert tiley.predict_weights == "checkpoints/best.pt"
+        assert tiley.predict_write_previews is False
+
+    def test_missing_key_is_named(self, tmp_path):
+        from bees.config_loader import ConfigurationError
+        from bees.yolo.config import TileyConfig
+
+        source = (Path(__file__).parent.parent / "config.yaml").read_text(encoding="utf-8")
+        text = source.replace("tiley_predict_device: cuda:0\n", "", 1)
+
+        with pytest.raises(ConfigurationError, match="tiley_predict_device"):
+            TileyConfig.from_config_manager(self._manager_from_text(tmp_path, text))
+
+    def test_bad_types_are_named(self, tmp_path):
+        from bees.config_loader import ConfigurationError
+        from bees.yolo.config import TileyConfig
+
+        source = (Path(__file__).parent.parent / "config.yaml").read_text(encoding="utf-8")
+        cases = (
+            ("tiley_export_tile_size: 480", "tiley_export_tile_size: large", "tiley_export_tile_size"),
+            ("tiley_predict_write_previews: true", 'tiley_predict_write_previews: "yes"', "tiley_predict_write_previews"),
+            ("tiley_predict_weights: null", 'tiley_predict_weights: ""', "tiley_predict_weights"),
+        )
+        for index, (old, new, key) in enumerate(cases):
+            text = source.replace(old, new, 1)
+            with pytest.raises(ConfigurationError, match=key):
+                TileyConfig.from_config_manager(
+                    self._manager_from_text(tmp_path, text, name=f"bad_{index}.yaml")
+                )
+
+    def test_path_overrides_do_not_change_quality_settings(self):
+        from bees import create_config_manager
+        from bees.main import _resolve_tiley_export_config, _resolve_tiley_predict_config
+
+        config_path = Path(__file__).parent.parent / "config.yaml"
+        manager = create_config_manager(str(config_path))
+
+        export = _resolve_tiley_export_config(manager, "other_in", "other_out")
+        predict = _resolve_tiley_predict_config(manager, "pred_in", "pred_out")
+
+        assert export["images_dir"] == "other_in"
+        assert export["out"] == "other_out"
+        assert export["tile_size"] == 480
+        assert export["overlap_height_ratio"] == 0.2
+        assert predict["source"] == "pred_in"
+        assert predict["out"] == "pred_out"
+        assert predict["conf"] == 0.25
+        assert predict["tile_size"] == 480
+
+    def test_null_weights_follow_configured_model(self, tmp_path):
+        from bees.yolo.config import resolve_predict_weights
+
+        source = (Path(__file__).parent.parent / "config.yaml").read_text(encoding="utf-8")
+        text = source.replace("yolo_model: yolo11s.pt", "yolo_model: yolo26s.pt", 1)
+        manager = self._manager_from_text(tmp_path, text)
+
+        assert Path(resolve_predict_weights(manager)) == (
+            Path("models") / "yolo26s_spores" / "weights" / "best.pt"
+        )
+
+
+class TestTrainCommandFlags:
+    """--train-yolo stays the primary flag and keeps the old alias."""
+
+    def test_train_yolo_and_alias_set_the_same_flag(self):
+        from bees.main import build_parser
+
+        parser = build_parser()
+
+        assert parser.parse_args(["--train-yolo"]).train_yolo is True
+        assert parser.parse_args(["--train-yolo-auto"]).train_yolo is True
+        assert parser.parse_args(["--train-yolo", "--quick-test"]).quick_test is True
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
