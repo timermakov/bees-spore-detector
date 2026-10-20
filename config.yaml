@@ -136,7 +136,9 @@ tiley:
     overlap_width_ratio: 0.054
     conf: 0.25
     write_previews: true
-    # null = yolo_model from the YOLO section above; set a path to pin a checkpoint.
+    # null = trained checkpoint for yolo_model:
+    # <yolo_models_dir>/<model stem>_spores/weights/best.pt
+    # Set a path to pin a different checkpoint.
     weights: null
     device: cuda:0
     model_type: ultralytics

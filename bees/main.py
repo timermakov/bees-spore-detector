@@ -218,14 +218,10 @@ def _resolve_tiley_export_config(config_manager, input_override: Optional[str], 
 
 
 def _resolve_tiley_predict_config(config_manager, input_override: Optional[str], out_override: Optional[str]) -> Dict[str, Any]:
+    from bees.yolo.config import resolve_predict_weights
+
     p = config_manager.get_tiley()["predict"]
-    weights = p["weights"]
-    if not weights:
-        weights = config_manager.get_param("yolo_model")
-        if not weights:
-            raise ConfigurationError(
-                "tiley.predict.weights is empty and config.yaml is missing yolo_model"
-            )
+    weights = resolve_predict_weights(config_manager)
 
     return {
         "source": input_override or p["input"],

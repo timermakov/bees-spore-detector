@@ -2,13 +2,14 @@
 Configuration loading and management module for bee spore analysis.
 
 This module provides functionality for loading and managing configuration files
-in YAML format with validation and default value handling.
+in YAML format. Required values come from the file; missing or mistyped
+values raise ConfigurationError.
 """
 
 import os
 import logging
 from pathlib import Path
-from typing import Any, Dict, Optional, Union, TypeVar, Type, List
+from typing import Any, Dict, Optional, Union, List
 from contextlib import contextmanager
 
 try:
@@ -21,8 +22,7 @@ except ImportError:
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Type variable for generic types
-T = TypeVar('T')
+_UNSET = object()
 
 _TILEY_REQUIRED_KEYS: Dict[str, tuple[str, ...]] = {
     "export": (
@@ -46,6 +46,66 @@ _TILEY_REQUIRED_KEYS: Dict[str, tuple[str, ...]] = {
         "model_type",
     ),
 }
+
+_TILEY_INT_KEYS: Dict[str, tuple[str, ...]] = {
+    "export": ("tile_size",),
+    "predict": ("tile_size",),
+}
+
+_TILEY_FLOAT_KEYS: Dict[str, tuple[str, ...]] = {
+    "export": ("overlap_height_ratio", "overlap_width_ratio"),
+    "predict": ("overlap_height_ratio", "overlap_width_ratio", "conf"),
+}
+
+_TILEY_BOOL_KEYS: Dict[str, tuple[str, ...]] = {
+    "predict": ("write_previews",),
+}
+
+_TILEY_TEXT_KEYS: Dict[str, tuple[str, ...]] = {
+    "export": ("input", "out"),
+    "predict": ("input", "out", "device", "model_type"),
+}
+
+_TILEY_NULLABLE_TEXT_KEYS: Dict[str, tuple[str, ...]] = {
+    "export": ("cvat_xml",),
+    "predict": ("weights",),
+}
+
+
+def _as_int(value: Any, label: str) -> int:
+    """Return an integer, rejecting null, booleans, and non-numeric values."""
+    if value is None:
+        raise ConfigurationError(f"config.yaml '{label}' is null; an integer is required")
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ConfigurationError(f"config.yaml '{label}' must be an integer, got {value!r}")
+    if isinstance(value, float) and not value.is_integer():
+        raise ConfigurationError(f"config.yaml '{label}' must be an integer, got {value!r}")
+    return int(value)
+
+
+def _as_float(value: Any, label: str) -> float:
+    """Return a float, rejecting null, booleans, and non-numeric values."""
+    if value is None:
+        raise ConfigurationError(f"config.yaml '{label}' is null; a number is required")
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ConfigurationError(f"config.yaml '{label}' must be a number, got {value!r}")
+    return float(value)
+
+
+def _as_bool(value: Any, label: str) -> bool:
+    """Return a boolean. Only YAML true/false are accepted."""
+    if not isinstance(value, bool):
+        raise ConfigurationError(f"config.yaml '{label}' must be true or false, got {value!r}")
+    return value
+
+
+def _as_text(value: Any, label: str, allow_null: bool = False) -> Optional[str]:
+    """Return a non-empty string. Null is accepted only when allow_null is set."""
+    if value is None and allow_null:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise ConfigurationError(f"config.yaml '{label}' must be a non-empty string")
+    return value
 
 
 class ConfigurationError(Exception):
@@ -196,7 +256,7 @@ class ConfigurationLoader:
 
 
 class ConfigurationManager:
-    """Manages configuration with default values and type conversion."""
+    """Reads configuration from config.yaml without substituting hidden defaults."""
     
     def __init__(self, config: Dict[str, Any]):
         """
@@ -206,81 +266,66 @@ class ConfigurationManager:
             config: Configuration dictionary
         """
         self.config = config
-        self._defaults = self._get_defaults()
     
-    def _get_defaults(self) -> Dict[str, Any]:
-        """Get default configuration values."""
-        return {
-            'data_dir': 'dataset2',
-            'results_dir': 'results2',
-            'min_contour_area': 25,
-            'max_contour_area': 500,
-            'min_ellipse_area': 25,
-            'max_ellipse_area': 500,
-            'canny_threshold1': 40,
-            'canny_threshold2': 125,
-            'min_spore_contour_length': 5,
-            'intensity_threshold': 50,
-            'analysis_square_size': 780,
-            'analysis_square_line_width': 2,
-        }
-    
-    def get_param(self, key: str, default: Optional[Any] = None) -> Any:
+    def get_param(self, key: str, default: Any = _UNSET) -> Any:
         """
-        Get a configuration parameter with optional default value.
-        
+        Get a configuration parameter.
+
         Args:
             key: Parameter key
-            default: Default value if key not found
-            
+            default: Value used only when the key is absent
+
         Returns:
-            Parameter value or default
+            Parameter value, including null when the key is present
+
+        Raises:
+            ConfigurationError: If the key is absent and no default was given
         """
-        if default is None:
-            default = self._defaults.get(key)
-        
-        value = self.config.get(key, default)
+        if key in self.config:
+            value = self.config[key]
+        elif default is not _UNSET:
+            value = default
+        else:
+            raise ConfigurationError(f"config.yaml is missing '{key}'")
         logger.debug(f"Config parameter '{key}' = {value}")
         return value
     
-    def get_param_typed(self, key: str, param_type: Type[T], default: Optional[T] = None) -> T:
-        """
-        Get a configuration parameter with type conversion.
-        
-        Args:
-            key: Parameter key
-            param_type: Expected type
-            default: Default value if key not found
-            
-        Returns:
-            Parameter value converted to specified type
-        """
-        value = self.get_param(key, default)
-        
-        try:
-            if value is not None:
-                return param_type(value)
-            else:
-                return value
-        except (ValueError, TypeError) as e:
-            logger.warning(f"Failed to convert '{key}' value '{value}' to {param_type.__name__}: {e}")
-            return default
+    def get_int_param(self, key: str, default: Any = _UNSET) -> int:
+        """Get an integer parameter. Null and non-numeric values are rejected."""
+        if key not in self.config:
+            if default is _UNSET:
+                raise ConfigurationError(f"config.yaml is missing '{key}'")
+            return _as_int(default, key)
+        return _as_int(self.config[key], key)
     
-    def get_int_param(self, key: str, default: Optional[int] = None) -> int:
-        """Get an integer parameter."""
-        return self.get_param_typed(key, int, default)
+    def get_float_param(self, key: str, default: Any = _UNSET) -> float:
+        """Get a float parameter. Null and non-numeric values are rejected."""
+        if key not in self.config:
+            if default is _UNSET:
+                raise ConfigurationError(f"config.yaml is missing '{key}'")
+            return _as_float(default, key)
+        return _as_float(self.config[key], key)
     
-    def get_float_param(self, key: str, default: Optional[float] = None) -> float:
-        """Get a float parameter."""
-        return self.get_param_typed(key, float, default)
+    def get_string_param(self, key: str, default: Any = _UNSET) -> str:
+        """Get a non-empty string parameter."""
+        if key not in self.config:
+            if default is _UNSET:
+                raise ConfigurationError(f"config.yaml is missing '{key}'")
+            value = default
+        else:
+            value = self.config[key]
+        text = _as_text(value, key)
+        if text is None:
+            raise ConfigurationError(f"config.yaml '{key}' must be a non-empty string")
+        return text
     
-    def get_string_param(self, key: str, default: Optional[str] = None) -> str:
-        """Get a string parameter."""
-        return self.get_param_typed(key, str, default)
-    
-    def get_bool_param(self, key: str, default: Optional[bool] = None) -> bool:
-        """Get a boolean parameter."""
-        return self.get_param_typed(key, bool, default)
+    def get_bool_param(self, key: str, default: Any = _UNSET) -> bool:
+        """Get a boolean parameter. Only real true/false values are accepted."""
+        if key not in self.config:
+            if default is _UNSET:
+                raise ConfigurationError(f"config.yaml is missing '{key}'")
+            return _as_bool(default, key)
+        return _as_bool(self.config[key], key)
     
     def has_param(self, key: str) -> bool:
         """Check if a parameter exists in configuration."""
@@ -307,14 +352,25 @@ class ConfigurationManager:
                 raise ConfigurationError(
                     f"config.yaml is missing tiley.{section} keys: " + ", ".join(missing_keys)
                 )
-            resolved[section] = dict(block)
+            resolved_block = dict(block)
+            for key in _TILEY_INT_KEYS.get(section, ()):
+                resolved_block[key] = _as_int(resolved_block[key], f"tiley.{section}.{key}")
+            for key in _TILEY_FLOAT_KEYS.get(section, ()):
+                resolved_block[key] = _as_float(resolved_block[key], f"tiley.{section}.{key}")
+            for key in _TILEY_BOOL_KEYS.get(section, ()):
+                resolved_block[key] = _as_bool(resolved_block[key], f"tiley.{section}.{key}")
+            for key in _TILEY_TEXT_KEYS.get(section, ()):
+                resolved_block[key] = _as_text(resolved_block[key], f"tiley.{section}.{key}")
+            for key in _TILEY_NULLABLE_TEXT_KEYS.get(section, ()):
+                resolved_block[key] = _as_text(
+                    resolved_block[key], f"tiley.{section}.{key}", allow_null=True
+                )
+            resolved[section] = resolved_block
         return resolved
     
     def get_all_params(self) -> Dict[str, Any]:
-        """Get all configuration parameters with defaults applied."""
-        result = self._defaults.copy()
-        result.update(self.config)
-        return result
+        """Get the configuration values loaded from YAML."""
+        return dict(self.config)
     
     def validate_required_params(self, required_keys: list) -> List[str]:
         """

@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import ClassVar, Optional, List
 import logging
 
+from ..config_loader import ConfigurationError
+
 logger = logging.getLogger(__name__)
 
 
@@ -128,19 +130,28 @@ class YOLOConfig:
         """Create YOLOConfig from existing ConfigurationManager."""
         missing_keys = [key for key in cls.REQUIRED_YAML_KEYS if not config_manager.has_param(key)]
         if missing_keys:
-            raise ValueError(
+            raise ConfigurationError(
                 "config.yaml is missing required YOLO keys: " + ", ".join(missing_keys)
             )
 
         image_extensions = config_manager.get_param('yolo_image_extensions')
         class_names = config_manager.get_param('yolo_class_names')
         if not isinstance(image_extensions, list) or not all(isinstance(item, str) for item in image_extensions):
-            raise ValueError("yolo_image_extensions must be a list of file extensions")
+            raise ConfigurationError("yolo_image_extensions must be a list of file extensions")
         if not isinstance(class_names, list) or not all(isinstance(item, str) and item for item in class_names):
-            raise ValueError("yolo_class_names must be a non-empty list of class names")
+            raise ConfigurationError("yolo_class_names must be a non-empty list of class names")
+
+        device = config_manager.get_param('yolo_device')
+        if device is not None and not isinstance(device, str):
+            raise ConfigurationError("yolo_device must be a string such as 'cpu' or '0', or null")
+        annotations_relpath = config_manager.get_param('yolo_annotations_relpath')
+        if annotations_relpath is not None and (
+            not isinstance(annotations_relpath, str) or not annotations_relpath.strip()
+        ):
+            raise ConfigurationError("yolo_annotations_relpath must be a relative path or null")
 
         return cls(
-            model_name=config_manager.get_param('yolo_model'),
+            model_name=config_manager.get_string_param('yolo_model'),
             confidence_threshold=config_manager.get_float_param('yolo_confidence'),
             iou_threshold=config_manager.get_float_param('yolo_iou_threshold'),
             epochs=config_manager.get_int_param('yolo_epochs'),
@@ -148,7 +159,7 @@ class YOLOConfig:
             imgsz=config_manager.get_int_param('yolo_imgsz'),
             patience=config_manager.get_int_param('yolo_patience'),
             analysis_square_size=config_manager.get_int_param('analysis_square_size'),
-            device=config_manager.get_param('yolo_device'),
+            device=device,
             workers=config_manager.get_int_param('yolo_workers'),
             quick_test_epochs=config_manager.get_int_param('yolo_quick_test_epochs'),
             quick_test_imgsz=config_manager.get_int_param('yolo_quick_test_imgsz'),
@@ -156,15 +167,15 @@ class YOLOConfig:
             quick_test_patience=config_manager.get_int_param('yolo_quick_test_patience'),
             validation_split=config_manager.get_float_param('yolo_validation_split'),
             split_seed=config_manager.get_int_param('yolo_split_seed'),
-            datasets_root=Path(config_manager.get_param('yolo_datasets_root')),
-            dataset_folder_pattern=config_manager.get_param('yolo_dataset_folder_pattern'),
-            annotations_format=config_manager.get_param('yolo_annotations_format'),
-            annotations_relpath=config_manager.get_param('yolo_annotations_relpath'),
-            images_subdir=config_manager.get_param('yolo_images_subdir'),
+            datasets_root=Path(config_manager.get_string_param('yolo_datasets_root')),
+            dataset_folder_pattern=config_manager.get_string_param('yolo_dataset_folder_pattern'),
+            annotations_format=config_manager.get_string_param('yolo_annotations_format'),
+            annotations_relpath=annotations_relpath,
+            images_subdir=config_manager.get_string_param('yolo_images_subdir'),
             image_extensions=image_extensions,
-            test_dir=Path(config_manager.get_param('yolo_test_dir')),
-            output_dir=Path(config_manager.get_param('yolo_output_dir')),
-            models_dir=Path(config_manager.get_param('yolo_models_dir')),
+            test_dir=Path(config_manager.get_string_param('yolo_test_dir')),
+            output_dir=Path(config_manager.get_string_param('yolo_output_dir')),
+            models_dir=Path(config_manager.get_string_param('yolo_models_dir')),
             mosaic=config_manager.get_float_param('yolo_mosaic'),
             mixup=config_manager.get_float_param('yolo_mixup'),
             hsv_h=config_manager.get_float_param('yolo_hsv_h'),
@@ -174,7 +185,7 @@ class YOLOConfig:
             scale=config_manager.get_float_param('yolo_scale'),
             fliplr=config_manager.get_float_param('yolo_fliplr'),
             flipud=config_manager.get_float_param('yolo_flipud'),
-            optimizer=config_manager.get_param('yolo_optimizer'),
+            optimizer=config_manager.get_string_param('yolo_optimizer'),
             learning_rate=config_manager.get_float_param('yolo_learning_rate'),
             final_learning_rate_factor=config_manager.get_float_param('yolo_final_learning_rate_factor'),
             warmup_epochs=config_manager.get_int_param('yolo_warmup_epochs'),
@@ -205,3 +216,16 @@ class YOLOConfig:
         (self.output_dir / "train" / "labels").mkdir(parents=True, exist_ok=True)
         (self.output_dir / "val" / "images").mkdir(parents=True, exist_ok=True)
         (self.output_dir / "val" / "labels").mkdir(parents=True, exist_ok=True)
+
+
+def resolve_predict_weights(config_manager) -> str:
+    """Resolve ``tiley.predict.weights``.
+
+    Null selects the trained checkpoint for ``yolo_model``:
+    ``<yolo_models_dir>/<model stem>_spores/weights/best.pt``.
+    An explicit path pins a different checkpoint.
+    """
+    weights = config_manager.get_tiley()["predict"]["weights"]
+    if weights:
+        return str(weights)
+    return str(YOLOConfig.from_config_manager(config_manager).get_trained_model_path())

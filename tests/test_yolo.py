@@ -355,7 +355,9 @@ yolo_class_names: [spore]
         config_file.write_text("data_dir: test_data\nresults_dir: test_results\n")
 
         config_manager = create_config_manager(str(config_file))
-        with pytest.raises(ValueError, match="yolo_model"):
+        from bees.config_loader import ConfigurationError
+
+        with pytest.raises(ConfigurationError, match="yolo_model"):
             YOLOConfig.from_config_manager(config_manager)
 
     def test_tiley_section_is_required(self, tmp_path):
@@ -381,7 +383,7 @@ yolo_class_names: [spore]
         predict = _resolve_tiley_predict_config(config_manager, None, None)
         export = _resolve_tiley_export_config(config_manager, None, None)
 
-        assert predict["weights"] == "yolo11s.pt"
+        assert Path(predict["weights"]) == Path("models") / "yolo11s_spores" / "weights" / "best.pt"
         assert predict["tile_size"] == 480
         assert predict["conf"] == 0.25
         assert predict["overlap_height_ratio"] == 0.06
@@ -389,6 +391,59 @@ yolo_class_names: [spore]
         assert predict["write_previews"] is True
         assert export["tile_size"] == 480
         assert export["overlap_height_ratio"] == 0.2
+
+        config_manager.config["tiley"]["predict"]["weights"] = "checkpoints/custom.pt"
+        pinned = _resolve_tiley_predict_config(config_manager, None, None)
+        assert pinned["weights"] == "checkpoints/custom.pt"
+
+    def test_null_and_non_numeric_values_are_rejected(self, tmp_path):
+        """Null and mistyped numbers fail with the key name."""
+        from bees import create_config_manager
+        from bees.config_loader import ConfigurationError
+
+        source = (Path(__file__).parent.parent / "config.yaml").read_text(encoding="utf-8")
+
+        null_epochs = tmp_path / "null_epochs.yaml"
+        null_epochs.write_text(source.replace("yolo_epochs: 100", "yolo_epochs: null", 1), encoding="utf-8")
+        with pytest.raises(ConfigurationError, match="yolo_epochs"):
+            YOLOConfig.from_config_manager(create_config_manager(str(null_epochs)))
+
+        bad_batch = tmp_path / "bad_batch.yaml"
+        bad_batch.write_text(source.replace("yolo_batch_size: 2", "yolo_batch_size: many", 1), encoding="utf-8")
+        with pytest.raises(ConfigurationError, match="yolo_batch_size"):
+            YOLOConfig.from_config_manager(create_config_manager(str(bad_batch)))
+
+        null_conf = tmp_path / "null_conf.yaml"
+        null_conf.write_text(source.replace("conf: 0.25", "conf: null", 1), encoding="utf-8")
+        with pytest.raises(ConfigurationError, match="tiley.predict.conf"):
+            create_config_manager(str(null_conf)).get_tiley()
+
+    def test_opencv_and_titer_require_yaml_values(self, tmp_path):
+        """OpenCV and titer read config.yaml and do not fill Python defaults."""
+        from bees import create_config_manager
+        from bees.config_loader import ConfigurationError
+        from bees.titer import create_calculator_from_config
+
+        source_path = Path(__file__).parent.parent / "config.yaml"
+        source = source_path.read_text(encoding="utf-8")
+        config_manager = create_config_manager(str(source_path))
+
+        assert config_manager.get_int_param("min_contour_area") == 45
+        assert config_manager.get_int_param("max_ellipse_area") == 360
+        assert config_manager.get_int_param("intensity_threshold") == 36
+        calculator = create_calculator_from_config(config_manager)
+        assert calculator.square_size == 780
+        assert calculator.volume_factor == 4.0
+
+        missing_area = tmp_path / "missing_area.yaml"
+        missing_area.write_text(source.replace("min_contour_area: 45\n", "", 1), encoding="utf-8")
+        with pytest.raises(ConfigurationError, match="min_contour_area"):
+            create_config_manager(str(missing_area)).get_int_param("min_contour_area")
+
+        missing_volume = tmp_path / "missing_volume.yaml"
+        missing_volume.write_text(source.replace("volume_factor: 4.0\n", "", 1), encoding="utf-8")
+        with pytest.raises(ConfigurationError, match="volume_factor"):
+            create_calculator_from_config(create_config_manager(str(missing_volume)))
 
 
 @pytest.mark.skipif(not PANDAS_AVAILABLE, reason="pandas not installed")
