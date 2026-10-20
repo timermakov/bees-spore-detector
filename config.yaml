@@ -107,36 +107,34 @@ yolo_show_conf: false
 yolo_pretrained: true
 yolo_verbose: true
 
-# ========== Tiley / SAHI (YAML-first) ==========
+# ========== Tiley / SAHI ==========
 # Commands:
 #   python -m bees.main tile-export [--input ...] [--out ...]
 #   python -m bees.main tile-predict [--input ...] [--out ...]
-# All quality/inference parameters are taken from YAML only.
-tiley:
-  export:
-    # Folder with source images (can override via tile-export --input)
-    input: sahi_tiled_export
-    # Path to CVAT XML; if null, will try to use <input>/annotations.xml
-    cvat_xml: null
-    # Result folder (can override via tile-export --out)
-    out: sahi_tiled_export
-    # Square tile: tile_size x tile_size
-    tile_size: 480
-    overlap_height_ratio: 0.2
-    overlap_width_ratio: 0.2
+# Same pattern as yolo_*: each value is its own top-level key.
+# Folder with source images (can override via tile-export --input)
+tiley_export_input: sahi_tiled_export
+# Path to CVAT XML; if null, will try to use <input>/annotations.xml
+tiley_export_cvat_xml: null
+# Result folder (can override via tile-export --out)
+tiley_export_out: sahi_tiled_export
+# Square tile: tile_size x tile_size
+tiley_export_tile_size: 480
+tiley_export_overlap_height_ratio: 0.2
+tiley_export_overlap_width_ratio: 0.2
 
-  predict:
-    # Folder with images for inference (can override via tile-predict --input)
-    input: dataset_test
-    # Result folder (can override via tile-predict --out)
-    out: results/sahi_tiled_predictions
-    # Square tile: tile_size x tile_size
-    tile_size: 480
-    overlap_height_ratio: 0.06
-    overlap_width_ratio: 0.054
-    conf: 0.25
-    write_previews: true
-    # null = yolo_model from the YOLO section above; set a path to pin a checkpoint.
-    weights: null
-    device: cuda:0
-    model_type: ultralytics
+# Folder with images for inference (can override via tile-predict --input)
+tiley_predict_input: dataset_test
+# Result folder (can override via tile-predict --out)
+tiley_predict_out: results/sahi_tiled_predictions
+tiley_predict_tile_size: 480
+tiley_predict_overlap_height_ratio: 0.06
+tiley_predict_overlap_width_ratio: 0.054
+tiley_predict_conf: 0.25
+tiley_predict_write_previews: true
+# null = trained checkpoint for yolo_model:
+# <yolo_models_dir>/<model stem>_spores/weights/best.pt
+# Set a path to pin a different checkpoint.
+tiley_predict_weights: null
+tiley_predict_device: cuda:0
+tiley_predict_model_type: ultralytics

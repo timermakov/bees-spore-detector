@@ -41,7 +41,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from ..titer import TiterCalculator, create_calculator_from_config
-from ..config_loader import ConfigurationError, create_config_manager
+from ..config_loader import create_config_manager
 from .data_discovery import collect_image_files
 try:
     from .sahi_inference import SAHIDetector
@@ -175,27 +175,19 @@ class HierarchicalAnalyzer:
             if not SAHI_AVAILABLE:
                 raise ImportError("SAHI not installed. Run: pip install sahi")
 
-            # Read tiley.predict from config.yaml. Null weights mean yolo_model.
-            predict_cfg = self.config_manager.get_tiley()["predict"]
+            # Null tiley_predict_weights selects the trained checkpoint for yolo_model.
+            from bees.yolo.config import TileyConfig, resolve_predict_weights
 
-            if self.weights_path:
-                model_path = self.weights_path
-            else:
-                model_path = predict_cfg["weights"]
-                if not model_path:
-                    model_path = self.config_manager.get_param("yolo_model")
-                if not model_path:
-                    raise ConfigurationError(
-                        "tiley.predict.weights is empty and config.yaml is missing yolo_model"
-                    )
+            tiley = TileyConfig.from_config_manager(self.config_manager)
+            model_path = self.weights_path or resolve_predict_weights(self.config_manager)
 
-            conf = predict_cfg["conf"]
-            device = predict_cfg["device"]
-            model_type = predict_cfg["model_type"]
-            self.slice_height = int(predict_cfg["tile_size"])
+            conf = tiley.predict_conf
+            device = tiley.predict_device
+            model_type = tiley.predict_model_type
+            self.slice_height = tiley.predict_tile_size
             self.slice_width = self.slice_height
-            self.overlap_height_ratio = float(predict_cfg["overlap_height_ratio"])
-            self.overlap_width_ratio = float(predict_cfg["overlap_width_ratio"])
+            self.overlap_height_ratio = tiley.predict_overlap_height_ratio
+            self.overlap_width_ratio = tiley.predict_overlap_width_ratio
 
             self.detector = SAHIDetector(
                 model_path=model_path,

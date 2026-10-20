@@ -145,7 +145,7 @@ class TiterCalculator:
         self.square_area = self.square_size ** 2
 
 def create_calculator_from_config(config_manager) -> TiterCalculator:
-    """Factory: create TiterCalculator from ConfigurationManager."""
-    square_size = config_manager.get_int_param('analysis_square_size', TiterCalculator.ANALYSIS_SQUARE_SIZE)
-    volume_factor = config_manager.get_float_param('volume_factor', TiterCalculator.VOLUME_FACTOR)
+    """Factory: create TiterCalculator from config.yaml values."""
+    square_size = config_manager.get_int_param('analysis_square_size')
+    volume_factor = config_manager.get_float_param('volume_factor')
     return TiterCalculator(square_size=square_size, volume_factor=volume_factor)

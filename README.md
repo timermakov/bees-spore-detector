@@ -126,7 +126,7 @@ python -m bees.main tile-export --input dataset_test --out sahi_tiled_export
 python -m bees.main tile-predict --input dataset_test2 --out results/sahi_tiled_predictions
 ```
 
-All slicing/inference quality settings are configured in `config.yaml` under `tiley`.
+All slicing and inference settings are top-level `tiley_*` keys in `config.yaml`, loaded the same way as `yolo_*`.
 
 ### SAHI Pipeline Features
 

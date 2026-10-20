@@ -93,16 +93,16 @@ class SporeDetector:
         except ImportError:
             raise ImportError("ultralytics package required. Install with: pip install ultralytics")
         
-        # Load trained PyTorch model if available
+        # Inference uses the trained checkpoint derived from yolo_model.
+        # Training still starts from model_name itself.
         pt_path = self.config.get_trained_model_path()
-        
-        if pt_path.exists():
-            logger.info(f"Loading PyTorch model from {pt_path}")
-            self.model = YOLO(str(pt_path))
-        else:
-            # Use pretrained model for testing
-            logger.warning(f"Trained model not found, using pretrained {self.config.model_name}")
-            self.model = YOLO(self.config.model_name)
+        if not pt_path.is_file():
+            raise FileNotFoundError(
+                f"Trained model not found: {pt_path}. "
+                "Train with --train-yolo, or pass an explicit checkpoint path."
+            )
+        logger.info(f"Loading PyTorch model from {pt_path}")
+        self.model = YOLO(str(pt_path))
 
     def load_weights(self, weights_path: Union[str, Path]) -> None:
         """Load a specific ``.pt`` checkpoint (e.g. for tiled inference experiments)."""
