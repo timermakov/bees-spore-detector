@@ -11,9 +11,31 @@ import logging
 import shutil
 
 from .config import YOLOConfig
+from .cvat import xyxy_to_yolo_line
 from .detector import SporeDetector
 
 logger = logging.getLogger(__name__)
+
+
+def detection_to_yolo_line(detection, img_width: int, img_height: int, class_names: List[str]) -> Optional[str]:
+    """Clip one detection to the image and format it with the configured class id."""
+    if detection.class_name in class_names:
+        class_id = class_names.index(detection.class_name)
+    elif 0 <= detection.class_id < len(class_names):
+        class_id = detection.class_id
+    else:
+        raise ValueError(
+            f"Unknown label '{detection.class_name}'. Known classes: {class_names}"
+        )
+    return xyxy_to_yolo_line(
+        detection.x1,
+        detection.y1,
+        detection.x2,
+        detection.y2,
+        img_width,
+        img_height,
+        class_id,
+    )
 
 
 class PseudoLabeler:
@@ -75,16 +97,19 @@ class PseudoLabeler:
                 with Image.open(img_path) as img:
                     img_width, img_height = img.size
                 
-                # Convert to YOLO format
                 lines = []
                 for det in detections:
-                    # YOLO format: class_id x_center y_center width height (normalized)
-                    x_center = (det.x1 + det.x2) / 2 / img_width
-                    y_center = (det.y1 + det.y2) / 2 / img_height
-                    width = det.width / img_width
-                    height = det.height / img_height
-                    
-                    lines.append(f"0 {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}")
+                    line = detection_to_yolo_line(
+                        det, img_width, img_height, self.config.class_names
+                    )
+                    if line is None:
+                        logger.warning("Skipping box outside image %s", img_path.name)
+                        continue
+                    lines.append(line)
+                if not lines:
+                    logger.info(f"No visible detections in {img_path.name}, skipping")
+                    stats['skipped'] += 1
+                    continue
                 
                 # Save label file
                 label_path = labels_dir / (img_path.stem + ".txt")
@@ -97,7 +122,7 @@ class PseudoLabeler:
                     shutil.copy2(img_path, dst_image)
                 
                 stats['images'] += 1
-                stats['detections'] += len(detections)
+                stats['detections'] += len(lines)
                 logger.info(f"Labeled {img_path.name}: {len(detections)} detections")
                 
             except Exception as e:

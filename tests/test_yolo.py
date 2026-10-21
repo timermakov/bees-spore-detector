@@ -32,6 +32,8 @@ from bees.yolo.cvat import (
     xyxy_to_yolo_line,
 )
 from bees.yolo.cvat_to_yolo import convert_cvat_to_yolo
+from bees.yolo.detector import Detection
+from bees.yolo.pseudo_label import detection_to_yolo_line
 from bees.yolo.data_discovery import (
     collect_image_files,
     discover_dataset_dirs,
@@ -1863,6 +1865,38 @@ class TestTrainCommandFlags:
         assert parsed.use_sahi is True
         assert parsed.weights == "checkpoints/custom.pt"
         assert parsed.no_yolo is True
+
+
+class TestPseudoLabelLines:
+    """Pseudo-labels use the configured class and clip to the image."""
+
+    def test_line_uses_the_configured_class_and_clips(self):
+        # Arrange
+        detection = Detection((80, 90, 120, 120), confidence=0.9, class_id=3, class_name="spore")
+
+        # Act
+        line = detection_to_yolo_line(detection, 100, 100, ["debris", "spore"])
+
+        # Assert
+        assert line == "1 0.900000 0.950000 0.200000 0.100000"
+
+    def test_box_outside_the_image_has_no_line(self):
+        # Arrange
+        detection = Detection((200, 200, 210, 210), confidence=0.9, class_name="spore")
+
+        # Act
+        line = detection_to_yolo_line(detection, 100, 100, ["spore"])
+
+        # Assert
+        assert line is None
+
+    def test_unknown_class_is_rejected(self):
+        # Arrange
+        detection = Detection((10, 10, 20, 20), confidence=0.9, class_id=9, class_name="dust")
+
+        # Act
+        with pytest.raises(ValueError, match="dust"):
+            detection_to_yolo_line(detection, 100, 100, ["spore"])
 
 
 if __name__ == "__main__":
