@@ -4,12 +4,6 @@ import logging
 from pathlib import Path
 from typing import List, Optional
 
-try:
-    from sahi.utils.coco import Coco, CocoAnnotation, CocoCategory, CocoImage
-    from sahi.utils.file import save_json
-except ImportError:
-    raise ImportError("sahi package required. Install with: pip install sahi")
-
 from .cvat import (
     ImageAnnotation,
     clipped_ellipse_box,
@@ -20,6 +14,16 @@ from .cvat import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _sahi_coco():
+    """Import SAHI only when a COCO dataset is built or saved."""
+    try:
+        from sahi.utils.coco import Coco, CocoAnnotation, CocoCategory, CocoImage
+        from sahi.utils.file import save_json
+    except ImportError:
+        raise ImportError("sahi package required. Install with: pip install sahi")
+    return Coco, CocoAnnotation, CocoCategory, CocoImage, save_json
 
 
 class CVATToCocoConverter:
@@ -34,13 +38,14 @@ class CVATToCocoConverter:
         """Read ellipses and boxes from a CVAT XML file."""
         return read_cvat_xml(xml_path)
 
-    def _initialize_coco(self) -> Coco:
+    def _initialize_coco(self):
+        Coco, _, CocoCategory, _, _ = _sahi_coco()
         coco = Coco()
         for idx, class_name in enumerate(self.class_names):
             coco.add_category(CocoCategory(id=idx, name=class_name))
         return coco
 
-    def parse_cvat_to_coco(self, xml_path: Path, images_dir: Optional[Path] = None) -> Coco:
+    def parse_cvat_to_coco(self, xml_path: Path, images_dir: Optional[Path] = None):
         """Parse CVAT XML and build a COCO dataset."""
         xml_path = Path(xml_path)
         images_dir = Path(images_dir) if images_dir else xml_path.parent
@@ -59,6 +64,7 @@ class CVATToCocoConverter:
                 file_name = str(image_path.relative_to(images_dir))
             except ValueError:
                 file_name = image_path.name
+            _, _, _, CocoImage, _ = _sahi_coco()
             coco_image = CocoImage(
                 file_name=file_name,
                 height=annotation.height,
@@ -99,12 +105,14 @@ class CVATToCocoConverter:
 
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
+        _, _, _, _, save_json = _sahi_coco()
         save_json(self.coco.json, output_path)
         logger.info("Exported COCO dataset to %s", output_path)
         return output_path
 
 
-def _coco_annotation(bbox, category_id: int, category_name: str, area: float) -> CocoAnnotation:
+def _coco_annotation(bbox, category_id: int, category_name: str, area: float):
+    _, CocoAnnotation, _, _, _ = _sahi_coco()
     try:
         return CocoAnnotation(
             bbox=bbox,
