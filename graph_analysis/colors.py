@@ -22,13 +22,26 @@ _PALETTE = [
 # Явные предпочтения для известных проб (необязательно)
 _PREFERRED = {
     "control": "#1f77b4",
+    "Del": "#ff7f0e",
     "delta": "#ff7f0e",
-    "delta_chimeric": "#2ca02c",
+    "DcH": "#2ca02c",
+    "delta_chimeric": "#98df8a",
     "ligase": "#d62728",
     "ligase_chimeric": "#9467bd",
+    "PTP3+CS": "#8c564b",
     "PTP+CS": "#8c564b",
+    "PTP3+PEI": "#e377c2",
     "PTP+PEI": "#e377c2",
 }
+
+
+def _canonical_probe(name: str) -> str:
+    """Map hand-analysis probe labels onto the base probe color."""
+    s = str(name)
+    suffix = "_hand_analysis"
+    if s.endswith(suffix):
+        return s[: -len(suffix)]
+    return s
 
 _COLORS = {}
 
@@ -44,7 +57,10 @@ def register_samples(samples):
     samples = [str(s) for s in samples]
 
     for s in samples:
-        if s in _PREFERRED:
+        key = _canonical_probe(s)
+        if key in _PREFERRED:
+            _COLORS[s] = _PREFERRED[key]
+        elif s in _PREFERRED:
             _COLORS[s] = _PREFERRED[s]
 
     used = set(_COLORS.values())
@@ -66,6 +82,13 @@ def register_samples(samples):
 def get_sample_color(sample):
     s = str(sample)
     if s in _COLORS:
+        return _COLORS[s]
+    key = _canonical_probe(s)
+    if key in _PREFERRED:
+        _COLORS[s] = _PREFERRED[key]
+        return _COLORS[s]
+    if s in _PREFERRED:
+        _COLORS[s] = _PREFERRED[s]
         return _COLORS[s]
     _COLORS[s] = "#7f7f7f"
     return _COLORS[s]
