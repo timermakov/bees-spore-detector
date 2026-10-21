@@ -380,8 +380,10 @@ class HierarchicalAnalyzer:
 
     def generate_excel_report(self, analysis_results, output_dir, filename="hierarchical_analysis.xlsx"):
         from openpyxl import Workbook
-        from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
+        from openpyxl.styles import Alignment, Font, PatternFill
         from openpyxl.utils import get_column_letter
+
+        from bees.reporting import apply_header_style, apply_thin_borders
 
         output_path = output_dir / filename
         wb = Workbook()
@@ -402,14 +404,10 @@ class HierarchicalAnalyzer:
             headers = ['Probe', 'n', 'Titer ± Std', 'p-value']
             ws.append(headers)
 
-            # Header style
-            header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-            header_font = Font(bold=True, color="FFFFFF")
-            for col_idx in range(1, 5):
-                cell = ws.cell(row=3, column=col_idx)
-                cell.fill = header_fill
-                cell.font = header_font
-                cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            apply_header_style(
+                [ws.cell(row=3, column=col_idx) for col_idx in range(1, 5)],
+                wrap_text=True,
+            )
 
             row_idx = 4
             for probe in sorted(type_stats.probes, key=lambda p: p.probe_name):
@@ -440,13 +438,10 @@ class HierarchicalAnalyzer:
 
             ws.row_dimensions[3].height = 30
 
-            thin_border = Border(left=Side(style='thin'), right=Side(style='thin'),
-                                 top=Side(style='thin'), bottom=Side(style='thin'))
-            for row in ws.iter_rows(min_row=3, max_row=ws.max_row, min_col=1, max_col=4):
+            apply_thin_borders(ws, 3, ws.max_row, 1, 4)
+            for row in ws.iter_rows(min_row=4, max_row=ws.max_row, min_col=1, max_col=4):
                 for cell in row:
-                    cell.border = thin_border
-                    if cell.row > 3:
-                        cell.alignment = Alignment(horizontal="center", vertical="center")
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
 
         if 'Sheet' in wb.sheetnames:
             del wb['Sheet']
@@ -455,6 +450,7 @@ class HierarchicalAnalyzer:
         wb.save(output_path)
         logger.info(f"✓ Excel report saved: {output_path}")
         return output_path
+
     def generate_markdown_summary(
         self,
         analysis_results: Dict[str, TypeStatistics],

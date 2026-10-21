@@ -327,7 +327,10 @@ class TestIoUtils:
         # Arrange
         xml_path = tmp_path / "photo.jpg_meta.xml"
         xml_path.write_text("<meta><name>photo</name></meta>", encoding="utf-8")
+        png_meta = tmp_path / "frame.png_meta.xml"
+        png_meta.write_text("<meta/>", encoding="utf-8")
         _write_image(tmp_path / "photo.jpg")
+        _write_image(tmp_path / "frame.png")
         _write_image(tmp_path / "alone.jpg")
         broken = tmp_path / "broken.xml"
         broken.write_text("<meta>", encoding="utf-8")
@@ -339,7 +342,10 @@ class TestIoUtils:
 
         # Assert
         assert root.tag == "meta"
-        assert pairs == [(tmp_path / "photo.jpg", xml_path)]
+        assert pairs == [
+            (tmp_path / "frame.png", png_meta),
+            (tmp_path / "photo.jpg", xml_path),
+        ]
         assert missing_dir == []
         with pytest.raises(FileNotFoundError):
             MetadataLoader.load_metadata(tmp_path / "missing.xml")
@@ -390,14 +396,21 @@ class TestReporting:
         workbook = excel.export_results(groups, "report.xlsx")
 
         # Assert
+        from openpyxl import load_workbook
+
         image_text = image_report.read_text(encoding="utf-8")
         group_text = group_report.read_text(encoding="utf-8")
+        sheet = load_workbook(workbook).active
+        header = sheet.cell(row=1, column=1)
         assert "photo.jpg" in image_text
         assert "Spore Count:" in image_text
         assert "Group:** A" in group_text or "**Group:** A" in group_text
         assert "Total Spores:** 22" in group_text or "**Total Spores:** 22" in group_text
         assert workbook.exists()
         assert workbook.suffix == ".xlsx"
+        assert header.value == "Sample Group"
+        assert str(header.fill.fgColor.rgb).endswith("366092")
+        assert sheet.cell(row=2, column=1).border.left.style == "thin"
 
     def test_report_manager_writes_every_kind(self, tmp_path):
         # Arrange
@@ -413,6 +426,34 @@ class TestReporting:
         assert reports["group_reports"]["A"].exists()
         assert reports["individual_reports"]["photo.jpg"]["report"].exists()
         assert reports["individual_reports"]["photo.jpg"]["debug_images"] == ["debug.jpg"]
+
+    def test_hierarchy_workbook_uses_shared_header(self, tmp_path):
+        from openpyxl import load_workbook
+
+        from bees.yolo.hierarchical_analysis import (
+            HierarchicalAnalyzer,
+            ProbeResult,
+            SampleResult,
+            TypeStatistics,
+        )
+
+        # Arrange
+        sample = SampleResult("Sample_1", "Probe_1", "Type_A", [(2, 10, 10)], titer=1.0)
+        probe = ProbeResult("Probe_1", "Type_A", [sample])
+        stats = {"Type_A": TypeStatistics("Type_A", [probe])}
+        analyzer = HierarchicalAnalyzer.__new__(HierarchicalAnalyzer)
+
+        # Act
+        path = analyzer.generate_excel_report(stats, tmp_path)
+
+        # Assert
+        sheet = load_workbook(path)["Type_A"]
+        header = sheet.cell(row=3, column=1)
+        assert header.value == "Probe"
+        assert str(header.fill.fgColor.rgb).endswith("366092")
+        assert header.alignment.wrap_text is True
+        assert sheet.cell(row=4, column=1).value == "Probe_1"
+        assert sheet.cell(row=4, column=1).border.left.style == "thin"
 
 
 def main() -> int:

@@ -7,7 +7,7 @@ exporting results in various formats including CVAT XML.
 
 import os
 import logging
-from typing import List, Tuple, Optional, Union
+from typing import Dict, Iterable, List, Tuple, Optional, Union
 from pathlib import Path
 from PIL import Image
 import xml.etree.ElementTree as ET
@@ -16,6 +16,28 @@ import numpy as np
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+
+def collect_image_files(
+    source_dir: Union[str, Path],
+    image_extensions: Iterable[str],
+    recursive: bool = True,
+) -> List[Path]:
+    """Collect image files from a folder with extension filtering."""
+    source_dir = Path(source_dir)
+    if not source_dir.exists():
+        return []
+
+    valid_ext = {ext.lower() for ext in image_extensions}
+    candidates = source_dir.rglob("*") if recursive else source_dir.glob("*")
+    unique: Dict[str, Path] = {}
+    for file_path in candidates:
+        if not file_path.is_file() or file_path.suffix.lower() not in valid_ext:
+            continue
+        key = str(file_path.resolve()).lower()
+        if key not in unique:
+            unique[key] = file_path
+    return sorted(unique.values())
 
 
 class ImageLoader:
@@ -144,7 +166,7 @@ class FilePairFinder:
             return []
         
         pairs = []
-        for img_file in data_dir.glob("*.jpg"):
+        for img_file in collect_image_files(data_dir, ImageLoader.SUPPORTED_FORMATS, recursive=False):
             meta_file = img_file.with_suffix(img_file.suffix + "_meta.xml")
             if meta_file.exists():
                 pairs.append((img_file, meta_file))
