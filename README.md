@@ -198,6 +198,17 @@ python -m bees.main --config my_config.yaml hierarchy-analyze \
   --morphology-confidence 0.7
 ```
 
+#### Count only inside the analysis square
+
+`analysis_square_size` stays the Goryaev square side. The flag counts centers inside that square. With `analysis_square_size: 0` the flag has no titer to change.
+
+```bash
+python -m bees.main hierarchy-analyze \
+  --input-dir dataset_test \
+  --output-dir analysis_output \
+  --inside-square
+```
+
 ### Output Files
 
 The pipeline generates:
@@ -213,7 +224,7 @@ The pipeline generates:
 
 2. **analysis_summary.md** - Markdown summary of results
 3. **morphology_spores.csv** - One row per measured spore
-4. **morphology_summary.xlsx** - Percentiles of size and shape inside the analysis square
+4. **morphology_summary.xlsx** - Percentiles of size and shape on the whole frame
 5. **morphology_summary.md** - Median and p5–p95 for each probe
 6. **montages/\<photo\>_spores.jpg** - Spore crops in their original pixel size
 
@@ -249,8 +260,11 @@ min_spore_contour_length: 5
 intensity_threshold: 50
 
 # Параметры зоны анализа (зелёный квадрат)
-# Размер квадрата в пикселях
+# Сторона большого квадрата Горяева в пикселях. Счёт идёт по всему кадру.
+# 0 отключает титр Горяева и колонки квадрата.
 analysis_square_size: 780
+# Считать только центры внутри квадрата. При нулевом размере не действует.
+count_inside_square: false
 # Толщина линии квадрата в пикселях
 analysis_square_line_width: 2
 ```

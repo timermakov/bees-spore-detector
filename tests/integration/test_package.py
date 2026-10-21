@@ -220,22 +220,61 @@ class TestTiterCalculation:
         assert safe_titer == 0.0
         assert breakdown["error"] == "No photos"
 
-    def test_square_size_must_stay_positive(self):
+    def test_zero_square_skips_the_goryaev_titer(self):
         # Arrange
-        calculator = TiterCalculator(square_size=10, volume_factor=2.0)
+        calculator = TiterCalculator(square_size=10, volume_factor=4.0, count_inside_square=True)
+        photos = [(8, 100, 80), (8, 40, 40)]
 
         # Act
-        calculator.set_square_size(20)
+        calculator.set_square_size(0)
+        titer, breakdown = calculator.calculate_sample_titer_safe(photos)
 
         # Assert
-        assert calculator.get_square_size() == 20
-        assert calculator.square_area == 400
-        with pytest.raises(ValueError):
-            TiterCalculator(square_size=0)
-        with pytest.raises(ValueError):
+        assert calculator.get_square_size() == 0
+        assert calculator.square_area is None
+        assert calculator.count_inside_square is False
+        assert titer is None
+        assert calculator.calculate_sample_titer(photos) is None
+        assert breakdown["total_spores"] == 16
+        assert breakdown["total_squares"] is None
+        assert breakdown["error"] == "No analysis square"
+        with pytest.raises(ValueError, match="volume_factor"):
             TiterCalculator(volume_factor=0)
-        with pytest.raises(ValueError):
-            calculator.set_square_size(0)
+
+    def test_full_frame_uses_photo_area_over_the_square(self):
+        # Arrange
+        calculator = TiterCalculator(square_size=780, volume_factor=4.0)
+        photos = [(10, 1388, 1040)]
+        squares = (1388 * 1040) / (780 * 780)
+
+        # Act
+        titer = calculator.calculate_sample_titer(photos)
+
+        # Assert
+        assert titer == pytest.approx(10 / (4 * squares))
+
+    def test_inside_square_counts_one_square_when_it_fits(self):
+        # Arrange
+        calculator = TiterCalculator(square_size=780, volume_factor=4.0, count_inside_square=True)
+        photos = [(8, 1388, 1040), (8, 1388, 1040)]
+
+        # Act
+        titer = calculator.calculate_sample_titer(photos)
+
+        # Assert
+        assert titer == pytest.approx(16 / (4 * 2))
+
+    def test_clipped_square_uses_the_visible_zone(self):
+        # Arrange
+        calculator = TiterCalculator(square_size=10, volume_factor=4.0, count_inside_square=True)
+        photos = [(8, 8, 6)]
+
+        # Act
+        titer, breakdown = calculator.calculate_sample_titer_safe(photos)
+
+        # Assert
+        assert breakdown["total_squares"] == pytest.approx(0.48)
+        assert titer == pytest.approx(8 / (4 * 0.48))
 
     def test_t_tests_need_two_values_in_each_group(self):
         # Arrange
@@ -409,6 +448,7 @@ class TestReporting:
         header = sheet.cell(row=1, column=1)
         assert "photo.jpg" in image_text
         assert "Spore Count:" in image_text
+        assert "**Titer:** 1.50" in image_text
         assert "Group:** A" in group_text or "**Group:** A" in group_text
         assert "Total Spores:** 22" in group_text or "**Total Spores:** 22" in group_text
         assert workbook.exists()
@@ -431,6 +471,18 @@ class TestReporting:
         assert reports["group_reports"]["A"].exists()
         assert reports["individual_reports"]["photo.jpg"]["report"].exists()
         assert reports["individual_reports"]["photo.jpg"]["debug_images"] == ["debug.jpg"]
+
+    def test_missing_titer_is_written_as_not_applicable(self, tmp_path):
+        # Arrange
+        markdown = MarkdownReporter(tmp_path / "reports")
+
+        # Act
+        image_report = markdown.write_image_report("photo.jpg", 10, None)
+        group_report = markdown.write_group_report("A", [10], None)
+
+        # Assert
+        assert "**Titer:** n/a" in image_report.read_text(encoding="utf-8")
+        assert "**Group Titer:** n/a" in group_report.read_text(encoding="utf-8")
 
     def test_hierarchy_workbook_uses_shared_header(self, tmp_path):
         from openpyxl import load_workbook

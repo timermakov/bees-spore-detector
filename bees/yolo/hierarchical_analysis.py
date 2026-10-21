@@ -27,8 +27,10 @@ Final Structure:
 
 Logic:
   1. Each "sample" folder = one repetition with series of photos
-  2. Titer per sample: Σspores / (V * (S_photo/S²) * N_photos)
-     where V = volume_factor (default 4.0), S = analysis_square_size (default 780)
+  2. Titer per sample: Σspores / (V * N_sq)
+     Whole frame: N_sq = Σ (S_photo / S²), S = analysis_square_size
+     Inside square: N_sq = 1 per photo when the square fits
+     Square size 0 leaves the titer empty
   3. Titer per probe = mean of sample titers (repetitions)
   4. p-value per probe = two-sample Welch's t-test: sample titers vs control sample titers
 """
@@ -67,6 +69,19 @@ def _inside_detection_count(detections, width: int, height: int, square_size: in
     return len(inside)
 
 
+def _titer_label(value: Optional[float], places: int = 4) -> str:
+    """Printable titer. A missing Goryaev titer stays blank in the report."""
+    if value is None:
+        return "N/A"
+    return f"{value:.{places}f}"
+
+
+def _mean_std_label(mean: Optional[float], std: float) -> str:
+    if mean is None:
+        return "N/A"
+    return f"{mean:.4f} ± {std:.6f}"
+
+
 @dataclass
 class SampleResult:
     """Results for a single sample folder (one repetition)."""
@@ -74,7 +89,7 @@ class SampleResult:
     probe_name: str
     type_name: str
     photo_data: List[Tuple[int, int, int]]  # [(count, width, height), ...]
-    titer: float = 0.0
+    titer: Optional[float] = None
     breakdown: dict = field(default_factory=dict)
 
     @property
@@ -108,12 +123,12 @@ class ProbeResult:
 
     @property
     def sample_titers(self) -> List[float]:
-        return [s.titer for s in self.samples]
+        return [s.titer for s in self.samples if s.titer is not None]
 
     @property
-    def mean_titer(self) -> float:
-        if not self.samples:
-            return 0.0
+    def mean_titer(self) -> Optional[float]:
+        if not self.sample_titers:
+            return None
         return float(np.mean(self.sample_titers))
 
     @property
@@ -166,7 +181,8 @@ class HierarchicalAnalyzer:
 
     def __init__(self, config_path: str = "config.yaml", use_yolo: bool = True,
                  weights_path: Optional[str] = None, use_sahi: bool = False,
-                 morphology_confidence: Optional[float] = None):
+                 morphology_confidence: Optional[float] = None,
+                 count_inside_square: Optional[bool] = None):
         from bees.morphology import morphology_settings
 
         self.config_manager = create_config_manager(config_path)
@@ -176,8 +192,15 @@ class HierarchicalAnalyzer:
         self.weights_path = weights_path
         self.use_sahi = use_sahi and SAHI_AVAILABLE
         self.detector = None
-        self.titer_calculator = create_calculator_from_config(self.config_manager)
-        self.morphology = morphology_settings(self.config_manager, morphology_confidence)
+        self.titer_calculator = create_calculator_from_config(
+            self.config_manager,
+            count_inside_square=count_inside_square,
+        )
+        self.morphology = morphology_settings(
+            self.config_manager,
+            morphology_confidence,
+            count_inside_square=count_inside_square,
+        )
         self.morphology_rows = []
         self.spore_class_names = ["spore"]
         self._initialize_detector()
@@ -278,19 +301,24 @@ class HierarchicalAnalyzer:
                             )
                         else:
                             detections = self.detector.detect(str(image_path))
-                        count = _inside_detection_count(
-                            detections, img_width, img_height, self.titer_calculator.square_size
-                        )
+                        inside_mode = self.titer_calculator.count_inside_square
+                        if inside_mode:
+                            count = _inside_detection_count(
+                                detections, img_width, img_height, self.titer_calculator.square_size
+                            )
+                        else:
+                            count = len(detections)
                         self._record_detection_morphology(
                             img, detections, image_path, probe_name, type_name, sample_path.name
                         )
                     else:
                         from bees.spore_analysis_pipeline import count_opencv_contours
 
-                        inside, _outside = count_opencv_contours(img, self.opencv_params)
-                        count = len(inside)
+                        inside, outside = count_opencv_contours(img, self.opencv_params)
+                        inside_mode = self.titer_calculator.count_inside_square
+                        count = len(inside) if inside_mode else len(inside) + len(outside)
                         self._record_contour_morphology(
-                            img, inside, image_path, probe_name, type_name, sample_path.name
+                            img, inside + outside, image_path, probe_name, type_name, sample_path.name
                         )
 
                 photo_data.append((count, img_width, img_height))
@@ -369,7 +397,7 @@ class HierarchicalAnalyzer:
 
             logger.info(
                 f"      ✓ {item.name}: {sample_result.total_spores} spores in "
-                f"{sample_result.n_photos} photos, titer={sample_result.titer:.4f}"
+                f"{sample_result.n_photos} photos, titer={_titer_label(sample_result.titer)}"
             )
 
         is_control = self.is_control_name(probe_path.name)
@@ -382,7 +410,7 @@ class HierarchicalAnalyzer:
 
         logger.info(
             f"    ✓ Probe {probe_path.name}: {probe_result.n_samples} samples, "
-            f"mean_titer={probe_result.mean_titer:.4f} ± {probe_result.std_titer:.4f}"
+            f"mean_titer={_mean_std_label(probe_result.mean_titer, probe_result.std_titer)}"
         )
 
         return probe_result
@@ -468,7 +496,7 @@ class HierarchicalAnalyzer:
             for probe in sorted(type_stats.probes, key=lambda p: p.probe_name):
                 p_value = type_stats.get_probe_p_value(probe)
                 p_val_str = f"{p_value:.6f}" if p_value is not None else "N/A"
-                mean_std_str = f"{probe.mean_titer:.4f} ± {probe.std_titer:.6f}"
+                mean_std_str = _mean_std_label(probe.mean_titer, probe.std_titer)
 
                 ws.append([
                     probe.probe_name,
@@ -519,7 +547,7 @@ class HierarchicalAnalyzer:
 
         for type_name, type_stats in sorted(analysis_results.items()):
             content += f"## {type_name}\n\n"
-            control_str = f"{type_stats.control_mean:.4f}" if type_stats.control_mean is not None else "N/A"
+            control_str = _titer_label(type_stats.control_mean)
             content += f"**Control:** {control_str}\n\n"
             content += "| Probe | n | Titer | Std Dev | p-value | Control |\n"
             content += "|-------|---|------|---------|---------|---------|\n"
@@ -528,9 +556,10 @@ class HierarchicalAnalyzer:
                 p_value = type_stats.get_probe_p_value(probe)
                 p_str = f"{p_value:.6f}" if p_value is not None else "N/A"
                 ctrl_mark = "✓" if probe.is_control else ""
+                std_str = "N/A" if probe.mean_titer is None else f"{probe.std_titer:.6f}"
                 content += (
                     f"| {probe.probe_name} | {probe.n_samples} | "
-                    f"{probe.mean_titer:.4f} | {probe.std_titer:.6f} | "
+                    f"{_titer_label(probe.mean_titer)} | {std_str} | "
                     f"{p_str} | {ctrl_mark} |\n"
                 )
 

@@ -1,6 +1,6 @@
 """Centered analysis square used by the titer count."""
 
-from typing import Sequence, Tuple
+from typing import Optional, Sequence, Tuple
 
 Point = Tuple[float, float]
 Bounds = Tuple[int, int, int, int]
@@ -21,6 +21,26 @@ def analysis_square_bounds(width: int, height: int, square_size: int) -> Bounds:
         min(width - 1, center_x + half),
         min(height - 1, center_y + half),
     )
+
+
+def goryaev_squares(width: int, height: int, square_size: int, inside_square: bool) -> Optional[float]:
+    """Equivalent big squares for one photo.
+
+    A non-positive square size has no Goryaev conversion. The whole frame uses
+    photo area / square area. The inside-square mode uses one square when that
+    square fits, and the visible zone area otherwise.
+    """
+    if square_size <= 0:
+        return None
+    if width <= 0 or height <= 0:
+        raise ValueError(f"Image width and height must be positive, got {width}x{height}")
+    square_area = float(square_size * square_size)
+    if not inside_square:
+        return (width * height) / square_area
+    if width >= square_size and height >= square_size:
+        return 1.0
+    x1, y1, x2, y2 = analysis_square_bounds(width, height, square_size)
+    return ((x2 - x1 + 1) * (y2 - y1 + 1)) / square_area
 
 
 def point_inside_analysis_square(
