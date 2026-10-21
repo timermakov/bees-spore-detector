@@ -63,6 +63,15 @@ class YOLOConfig:
         "yolo_verbose",
         "yolo_class_names",
         "analysis_square_size",
+        "yolo_pseudo_source",
+        "yolo_pseudo_output",
+        "yolo_pseudo_confidence",
+        "yolo_pseudo_max_det",
+        "yolo_cvat_source",
+        "yolo_cvat_output",
+        "yolo_cvat_task",
+        "yolo_cvat_max_det",
+        "yolo_cvat_shape",
     )
     
     # All values are required. ``from_config_manager`` builds this object from
@@ -113,6 +122,15 @@ class YOLOConfig:
     verbose: bool
     analysis_square_size: int
     class_names: List[str]
+    pseudo_source: str
+    pseudo_output: str
+    pseudo_confidence: float
+    pseudo_max_det: int
+    cvat_source: str
+    cvat_output: str
+    cvat_task: str
+    cvat_max_det: int
+    cvat_shape: str
     
     def __post_init__(self):
         """Convert string paths to Path objects."""
@@ -140,6 +158,9 @@ class YOLOConfig:
             raise ConfigurationError("yolo_image_extensions must be a list of file extensions")
         if not isinstance(class_names, list) or not all(isinstance(item, str) and item for item in class_names):
             raise ConfigurationError("yolo_class_names must be a non-empty list of class names")
+        cvat_shape = config_manager.get_string_param("yolo_cvat_shape")
+        if cvat_shape not in {"box", "ellipse"}:
+            raise ConfigurationError("yolo_cvat_shape must be 'box' or 'ellipse'")
 
         device = config_manager.get_param('yolo_device')
         if device is not None and not isinstance(device, str):
@@ -197,6 +218,15 @@ class YOLOConfig:
             pretrained=config_manager.get_bool_param('yolo_pretrained'),
             verbose=config_manager.get_bool_param('yolo_verbose'),
             class_names=class_names,
+            pseudo_source=config_manager.get_string_param("yolo_pseudo_source"),
+            pseudo_output=config_manager.get_string_param("yolo_pseudo_output"),
+            pseudo_confidence=config_manager.get_float_param("yolo_pseudo_confidence"),
+            pseudo_max_det=config_manager.get_int_param("yolo_pseudo_max_det"),
+            cvat_source=config_manager.get_string_param("yolo_cvat_source"),
+            cvat_output=config_manager.get_string_param("yolo_cvat_output"),
+            cvat_task=config_manager.get_string_param("yolo_cvat_task"),
+            cvat_max_det=config_manager.get_int_param("yolo_cvat_max_det"),
+            cvat_shape=cvat_shape,
         )
     
     def get_trained_model_path(self) -> Path:

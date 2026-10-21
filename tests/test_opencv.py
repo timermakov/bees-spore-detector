@@ -31,6 +31,27 @@ from bees.opencv import (
 )
 
 
+def _opencv_params():
+    """A complete detection parameter set owned by the test."""
+    return {
+        "canny_threshold1": 40,
+        "canny_threshold2": 120,
+        "min_contour_area": 25,
+        "max_contour_area": 500,
+        "min_ellipse_area": 25,
+        "max_ellipse_area": 500,
+        "min_spore_contour_length": 5,
+        "intensity_threshold": 50,
+        "min_ellipse_axis_ratio": 0.45,
+        "max_ellipse_axis_ratio": 0.92,
+        "min_ellipse_eccentricity": 0.45,
+        "max_ellipse_eccentricity": 0.95,
+        "min_center_distance": 6.0,
+        "analysis_square_size": 40,
+        "analysis_square_line_width": 2,
+    }
+
+
 class TestImagePreprocessor:
     """Tests for ImagePreprocessor class."""
 
@@ -138,7 +159,6 @@ class TestSporeDetector:
         """Test creating spore detector."""
         detector = SporeDetector()
 
-        assert detector.min_center_distance == 6.0
         assert detector.debug_path is None
 
     def test_detector_creation_with_debug_path(self):
@@ -146,7 +166,6 @@ class TestSporeDetector:
         detector = SporeDetector(debug_path="/tmp/debug")
 
         assert detector.debug_path == "/tmp/debug"
-        assert detector.min_center_distance == 6.0
 
     def test_detect_spores_empty(self):
         """Test detection on empty image returns empty list."""
@@ -157,14 +176,7 @@ class TestSporeDetector:
         edges = np.zeros((100, 100), dtype=np.uint8)
         edges_strong = np.zeros((100, 100), dtype=np.uint8)
 
-        params = {
-            'min_contour_area': 25,
-            'max_contour_area': 500,
-            'min_ellipse_area': 25,
-            'max_ellipse_area': 500,
-            'min_spore_contour_length': 5,
-            'intensity_threshold': 50
-        }
+        params = _opencv_params()
 
         spores = detector.detect_spores(img, edges, edges_strong, params)
         assert spores == []
@@ -187,18 +199,18 @@ class TestSporeDetectionPipeline:
         img = Image.new('RGB', (100, 100), color='white')
 
         # Should not raise exception with keyword params
-        result = pipeline.detect_spores(
-            img,
-            canny_threshold1=40,
-            canny_threshold2=120,
-            min_contour_area=25,
-            max_contour_area=500,
-            min_ellipse_area=25,
-            max_ellipse_area=500,
-            min_spore_contour_length=5,
-            intensity_threshold=50
-        )
+        result = pipeline.detect_spores(img, **_opencv_params())
         assert isinstance(result, list)
+
+    def test_missing_parameter_is_named(self):
+        """A detection call without a config key names that key."""
+        pipeline = SporeDetectionPipeline()
+        img = Image.new("RGB", (20, 20), color="white")
+        params = _opencv_params()
+        del params["canny_threshold2"]
+
+        with pytest.raises(ValueError, match="canny_threshold2"):
+            pipeline.detect_spores(img, **params)
 
     def test_detect_numpy_array(self):
         """Test pipeline with numpy array input."""
@@ -209,17 +221,7 @@ class TestSporeDetectionPipeline:
         img = Image.fromarray(img_array)
 
         # Should not raise exception with keyword params
-        result = pipeline.detect_spores(
-            img,
-            canny_threshold1=40,
-            canny_threshold2=120,
-            min_contour_area=25,
-            max_contour_area=500,
-            min_ellipse_area=25,
-            max_ellipse_area=500,
-            min_spore_contour_length=5,
-            intensity_threshold=50
-        )
+        result = pipeline.detect_spores(img, **_opencv_params())
         assert isinstance(result, list)
 
 

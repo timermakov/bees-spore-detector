@@ -4,7 +4,7 @@ data_dir: bees_dataset#3_2025-08-22_tiles
 # Folder for results (.md, debug images, Excel report)
 results_dir: bees_dataset#3_2025-08-22_tiles
 
-# Processing parameters (see bees/image_proc.py for detection details)
+# Processing parameters (see bees/opencv/image_proc.py for detection details)
 # Min/max area of elliptical potential contour (pixels)
 min_contour_area: 45
 max_contour_area: 650
@@ -18,6 +18,13 @@ canny_threshold2: 120
 min_spore_contour_length: 7
 # Intensity threshold: how much average brightness inside ellipse can differ from background
 intensity_threshold: 36
+# Ellipse shape limits. Ratio is the shorter axis divided by the longer axis.
+min_ellipse_axis_ratio: 0.45
+max_ellipse_axis_ratio: 0.92
+min_ellipse_eccentricity: 0.45
+max_ellipse_eccentricity: 0.95
+# Minimum distance in pixels between accepted spore centers
+min_center_distance: 6.0
 
 # Analysis zone parameters (green square)
 # Square size in pixels
@@ -43,6 +50,17 @@ yolo_test_dir: dataset_test
 yolo_output_dir: yolo_dataset
 yolo_models_dir: models
 yolo_class_names: [spore]
+# Pseudo-labeling. CLI flags override these when they are passed.
+yolo_pseudo_source: dataset_test
+yolo_pseudo_output: pseudo_labels
+yolo_pseudo_confidence: 0.5
+yolo_pseudo_max_det: 1000
+# YOLO predictions exported as a CVAT zip.
+yolo_cvat_source: dataset_test
+yolo_cvat_output: results
+yolo_cvat_task: yolo_auto_annotations
+yolo_cvat_max_det: 1000
+yolo_cvat_shape: box
 
 # Use this structure for incremental retraining:
 # dataset_train/portion_001/...images... + annotation XML

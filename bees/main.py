@@ -384,6 +384,28 @@ def merge_pseudo_labels(config_path: str, pseudo_dir: str = "pseudo_labels") -> 
         return 1
 
 
+def resolve_pseudo_settings(config, source, output, confidence, max_det) -> Dict[str, Any]:
+    """CLI values win. Omitted flags use the yolo_pseudo_* keys."""
+    return {
+        "source": source if source is not None else config.pseudo_source,
+        "output": output if output is not None else config.pseudo_output,
+        "confidence": config.pseudo_confidence if confidence is None else confidence,
+        "max_det": config.pseudo_max_det if max_det is None else max_det,
+    }
+
+
+def resolve_yolo_cvat_settings(config, source, output, task, confidence, max_det, shape) -> Dict[str, Any]:
+    """CLI values win. Omitted flags use the yolo_cvat_* keys."""
+    return {
+        "source": source if source is not None else config.cvat_source,
+        "output": output if output is not None else config.cvat_output,
+        "task": task if task is not None else config.cvat_task,
+        "confidence": config.confidence_threshold if confidence is None else confidence,
+        "max_det": config.cvat_max_det if max_det is None else max_det,
+        "shape": shape if shape is not None else config.cvat_shape,
+    }
+
+
 def build_parser() -> argparse.ArgumentParser:
     """Build command-line parser."""
     parser = argparse.ArgumentParser(description='Bees Spore Counter CLI')
@@ -409,30 +431,30 @@ def build_parser() -> argparse.ArgumentParser:
     # Pseudo-labeling arguments
     parser.add_argument('--pseudo-label', action='store_true',
                         help='Generate pseudo-labels for unlabeled images')
-    parser.add_argument('--pseudo-source', type=str, default='dataset_test',
-                        help='Source directory for pseudo-labeling (default: dataset_test)')
-    parser.add_argument('--pseudo-output', type=str, default='pseudo_labels',
-                        help='Output directory for pseudo-labels (default: pseudo_labels)')
-    parser.add_argument('--pseudo-conf', type=float, default=0.5,
-                        help='Confidence threshold for pseudo-labeling (default: 0.5)')
-    parser.add_argument('--pseudo-max-det', type=int, default=1000,
-                        help='Max detections per image for pseudo-labeling (default: 1000)')
+    parser.add_argument('--pseudo-source', type=str, default=None,
+                        help='Override yolo_pseudo_source')
+    parser.add_argument('--pseudo-output', type=str, default=None,
+                        help='Override yolo_pseudo_output')
+    parser.add_argument('--pseudo-conf', type=float, default=None,
+                        help='Override yolo_pseudo_confidence')
+    parser.add_argument('--pseudo-max-det', type=int, default=None,
+                        help='Override yolo_pseudo_max_det')
     parser.add_argument('--merge-pseudo', action='store_true',
                         help='Merge pseudo-labels into training set')
     parser.add_argument('--export-yolo-cvat', action='store_true',
                         help='Run YOLO on a folder and export predictions as CVAT ZIP (box format)')
-    parser.add_argument('--yolo-source', type=str, default='dataset_test',
-                        help='Source directory for YOLO->CVAT export (default: dataset_test)')
-    parser.add_argument('--yolo-cvat-output', type=str, default='results',
-                        help='Output directory for YOLO->CVAT export (default: results)')
-    parser.add_argument('--yolo-cvat-task', type=str, default='yolo_auto_annotations',
-                        help='Task name for YOLO->CVAT export ZIP/XML (default: yolo_auto_annotations)')
+    parser.add_argument('--yolo-source', type=str, default=None,
+                        help='Override yolo_cvat_source')
+    parser.add_argument('--yolo-cvat-output', type=str, default=None,
+                        help='Override yolo_cvat_output')
+    parser.add_argument('--yolo-cvat-task', type=str, default=None,
+                        help='Override yolo_cvat_task')
     parser.add_argument('--yolo-cvat-conf', type=float, default=None,
-                        help='Confidence threshold override for YOLO->CVAT export (default: from config)')
-    parser.add_argument('--yolo-cvat-max-det', type=int, default=1000,
-                        help='Max detections per image for YOLO->CVAT export (default: 1000)')
-    parser.add_argument('--yolo-cvat-shape', choices=['box', 'ellipse'], default='box',
-                        help='Shape for YOLO->CVAT export (box or ellipse, default: box)')
+                        help='Override yolo_confidence for YOLO->CVAT export')
+    parser.add_argument('--yolo-cvat-max-det', type=int, default=None,
+                        help='Override yolo_cvat_max_det')
+    parser.add_argument('--yolo-cvat-shape', choices=['box', 'ellipse'], default=None,
+                        help='Override yolo_cvat_shape (box or ellipse)')
 
     subparsers = parser.add_subparsers(dest='command')
 
@@ -483,6 +505,10 @@ def build_parser() -> argparse.ArgumentParser:
                                   help='Output directory (default: hierarchical_output)')
     hierarchy_parser.add_argument('--no-yolo', action='store_true',
                                   help='Use OpenCV instead of YOLO')
+    hierarchy_parser.add_argument('--use-sahi', action='store_true',
+                                  help='Use SAHI sliced inference (tiling comes from config.yaml)')
+    hierarchy_parser.add_argument('--weights', type=str, default=None,
+                                  help='Path to a YOLO checkpoint (.pt)')
 
     return parser
 
@@ -519,7 +545,9 @@ def main() -> int:
 
             analyzer = HierarchicalAnalyzer(
                 config_path=args.config,
-                use_yolo=not args.no_yolo
+                use_yolo=not args.no_yolo,
+                weights_path=args.weights,
+                use_sahi=args.use_sahi,
             )
 
             reports = analyzer.run_complete_analysis(
@@ -544,7 +572,21 @@ def main() -> int:
             return 1
 
     if args.pseudo_label:
-        return pseudo_label(args.config, args.pseudo_source, args.pseudo_output, args.pseudo_conf, args.pseudo_max_det)
+        yolo_config = YOLOConfig.from_config_manager(create_config_manager(args.config))
+        pseudo = resolve_pseudo_settings(
+            yolo_config,
+            args.pseudo_source,
+            args.pseudo_output,
+            args.pseudo_conf,
+            args.pseudo_max_det,
+        )
+        return pseudo_label(
+            args.config,
+            pseudo["source"],
+            pseudo["output"],
+            pseudo["confidence"],
+            pseudo["max_det"],
+        )
 
     if args.merge_pseudo:
         return merge_pseudo_labels(args.config, args.pseudo_output)
@@ -554,17 +596,25 @@ def main() -> int:
             logger.error("YOLO module not available. Install ultralytics: pip install ultralytics")
             return 1
         try:
-            config_manager = create_config_manager(args.config)
-            yolo_config = YOLOConfig.from_config_manager(config_manager)
+            yolo_config = YOLOConfig.from_config_manager(create_config_manager(args.config))
+            cvat = resolve_yolo_cvat_settings(
+                yolo_config,
+                args.yolo_source,
+                args.yolo_cvat_output,
+                args.yolo_cvat_task,
+                args.yolo_cvat_conf,
+                args.yolo_cvat_max_det,
+                args.yolo_cvat_shape,
+            )
             detector = SporeDetector(yolo_config)
-            exporter = CVATExporter(args.yolo_cvat_output)
+            exporter = CVATExporter(cvat["output"])
             zip_path = exporter.export_yolo_predictions(
                 detector=detector,
-                source_dir=Path(args.yolo_source),
-                task_name=args.yolo_cvat_task,
-                confidence=args.yolo_cvat_conf,
-                max_det=args.yolo_cvat_max_det,
-                shape_type=args.yolo_cvat_shape
+                source_dir=Path(cvat["source"]),
+                task_name=cvat["task"],
+                confidence=cvat["confidence"],
+                max_det=cvat["max_det"],
+                shape_type=cvat["shape"],
             )
             print(f"YOLO CVAT export: {zip_path}")
             return 0

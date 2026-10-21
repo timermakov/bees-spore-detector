@@ -103,12 +103,9 @@ class CVATExporter:
 
     def _list_image_files(self, source_dir: Path, extensions: List[str]) -> List[Path]:
         """List image files recursively from source directory."""
-        valid_extensions = {ext.lower() for ext in extensions}
-        image_files: List[Path] = []
-        for file_path in source_dir.rglob("*"):
-            if file_path.is_file() and file_path.suffix.lower() in valid_extensions:
-                image_files.append(file_path)
-        return sorted(image_files)
+        from bees.io_utils import collect_image_files
+
+        return collect_image_files(source_dir, extensions, recursive=True)
 
     def _build_yolo_meta(self, task_name: str, image_count: int, shape_type: str):
         """Build CVAT meta section for YOLO-generated annotations."""

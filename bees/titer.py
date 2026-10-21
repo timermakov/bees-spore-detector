@@ -1,8 +1,8 @@
 """
 Titer calculation module for bee spore analysis.
 
-New formula: Titer = Σ_spores / (4 * (S_photo / square_size²) * N_photos)
-Old formula (legacy): Titer = count / 12.0 (single image)
+Titer = Σ_spores / (volume_factor * Σ(S_photo / square_size²))
+Each photo contributes its own area.
 """
 
 import logging
@@ -51,26 +51,13 @@ class TiterCalculator:
             logger.warning("Empty photo_data, returning 0.0")
             return 0.0
 
-        total_spores = sum(count for count, _, _ in photo_data)
-        n_photos = len(photo_data)
-
-        # Dimensions of first photo (all photos same size)
-        _, first_width, first_height = photo_data[0]
-        photo_area = first_width * first_height
-
-        # How many analysis squares fit in ONE photo
-        squares_per_photo = photo_area / self.square_area
-
-        # Total effective squares across ALL photos
-        total_squares = squares_per_photo * n_photos
-
-        # Final calculation
+        total_spores, total_squares = self._totals(photo_data)
         denominator = self.volume_factor * total_squares
         titer = total_spores / denominator
 
         logger.debug(
             f"Sample titer: {total_spores} spores / ({self.volume_factor} * "
-            f"{squares_per_photo:.4f} grids * {n_photos} photos) = {titer:.6f}"
+            f"{total_squares:.4f} grids) = {titer:.6f}"
         )
 
         return titer
@@ -84,12 +71,11 @@ class TiterCalculator:
                 'denominator': 0.0, 'titer': 0.0, 'error': 'No photos'
             }
 
-        total_spores = sum(count for count, _, _ in photo_data)
+        total_spores, total_squares = self._totals(photo_data)
         n_photos = len(photo_data)
         _, w, h = photo_data[0]
         photo_area = w * h
-        squares_per_photo = photo_area / self.square_area
-        total_squares = squares_per_photo * n_photos
+        squares_per_photo = total_squares / n_photos
         denominator = self.volume_factor * total_squares
         titer = total_spores / denominator
 
@@ -134,6 +120,17 @@ class TiterCalculator:
         return t_stat, p_value
 
     # ==================== UTILITY ====================
+
+    def _totals(self, photo_data: List[Tuple[int, int, int]]) -> Tuple[int, float]:
+        """Sum spores and the analysis squares contributed by each photo."""
+        total_spores = 0
+        total_squares = 0.0
+        for count, width, height in photo_data:
+            if width <= 0 or height <= 0:
+                raise ValueError(f"Photo size must be positive, got {width}x{height}")
+            total_spores += count
+            total_squares += (width * height) / self.square_area
+        return total_spores, total_squares
 
     def get_square_size(self) -> int:
         return self.square_size

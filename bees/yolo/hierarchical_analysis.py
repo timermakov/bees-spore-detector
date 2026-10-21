@@ -34,12 +34,12 @@ Logic:
 """
 
 import logging
-import sys
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass, field
 import numpy as np
 
+from ..analysis_zone import split_by_analysis_square
 from ..titer import TiterCalculator, create_calculator_from_config
 from ..config_loader import create_config_manager
 from .data_discovery import collect_image_files
@@ -50,6 +50,21 @@ except ImportError:
     SAHI_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
+
+
+def _detection_center(detection) -> Tuple[float, float]:
+    """Center of a YOLO Detection or a SAHI detection dict."""
+    if isinstance(detection, dict):
+        x1, y1, x2, y2 = detection["bbox"]
+        return (float(x1) + float(x2)) / 2.0, (float(y1) + float(y2)) / 2.0
+    return detection.center
+
+
+def _inside_detection_count(detections, width: int, height: int, square_size: int) -> int:
+    """How many detections have their center inside the analysis square."""
+    centers = [_detection_center(detection) for detection in detections]
+    inside, _outside = split_by_analysis_square(detections, centers, width, height, square_size)
+    return len(inside)
 
 
 @dataclass
@@ -163,11 +178,10 @@ class HierarchicalAnalyzer:
 
     def _initialize_detector(self):
         if not self.use_yolo:
-            from bees.spore_analysis_pipeline import SporeAnalysisPipeline
-            self.pipeline = SporeAnalysisPipeline(
-                self.config_manager, None, None, use_yolo=False
-            )
-            logger.info("✓ OpenCV detector initialized")
+            from bees.spore_analysis_pipeline import opencv_detection_params
+
+            self.opencv_params = opencv_detection_params(self.config_manager)
+            logger.info("OpenCV detector initialized")
             return
 
         # --- YOLO ветка ---
@@ -236,25 +250,30 @@ class HierarchicalAnalyzer:
                 from PIL import Image
                 with Image.open(image_path) as img:
                     img_width, img_height = img.size
-
-                if self.use_yolo:
-                    if self.use_sahi:
-                        import cv2
-                        img_bgr = cv2.imread(str(image_path))
-                        if img_bgr is None:
-                            logger.error(f"Cannot read {image_path}")
-                            continue
-                        detections = self.detector.detect_sliced(
-                            img_bgr,
-                            slice_height=self.slice_height,
-                            slice_width=self.slice_width,
-                            overlap_height_ratio=self.overlap_height_ratio,
-                            overlap_width_ratio=self.overlap_width_ratio
+                    if self.use_yolo:
+                        if self.use_sahi:
+                            import cv2
+                            img_bgr = cv2.imread(str(image_path))
+                            if img_bgr is None:
+                                logger.error(f"Cannot read {image_path}")
+                                continue
+                            detections = self.detector.detect_sliced(
+                                img_bgr,
+                                slice_height=self.slice_height,
+                                slice_width=self.slice_width,
+                                overlap_height_ratio=self.overlap_height_ratio,
+                                overlap_width_ratio=self.overlap_width_ratio
+                            )
+                        else:
+                            detections = self.detector.detect(str(image_path))
+                        count = _inside_detection_count(
+                            detections, img_width, img_height, self.titer_calculator.square_size
                         )
-                        count = len(detections)
                     else:
-                        detections = self.detector.detect(str(image_path))
-                        count = len(detections)
+                        from bees.spore_analysis_pipeline import count_opencv_contours
+
+                        inside, _outside = count_opencv_contours(img, self.opencv_params)
+                        count = len(inside)
 
                 photo_data.append((count, img_width, img_height))
 
@@ -361,8 +380,10 @@ class HierarchicalAnalyzer:
 
     def generate_excel_report(self, analysis_results, output_dir, filename="hierarchical_analysis.xlsx"):
         from openpyxl import Workbook
-        from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
+        from openpyxl.styles import Alignment, Font, PatternFill
         from openpyxl.utils import get_column_letter
+
+        from bees.reporting import apply_header_style, apply_thin_borders
 
         output_path = output_dir / filename
         wb = Workbook()
@@ -383,14 +404,10 @@ class HierarchicalAnalyzer:
             headers = ['Probe', 'n', 'Titer ± Std', 'p-value']
             ws.append(headers)
 
-            # Header style
-            header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-            header_font = Font(bold=True, color="FFFFFF")
-            for col_idx in range(1, 5):
-                cell = ws.cell(row=3, column=col_idx)
-                cell.fill = header_fill
-                cell.font = header_font
-                cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            apply_header_style(
+                [ws.cell(row=3, column=col_idx) for col_idx in range(1, 5)],
+                wrap_text=True,
+            )
 
             row_idx = 4
             for probe in sorted(type_stats.probes, key=lambda p: p.probe_name):
@@ -421,13 +438,10 @@ class HierarchicalAnalyzer:
 
             ws.row_dimensions[3].height = 30
 
-            thin_border = Border(left=Side(style='thin'), right=Side(style='thin'),
-                                 top=Side(style='thin'), bottom=Side(style='thin'))
-            for row in ws.iter_rows(min_row=3, max_row=ws.max_row, min_col=1, max_col=4):
+            apply_thin_borders(ws, 3, ws.max_row, 1, 4)
+            for row in ws.iter_rows(min_row=4, max_row=ws.max_row, min_col=1, max_col=4):
                 for cell in row:
-                    cell.border = thin_border
-                    if cell.row > 3:
-                        cell.alignment = Alignment(horizontal="center", vertical="center")
+                    cell.alignment = Alignment(horizontal="center", vertical="center")
 
         if 'Sheet' in wb.sheetnames:
             del wb['Sheet']
@@ -436,6 +450,7 @@ class HierarchicalAnalyzer:
         wb.save(output_path)
         logger.info(f"✓ Excel report saved: {output_path}")
         return output_path
+
     def generate_markdown_summary(
         self,
         analysis_results: Dict[str, TypeStatistics],
@@ -497,73 +512,3 @@ class HierarchicalAnalyzer:
 
         logger.info("✓ All reports generated successfully")
         return reports
-
-
-def main():
-    """Command-line interface for hierarchical analysis."""
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        description="Hierarchical Analysis: Type/Probe/Sample(photos)",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Structure:
-  input_dir/
-    Type_A/
-      Control/
-        Sample_1/          ← Repetition 1
-          photo1.jpg
-        Sample_2/          ← Repetition 2
-          photo1.jpg
-      Probe_1/
-        Sample_1/
-        Sample_2/
-
-Examples:
-  python -m bees.hierarchical_analysis --input-dir ./data --output-dir ./results
-  python -m bees.hierarchical_analysis --input-dir ./data --no-yolo
-        """
-    )
-
-    parser.add_argument("--input-dir", type=Path, required=True,
-                        help="Root directory with Type/Probe/Sample(photos) structure")
-    parser.add_argument("--output-dir", type=Path, default=Path("hierarchical_output"),
-                        help="Output directory (default: hierarchical_output)")
-    parser.add_argument("--config", type=str, default="config.yaml",
-                        help="Config file (default: config.yaml)")
-    parser.add_argument("--no-yolo", action="store_true",
-                        help="Use OpenCV instead of YOLO")
-    parser.add_argument("--use-sahi", action="store_true",
-                        help="Use SAHI sliced inference (reads tiling params from config.yaml)")
-    parser.add_argument("--weights", type=str, default=None,
-                        help="Path to custom YOLO weights (.pt file)")  # <-- ЭТУ СТРОКУ
-    args = parser.parse_args()
-
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
-    try:
-        if not args.input_dir.exists():
-            logger.error(f"Input directory not found: {args.input_dir}")
-            return 1
-
-        analyzer = HierarchicalAnalyzer(
-            config_path=args.config,
-            use_yolo=not args.no_yolo,
-            weights_path=args.weights,
-            use_sahi=args.use_sahi
-        )
-        reports = analyzer.run_complete_analysis(root_dir=args.input_dir, output_dir=args.output_dir)
-
-        logger.info("✓ Analysis completed!")
-        for report_type, report_path in reports.items():
-            logger.info(f"  - {report_type}: {report_path}")
-
-        return 0
-
-    except Exception as e:
-        logger.error(f"Analysis failed: {e}")
-        return 1
-
-
-if __name__ == "__main__":
-    sys.exit(main())

@@ -13,6 +13,8 @@ from typing import Dict, List, Optional, Tuple, Union
 
 from PIL import Image
 
+from bees.io_utils import collect_image_files
+
 logger = logging.getLogger(__name__)
 
 
@@ -106,18 +108,7 @@ def find_images(
     Returns:
         Sorted list of Path objects
     """
-    folder = Path(folder)
-    if not folder.exists():
-        return []
-
-    exts = extensions or DEFAULT_EXTENSIONS
-    images = []
-
-    for ext in exts:
-        images.extend(folder.glob(f"*{ext.lower()}"))
-        images.extend(folder.glob(f"*{ext.upper()}"))
-
-    return sorted(set(images))  # deduplicate
+    return collect_image_files(folder, extensions or DEFAULT_EXTENSIONS, recursive=False)
 
 
 def scan_folder_with_metadata(

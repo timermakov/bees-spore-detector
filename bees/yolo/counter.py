@@ -11,6 +11,8 @@ import numpy as np
 from PIL import Image
 import cv2
 
+from bees.analysis_zone import analysis_square_bounds
+
 from .config import YOLOConfig
 from .detector import SporeDetector, Detection
 
@@ -200,16 +202,8 @@ class SporeCounter:
                               img_width: int, 
                               img_height: int, 
                               square_size: int) -> Tuple[int, int, int, int]:
-        """Compute bounds of centered analysis zone."""
-        cx, cy = img_width // 2, img_height // 2
-        half = square_size // 2
-        
-        x1 = max(0, cx - half)
-        y1 = max(0, cy - half)
-        x2 = min(img_width - 1, cx + half)
-        y2 = min(img_height - 1, cy + half)
-        
-        return x1, y1, x2, y2
+        """Compute bounds of the centered analysis square."""
+        return analysis_square_bounds(img_width, img_height, square_size)
     
     def _is_inside_zone(self, 
                         bounds: Tuple[int, int, int, int], 

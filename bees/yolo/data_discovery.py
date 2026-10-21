@@ -3,7 +3,9 @@ Shared data discovery helpers for YOLO pipelines.
 """
 
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from typing import List, Optional
+
+from bees.io_utils import collect_image_files
 
 
 def discover_dataset_dirs(datasets_root: Path, dataset_folder_pattern: str) -> List[Path]:
@@ -19,32 +21,6 @@ def discover_dataset_dirs(datasets_root: Path, dataset_folder_pattern: str) -> L
     # A root with portions is a container, not another portion. This prevents
     # recursive discovery from loading each child's annotations twice.
     return portions or [datasets_root]
-
-
-def collect_image_files(
-    source_dir: Path,
-    image_extensions: Iterable[str],
-    recursive: bool = True,
-) -> List[Path]:
-    """Collect image files from a folder with extension filtering."""
-    if not source_dir.exists():
-        return []
-
-    valid_ext = {ext.lower() for ext in image_extensions}
-    if recursive:
-        candidates = source_dir.rglob("*")
-    else:
-        candidates = source_dir.glob("*")
-
-    unique: Dict[str, Path] = {}
-    for file_path in candidates:
-        if not file_path.is_file() or file_path.suffix.lower() not in valid_ext:
-            continue
-        key = str(file_path.resolve()).lower()
-        if key not in unique:
-            unique[key] = file_path
-
-    return sorted(unique.values())
 
 
 def find_xml_annotation_candidates(

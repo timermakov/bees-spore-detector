@@ -19,6 +19,30 @@ from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
 logger = logging.getLogger(__name__)
 
 
+def apply_header_style(cells, wrap_text: bool = False) -> None:
+    """Paint a header row with the shared report colors."""
+    header_font = Font(bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    alignment = Alignment(horizontal="center", vertical="center", wrap_text=wrap_text)
+    for cell in cells:
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = alignment
+
+
+def apply_thin_borders(worksheet, min_row: int, max_row: int, min_col: int, max_col: int) -> None:
+    """Draw a thin border around a used cell range."""
+    thin_border = Border(
+        left=Side(style="thin"),
+        right=Side(style="thin"),
+        top=Side(style="thin"),
+        bottom=Side(style="thin"),
+    )
+    for row in worksheet.iter_rows(min_row=min_row, max_row=max_row, min_col=min_col, max_col=max_col):
+        for cell in row:
+            cell.border = thin_border
+
+
 class MarkdownReporter:
     """Handles generation of Markdown reports."""
     
@@ -221,11 +245,9 @@ class ExcelReporter:
         ws = wb.active
         ws.title = 'Spore Analysis Report'
         
-        # Apply styling
-        self._apply_workbook_styling(ws)
-        
-        # Add header
+        # Add header, then paint it with the shared header style
         self._add_header(ws)
+        self._apply_workbook_styling(ws)
         
         # Add data
         self._add_data(ws, groups_results)
@@ -237,17 +259,8 @@ class ExcelReporter:
     
     def _apply_workbook_styling(self, worksheet) -> None:
         """Apply basic styling to the worksheet."""
-        # Define styles
-        header_font = Font(bold=True, color="FFFFFF")
-        header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-        header_alignment = Alignment(horizontal="center", vertical="center")
-        
-        # Apply header styling
         for row in worksheet.iter_rows(min_row=1, max_row=1):
-            for cell in row:
-                cell.font = header_font
-                cell.fill = header_fill
-                cell.alignment = header_alignment
+            apply_header_style(row)
     
     def _add_header(self, worksheet) -> None:
         """Add column headers to the worksheet."""
@@ -306,17 +319,9 @@ class ExcelReporter:
     
     def _apply_borders(self, worksheet) -> None:
         """Apply borders to all cells with data."""
-        thin_border = Border(
-            left=Side(style='thin'),
-            right=Side(style='thin'),
-            top=Side(style='thin'),
-            bottom=Side(style='thin')
-        )
-        
-        for row_idx in range(1, worksheet.max_row + 1):
-            for col_idx in range(1, worksheet.max_column + 1):
-                cell = worksheet.cell(row=row_idx, column=col_idx)
-                cell.border = thin_border
+        if worksheet.max_row < 1 or worksheet.max_column < 1:
+            return
+        apply_thin_borders(worksheet, 1, worksheet.max_row, 1, worksheet.max_column)
 
 
 class ReportManager:

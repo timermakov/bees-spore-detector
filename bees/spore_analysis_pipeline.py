@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any
 
 from bees import io_utils
+from bees.analysis_zone import split_by_analysis_square
 from bees.opencv import SporeDetectionPipeline
 from bees.titer import create_calculator_from_config
 
@@ -54,18 +55,7 @@ class SporeAnalysisPipeline:
 
     def get_parameters(self) -> Dict[str, Any]:
         """Get detection parameters from configuration."""
-        return {
-            'min_contour_area': self.config_manager.get_int_param('min_contour_area'),
-            'max_contour_area': self.config_manager.get_int_param('max_contour_area'),
-            'min_ellipse_area': self.config_manager.get_int_param('min_ellipse_area'),
-            'max_ellipse_area': self.config_manager.get_int_param('max_ellipse_area'),
-            'canny_threshold1': self.config_manager.get_int_param('canny_threshold1'),
-            'canny_threshold2': self.config_manager.get_int_param('canny_threshold2'),
-            'min_spore_contour_length': self.config_manager.get_int_param('min_spore_contour_length'),
-            'intensity_threshold': self.config_manager.get_int_param('intensity_threshold'),
-            'analysis_square_size': self.config_manager.get_int_param('analysis_square_size'),
-            'analysis_square_line_width': self.config_manager.get_int_param('analysis_square_line_width'),
-        }
+        return opencv_detection_params(self.config_manager)
 
     def process_image(self,
                       image_path: str,
@@ -100,15 +90,15 @@ class SporeAnalysisPipeline:
 
     def _process_image_yolo(self, image_path: str, image, metadata, debug_base: Path) -> Dict[str, Any]:
         """Process image using YOLO detector."""
-        detections = self.yolo_counter.detector.detect(image_path)  # получаем все детекции
-        count = len(detections)
+        counts, inside_detections, _outside = self.yolo_counter.count_with_detections(image_path)
+        count = counts["inside"]
 
         # Save visualization
         vis_path = str(debug_base) + "_yolo_detections.jpg"
         self.yolo_counter.visualize(image_path, vis_path)
 
         # Convert detections to contour-like format for compatibility
-        spore_objects = self._detections_to_contours(detections)
+        spore_objects = self._detections_to_contours(inside_detections)
 
         return {
             'image': image,
@@ -117,22 +107,26 @@ class SporeAnalysisPipeline:
             'metadata': metadata,
             'image_path': image_path,
             'debug_images': [vis_path] if Path(vis_path).exists() else [],
-            'count_outside_square': 0,
+            'count_outside_square': counts["outside"],
             'method': 'yolo'
         }
 
     def _process_image_opencv(self, image_path: str, image, metadata,
                               debug_base: Path, debug_prefix: Optional[str]) -> Dict[str, Any]:
         """Process image using OpenCV pipeline."""
-        params = self.get_parameters()
-        detection_pipeline = SporeDetectionPipeline(debug_path=str(debug_base))
-        spore_objects = detection_pipeline.detect_spores(image, **params)
-
-        count = len(spore_objects)
+        inside, outside = count_opencv_contours(
+            image,
+            self.get_parameters(),
+            debug_path=str(debug_base),
+        )
+        spore_objects = inside
+        count = len(inside)
 
         if debug_prefix:
+            from bees.opencv.image_proc import save_debug_image
+
             debug_path = str(debug_prefix) + '_debug'
-            image_proc.save_debug_image(image, spore_objects, debug_path)
+            save_debug_image(image, spore_objects, debug_path)
 
         debug_candidates = [
             f"{debug_base}_blur.jpg",
@@ -154,6 +148,7 @@ class SporeAnalysisPipeline:
             'metadata': metadata,
             'image_path': image_path,
             'debug_images': debug_images,
+            'count_outside_square': len(outside),
             'method': 'opencv'
         }
 
@@ -228,3 +223,57 @@ class SporeAnalysisPipeline:
         self.group_results = {'all_images': all_results}
 
         return groups_results
+
+
+def opencv_detection_params(config_manager) -> Dict[str, Any]:
+    """OpenCV detection settings read from config.yaml."""
+    return {
+        'min_contour_area': config_manager.get_int_param('min_contour_area'),
+        'max_contour_area': config_manager.get_int_param('max_contour_area'),
+        'min_ellipse_area': config_manager.get_int_param('min_ellipse_area'),
+        'max_ellipse_area': config_manager.get_int_param('max_ellipse_area'),
+        'canny_threshold1': config_manager.get_int_param('canny_threshold1'),
+        'canny_threshold2': config_manager.get_int_param('canny_threshold2'),
+        'min_spore_contour_length': config_manager.get_int_param('min_spore_contour_length'),
+        'intensity_threshold': config_manager.get_int_param('intensity_threshold'),
+        'analysis_square_size': config_manager.get_int_param('analysis_square_size'),
+        'analysis_square_line_width': config_manager.get_int_param('analysis_square_line_width'),
+        'min_ellipse_axis_ratio': config_manager.get_float_param('min_ellipse_axis_ratio'),
+        'max_ellipse_axis_ratio': config_manager.get_float_param('max_ellipse_axis_ratio'),
+        'min_ellipse_eccentricity': config_manager.get_float_param('min_ellipse_eccentricity'),
+        'max_ellipse_eccentricity': config_manager.get_float_param('max_ellipse_eccentricity'),
+        'min_center_distance': config_manager.get_float_param('min_center_distance'),
+    }
+
+
+def count_opencv_contours(image, params: Dict[str, Any], debug_path: Optional[str] = None):
+    """Return OpenCV contours split into inside and outside the analysis square."""
+    detection_pipeline = SporeDetectionPipeline(debug_path=debug_path)
+    spore_objects = detection_pipeline.detect_spores(image, **params)
+    centers = [_contour_center(contour) for contour in spore_objects]
+    return split_by_analysis_square(
+        spore_objects,
+        centers,
+        image.size[0],
+        image.size[1],
+        params["analysis_square_size"],
+    )
+
+
+def _contour_center(contour) -> Tuple[float, float]:
+    """Center used to decide whether a contour is inside the analysis square."""
+    import cv2
+    import numpy as np
+
+    points = np.asarray(contour)
+    if len(points) >= 5:
+        try:
+            (x, y), _, _ = cv2.fitEllipse(points)
+            return float(x), float(y)
+        except cv2.error:
+            pass
+    moments = cv2.moments(points)
+    if moments["m00"]:
+        return float(moments["m10"] / moments["m00"]), float(moments["m01"] / moments["m00"])
+    x, y, width, height = cv2.boundingRect(points)
+    return float(x + width / 2.0), float(y + height / 2.0)
