@@ -483,6 +483,10 @@ def build_parser() -> argparse.ArgumentParser:
                                   help='Output directory (default: hierarchical_output)')
     hierarchy_parser.add_argument('--no-yolo', action='store_true',
                                   help='Use OpenCV instead of YOLO')
+    hierarchy_parser.add_argument('--use-sahi', action='store_true',
+                                  help='Use SAHI sliced inference (tiling comes from config.yaml)')
+    hierarchy_parser.add_argument('--weights', type=str, default=None,
+                                  help='Path to a YOLO checkpoint (.pt)')
 
     return parser
 
@@ -519,7 +523,9 @@ def main() -> int:
 
             analyzer = HierarchicalAnalyzer(
                 config_path=args.config,
-                use_yolo=not args.no_yolo
+                use_yolo=not args.no_yolo,
+                weights_path=args.weights,
+                use_sahi=args.use_sahi,
             )
 
             reports = analyzer.run_complete_analysis(

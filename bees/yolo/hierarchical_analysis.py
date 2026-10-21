@@ -34,7 +34,6 @@ Logic:
 """
 
 import logging
-import sys
 from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass, field
@@ -517,73 +516,3 @@ class HierarchicalAnalyzer:
 
         logger.info("✓ All reports generated successfully")
         return reports
-
-
-def main():
-    """Command-line interface for hierarchical analysis."""
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        description="Hierarchical Analysis: Type/Probe/Sample(photos)",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="""
-Structure:
-  input_dir/
-    Type_A/
-      Control/
-        Sample_1/          ← Repetition 1
-          photo1.jpg
-        Sample_2/          ← Repetition 2
-          photo1.jpg
-      Probe_1/
-        Sample_1/
-        Sample_2/
-
-Examples:
-  python -m bees.hierarchical_analysis --input-dir ./data --output-dir ./results
-  python -m bees.hierarchical_analysis --input-dir ./data --no-yolo
-        """
-    )
-
-    parser.add_argument("--input-dir", type=Path, required=True,
-                        help="Root directory with Type/Probe/Sample(photos) structure")
-    parser.add_argument("--output-dir", type=Path, default=Path("hierarchical_output"),
-                        help="Output directory (default: hierarchical_output)")
-    parser.add_argument("--config", type=str, default="config.yaml",
-                        help="Config file (default: config.yaml)")
-    parser.add_argument("--no-yolo", action="store_true",
-                        help="Use OpenCV instead of YOLO")
-    parser.add_argument("--use-sahi", action="store_true",
-                        help="Use SAHI sliced inference (reads tiling params from config.yaml)")
-    parser.add_argument("--weights", type=str, default=None,
-                        help="Path to custom YOLO weights (.pt file)")  # <-- ЭТУ СТРОКУ
-    args = parser.parse_args()
-
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
-    try:
-        if not args.input_dir.exists():
-            logger.error(f"Input directory not found: {args.input_dir}")
-            return 1
-
-        analyzer = HierarchicalAnalyzer(
-            config_path=args.config,
-            use_yolo=not args.no_yolo,
-            weights_path=args.weights,
-            use_sahi=args.use_sahi
-        )
-        reports = analyzer.run_complete_analysis(root_dir=args.input_dir, output_dir=args.output_dir)
-
-        logger.info("✓ Analysis completed!")
-        for report_type, report_path in reports.items():
-            logger.info(f"  - {report_type}: {report_path}")
-
-        return 0
-
-    except Exception as e:
-        logger.error(f"Analysis failed: {e}")
-        return 1
-
-
-if __name__ == "__main__":
-    sys.exit(main())

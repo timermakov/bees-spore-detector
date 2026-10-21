@@ -1840,6 +1840,30 @@ class TestTrainCommandFlags:
         # Assert
         assert getattr(parsed, attribute) is expected
 
+    def test_hierarchy_analyze_forwards_sahi_and_weights(self):
+        """The hierarchy command carries SAHI and checkpoint overrides."""
+        # Arrange
+        parser = _build_parser()
+
+        # Act
+        parsed = parser.parse_args(
+            [
+                "hierarchy-analyze",
+                "--input-dir",
+                "data",
+                "--use-sahi",
+                "--weights",
+                "checkpoints/custom.pt",
+                "--no-yolo",
+            ]
+        )
+
+        # Assert
+        assert parsed.command == "hierarchy-analyze"
+        assert parsed.use_sahi is True
+        assert parsed.weights == "checkpoints/custom.pt"
+        assert parsed.no_yolo is True
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

@@ -165,7 +165,7 @@ Type_B/
 #### Basic Analysis with YOLO Detection
 
 ```bash
-python -m bees.yolo.hierarchical_analysis \
+python -m bees.main hierarchy-analyze \
   --input-dir dataset_test \
   --output-dir analysis_output
 ```
@@ -173,19 +173,28 @@ python -m bees.yolo.hierarchical_analysis \
 #### Using OpenCV Detection Instead
 
 ```bash
-python -m bees.yolo.hierarchical_analysis \
+python -m bees.main hierarchy-analyze \
   --input-dir dataset_test \
   --output-dir analysis_output \
   --no-yolo
 ```
 
+#### SAHI slicing and a custom checkpoint
+
+```bash
+python -m bees.main hierarchy-analyze \
+  --input-dir dataset_test \
+  --output-dir analysis_output \
+  --use-sahi \
+  --weights checkpoints/custom.pt
+```
+
 #### Custom Configuration
 
 ```bash
-python -m bees.yolo.hierarchical_analysis \
+python -m bees.main --config my_config.yaml hierarchy-analyze \
   --input-dir dataset_test \
-  --output-dir analysis_output \
-  --config my_config.yaml
+  --output-dir analysis_output
 ```
 
 ### Output Files
