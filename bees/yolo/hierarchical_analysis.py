@@ -179,11 +179,10 @@ class HierarchicalAnalyzer:
 
     def _initialize_detector(self):
         if not self.use_yolo:
-            from bees.spore_analysis_pipeline import SporeAnalysisPipeline
-            self.pipeline = SporeAnalysisPipeline(
-                self.config_manager, None, None, use_yolo=False
-            )
-            logger.info("✓ OpenCV detector initialized")
+            from bees.spore_analysis_pipeline import opencv_detection_params
+
+            self.opencv_params = opencv_detection_params(self.config_manager)
+            logger.info("OpenCV detector initialized")
             return
 
         # --- YOLO ветка ---
@@ -252,29 +251,30 @@ class HierarchicalAnalyzer:
                 from PIL import Image
                 with Image.open(image_path) as img:
                     img_width, img_height = img.size
-
-                if self.use_yolo:
-                    if self.use_sahi:
-                        import cv2
-                        img_bgr = cv2.imread(str(image_path))
-                        if img_bgr is None:
-                            logger.error(f"Cannot read {image_path}")
-                            continue
-                        detections = self.detector.detect_sliced(
-                            img_bgr,
-                            slice_height=self.slice_height,
-                            slice_width=self.slice_width,
-                            overlap_height_ratio=self.overlap_height_ratio,
-                            overlap_width_ratio=self.overlap_width_ratio
-                        )
+                    if self.use_yolo:
+                        if self.use_sahi:
+                            import cv2
+                            img_bgr = cv2.imread(str(image_path))
+                            if img_bgr is None:
+                                logger.error(f"Cannot read {image_path}")
+                                continue
+                            detections = self.detector.detect_sliced(
+                                img_bgr,
+                                slice_height=self.slice_height,
+                                slice_width=self.slice_width,
+                                overlap_height_ratio=self.overlap_height_ratio,
+                                overlap_width_ratio=self.overlap_width_ratio
+                            )
+                        else:
+                            detections = self.detector.detect(str(image_path))
                         count = _inside_detection_count(
                             detections, img_width, img_height, self.titer_calculator.square_size
                         )
                     else:
-                        detections = self.detector.detect(str(image_path))
-                        count = _inside_detection_count(
-                            detections, img_width, img_height, self.titer_calculator.square_size
-                        )
+                        from bees.spore_analysis_pipeline import count_opencv_contours
+
+                        inside, _outside = count_opencv_contours(img, self.opencv_params)
+                        count = len(inside)
 
                 photo_data.append((count, img_width, img_height))
 

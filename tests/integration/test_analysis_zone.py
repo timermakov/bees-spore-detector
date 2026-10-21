@@ -170,6 +170,29 @@ class TestHierarchyCount:
         assert result.photo_data == [(1, 100, 100)]
         assert _inside_detection_count([inside, outside], 100, 100, 40) == 1
 
+    def test_opencv_sample_folder_records_the_inside_count(self, tmp_path, monkeypatch):
+        # Arrange
+        config_path = _write_config(tmp_path, square_size=40)
+        sample = tmp_path / "Sample_1"
+        sample.mkdir()
+        Image.new("RGB", (100, 100), color="white").save(sample / "a.png")
+        analyzer = HierarchicalAnalyzer(config_path=str(config_path), use_yolo=False)
+
+        def fake_detect(self, image, **params):
+            return [_circle(50, 50), _circle(5, 5)]
+
+        monkeypatch.setattr(
+            "bees.opencv.image_proc.SporeDetectionPipeline.detect_spores",
+            fake_detect,
+        )
+
+        # Act
+        result = analyzer.analyze_sample_folder(sample, "Probe_1", "Type_A")
+
+        # Assert
+        assert result.photo_data == [(1, 100, 100)]
+        assert analyzer.opencv_params["analysis_square_size"] == 40
+
 
 def test_sahi_dict_uses_bbox_center():
     # Arrange
