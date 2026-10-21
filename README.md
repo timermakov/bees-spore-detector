@@ -227,6 +227,33 @@ The pipeline generates:
 4. **morphology_summary.xlsx** - Percentiles of size and shape on the whole frame
 5. **morphology_summary.md** - Median and p5–p95 for each probe
 6. **montages/\<photo\>_spores.jpg** - Spore crops in their original pixel size
+7. **plots/\*.png** - Optional matplotlib charts (see below)
+
+### Plot generation
+
+After a hierarchical run, build titer and morphometry charts from that result folder. Scripts live in `graph_analysis/`; PNGs go next to the data under `<results-dir>/plots/`.
+
+Dependencies (if missing):
+
+```bash
+pip install matplotlib pandas openpyxl
+```
+
+Default run (reads `results/cermorfh/`):
+
+```bash
+python graph_analysis/run_plots.py
+```
+
+Point at another analysis output and/or a custom plots folder:
+
+```bash
+python graph_analysis/run_plots.py \
+  --results-dir analysis_output \
+  --plots-dir analysis_output/plots
+```
+
+Requires `hierarchical_analysis.xlsx` and/or `morphology_spores.csv` in `--results-dir`. Charts include titer bars (± SD, significance vs control), CV vs HandAnalysis comparison when both types exist, morphometry boxplots, and major×minor scatters.
 
 ### Statistical Analysis
 
