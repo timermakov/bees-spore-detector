@@ -27,7 +27,7 @@ max_ellipse_eccentricity: 0.95
 min_center_distance: 6.0
 
 # Analysis zone parameters (green square)
-# Square size in pixels
+# Square size in pixels. 0 counts and measures every spore on the photo.
 analysis_square_size: 780
 # Volume coefficient for titer calculation (million spores/ml)
 # Formula: titer = N_spores_on_photo / (volume_factor * (S_photo / S_analysis_square²) * N_photos)

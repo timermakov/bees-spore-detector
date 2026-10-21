@@ -21,14 +21,13 @@ class TiterCalculator:
     VOLUME_FACTOR = 4.0
 
     def __init__(self, square_size: int = ANALYSIS_SQUARE_SIZE, volume_factor: float = VOLUME_FACTOR):
-        if square_size <= 0:
-            raise ValueError("square_size must be positive")
         if volume_factor <= 0:
             raise ValueError("volume_factor must be positive")
 
         self.square_size = int(square_size)
         self.volume_factor = float(volume_factor)
-        self.square_area = self.square_size ** 2
+        # 0 and below mean the analysis zone is the whole photo.
+        self.square_area = None if self.square_size <= 0 else self.square_size ** 2
 
         logger.debug(f"TiterCalculator: square={square_size}, volume_factor={volume_factor}")
 
@@ -38,7 +37,8 @@ class TiterCalculator:
         """
         Calculate titer for a complete sample folder (NEW).
 
-        Formula: total_spores / (volume_factor * (photo_area / square_area) * n_photos)
+        Formula: total_spores / (volume_factor * (photo_area / square_area) * n_photos).
+        A square size of 0 uses each whole photo as the analysis zone.
 
         Args:
             photo_data: List of (count, width, height) for each photo.
@@ -129,17 +129,18 @@ class TiterCalculator:
             if width <= 0 or height <= 0:
                 raise ValueError(f"Photo size must be positive, got {width}x{height}")
             total_spores += count
-            total_squares += (width * height) / self.square_area
+            if self.square_area is None:
+                total_squares += 1.0
+            else:
+                total_squares += (width * height) / self.square_area
         return total_spores, total_squares
 
     def get_square_size(self) -> int:
         return self.square_size
 
     def set_square_size(self, square_size: int) -> None:
-        if square_size <= 0:
-            raise ValueError("square_size must be positive")
         self.square_size = int(square_size)
-        self.square_area = self.square_size ** 2
+        self.square_area = None if self.square_size <= 0 else self.square_size ** 2
 
 def create_calculator_from_config(config_manager) -> TiterCalculator:
     """Factory: create TiterCalculator from config.yaml values."""

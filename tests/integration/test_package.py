@@ -220,22 +220,20 @@ class TestTiterCalculation:
         assert safe_titer == 0.0
         assert breakdown["error"] == "No photos"
 
-    def test_square_size_must_stay_positive(self):
+    def test_zero_square_counts_the_whole_photo(self):
         # Arrange
-        calculator = TiterCalculator(square_size=10, volume_factor=2.0)
+        calculator = TiterCalculator(square_size=10, volume_factor=4.0)
 
         # Act
-        calculator.set_square_size(20)
+        calculator.set_square_size(0)
+        titer = calculator.calculate_sample_titer([(8, 100, 80), (8, 40, 40)])
 
         # Assert
-        assert calculator.get_square_size() == 20
-        assert calculator.square_area == 400
-        with pytest.raises(ValueError):
-            TiterCalculator(square_size=0)
-        with pytest.raises(ValueError):
+        assert calculator.get_square_size() == 0
+        assert calculator.square_area is None
+        assert titer == pytest.approx(2.0)
+        with pytest.raises(ValueError, match="volume_factor"):
             TiterCalculator(volume_factor=0)
-        with pytest.raises(ValueError):
-            calculator.set_square_size(0)
 
     def test_t_tests_need_two_values_in_each_group(self):
         # Arrange
