@@ -186,6 +186,22 @@ class TestTiterCalculation:
         assert breakdown["n_photos"] == 1
         assert calculator.get_square_size() == 10
 
+    def test_each_photo_area_enters_the_denominator(self):
+        # Arrange
+        calculator = TiterCalculator(square_size=10, volume_factor=4.0)
+        same_size = [(80, 20, 20), (80, 20, 20)]
+        mixed = [(80, 20, 20), (40, 10, 10)]
+
+        # Act
+        same = calculator.calculate_sample_titer(same_size)
+        mixed_titer = calculator.calculate_sample_titer(mixed)
+
+        # Assert
+        assert same == pytest.approx(5.0)
+        assert mixed_titer == pytest.approx(6.0)
+        with pytest.raises(ValueError, match="0x10"):
+            calculator.calculate_sample_titer([(1, 0, 10)])
+
     def test_empty_photos_return_zero(self):
         # Arrange
         calculator = TiterCalculator()
