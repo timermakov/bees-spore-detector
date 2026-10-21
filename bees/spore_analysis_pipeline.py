@@ -9,6 +9,12 @@ from typing import Dict, List, Tuple, Optional, Any
 
 from bees import io_utils
 from bees.analysis_zone import split_by_analysis_square
+from bees.morphology import (
+    measure_detections,
+    measure_opencv_contours,
+    morphology_settings,
+    write_morphology_reports,
+)
 from bees.opencv import SporeDetectionPipeline
 from bees.titer import create_calculator_from_config
 
@@ -41,6 +47,8 @@ class SporeAnalysisPipeline:
         self.use_yolo = use_yolo and YOLO_AVAILABLE
         self.detection_pipeline = SporeDetectionPipeline()
         self.titer_calculator = create_calculator_from_config(config_manager)
+        self.morphology = morphology_settings(config_manager)
+        self.morphology_rows = []
 
         # Initialize YOLO components if requested
         self.yolo_counter = None
@@ -99,6 +107,15 @@ class SporeAnalysisPipeline:
 
         # Convert detections to contour-like format for compatibility
         spore_objects = self._detections_to_contours(inside_detections)
+        self.morphology_rows.extend(
+            measure_detections(
+                image,
+                inside_detections,
+                self.morphology,
+                image_path=str(image_path),
+                class_names=self._morphology_class_names(),
+            )
+        )
 
         return {
             'image': image,
@@ -121,6 +138,14 @@ class SporeAnalysisPipeline:
         )
         spore_objects = inside
         count = len(inside)
+        self.morphology_rows.extend(
+            measure_opencv_contours(
+                image,
+                inside,
+                self.morphology,
+                image_path=str(image_path),
+            )
+        )
 
         if debug_prefix:
             from bees.opencv.image_proc import save_debug_image
@@ -191,6 +216,7 @@ class SporeAnalysisPipeline:
 
         logger.info(f"Found {len(image_paths)} images for processing")
 
+        self.morphology_rows = []
         all_results = []
         photo_data = []  # (count, width, height)
 
@@ -221,8 +247,15 @@ class SporeAnalysisPipeline:
         }
         # Сохраняем детальные результаты для CVAT (если нужно)
         self.group_results = {'all_images': all_results}
+        write_morphology_reports(self.morphology_rows, self.results_dir, self.morphology)
 
         return groups_results
+
+    def _morphology_class_names(self):
+        """Class names accepted for a YOLO morphology measurement."""
+        config = getattr(self.yolo_counter, "config", None)
+        names = getattr(config, "class_names", None)
+        return list(names) if names else ["spore"]
 
 
 def opencv_detection_params(config_manager) -> Dict[str, Any]:

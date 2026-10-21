@@ -52,6 +52,10 @@ def _write_config(directory: Path, square_size: int = 40) -> Path:
                 f"analysis_square_size: {square_size}",
                 "analysis_square_line_width: 2",
                 "volume_factor: 4.0",
+                "morphology_confidence: 0.7",
+                "morphology_padding_ratio: 0.15",
+                "morphology_montage_columns: 4",
+                "microns_per_pixel: null",
             ]
         )
         + "\n",
@@ -147,6 +151,8 @@ class TestPipelineCount:
         assert result["count"] == 1
         assert result["count_outside_square"] == 1
         assert len(result["spore_objects"]) == 1
+        assert len(pipeline.morphology_rows) == 1
+        assert pipeline.morphology_rows[0].source == "bbox_ellipse"
 
 
 class TestHierarchyCount:
@@ -197,6 +203,9 @@ class TestHierarchyCount:
         # Assert
         assert result.photo_data == [(1, 100, 100)]
         assert analyzer.opencv_params["analysis_square_size"] == 40
+        assert len(analyzer.morphology_rows) == 1
+        assert analyzer.morphology_rows[0].population == "opencv_accepted"
+        assert analyzer.morphology_rows[0].source == "contour"
 
 
 def test_sahi_dict_uses_bbox_center():

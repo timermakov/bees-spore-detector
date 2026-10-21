@@ -35,6 +35,16 @@ volume_factor: 4.0
 # Square line width in pixels (to see square on UI for user)
 analysis_square_line_width: 2
 
+# Morphology. YOLO boxes are areas of interest; size and shape come from the contour.
+# Spores below this confidence stay in the titer count and stay out of the size summary.
+morphology_confidence: 0.7
+# Extra crop margin as a fraction of the longer box side.
+morphology_padding_ratio: 0.15
+# Columns in the stitched spore sheet.
+morphology_montage_columns: 10
+# Microscope scale. null keeps the report in pixels.
+microns_per_pixel: null
+
 # ========== YOLO Configuration ==========
 yolo_datasets_root: dataset_train
 yolo_dataset_folder_pattern: "*"

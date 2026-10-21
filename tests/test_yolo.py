@@ -1890,6 +1890,18 @@ class TestTrainCommandFlags:
         assert parsed.use_sahi is True
         assert parsed.weights == "checkpoints/custom.pt"
         assert parsed.no_yolo is True
+        assert parsed.morphology_confidence is None
+
+        overridden = parser.parse_args(
+            [
+                "hierarchy-analyze",
+                "--input-dir",
+                "data",
+                "--morphology-confidence",
+                "0.8",
+            ]
+        )
+        assert overridden.morphology_confidence == 0.8
 
     def test_omitted_pseudo_and_cvat_flags_use_yaml(self):
         """Flags that are left off keep the config.yaml values."""
