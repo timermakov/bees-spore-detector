@@ -238,6 +238,11 @@ def opencv_detection_params(config_manager) -> Dict[str, Any]:
         'intensity_threshold': config_manager.get_int_param('intensity_threshold'),
         'analysis_square_size': config_manager.get_int_param('analysis_square_size'),
         'analysis_square_line_width': config_manager.get_int_param('analysis_square_line_width'),
+        'min_ellipse_axis_ratio': config_manager.get_float_param('min_ellipse_axis_ratio'),
+        'max_ellipse_axis_ratio': config_manager.get_float_param('max_ellipse_axis_ratio'),
+        'min_ellipse_eccentricity': config_manager.get_float_param('min_ellipse_eccentricity'),
+        'max_ellipse_eccentricity': config_manager.get_float_param('max_ellipse_eccentricity'),
+        'min_center_distance': config_manager.get_float_param('min_center_distance'),
     }
 
 

@@ -11,7 +11,8 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from bees.titer import TiterCalculator
+from bees.config_loader import create_config_manager
+from bees.titer import create_calculator_from_config
 
 
 def _calc_p_value(values: list[float]) -> float | None:
@@ -22,16 +23,17 @@ def _calc_p_value(values: list[float]) -> float | None:
 
 
 def analyze_probe(db: Session, probe_id: int, mode: str | None = None) -> models.ProbeResult:
-    # Import lazily so API startup does not fail if OpenCV libs are missing.
-    from bees.opencv import SporeDetectionPipeline
-
     probe = crud.get_by_id(db, models.Probe, probe_id)
     if not probe:
         raise ValueError("Probe not found")
 
     settings = get_settings()
     method = mode or settings.analysis_mode
-    titer_calculator = TiterCalculator()
+    from bees.spore_analysis_pipeline import count_opencv_contours, opencv_detection_params
+
+    config_manager = create_config_manager(ROOT_DIR / "config.yaml")
+    titer_calculator = create_calculator_from_config(config_manager)
+    params = opencv_detection_params(config_manager)
 
     sample_dirs: list[Path] = []
     for sample in probe.samples:
@@ -43,21 +45,7 @@ def analyze_probe(db: Session, probe_id: int, mode: str | None = None) -> models
     if not sample_dirs:
         raise ValueError("No images found for probe")
 
-    detector = SporeDetectionPipeline()
-    params = {
-        "min_contour_area": 45,
-        "max_contour_area": 650,
-        "min_ellipse_area": 100,
-        "max_ellipse_area": 360,
-        "canny_threshold1": 40,
-        "canny_threshold2": 120,
-        "min_spore_contour_length": 7,
-        "intensity_threshold": 36,
-        "analysis_square_size": 780,
-        "analysis_square_line_width": 2,
-    }
-
-    # Collect titers per sample using the new hierarchical API
+    # Collect titers per sample using the analysis square count.
     all_titers: list[float] = []
     for sample_dir in sample_dirs:
         photo_data: list[tuple[int, int, int]] = []
@@ -68,9 +56,9 @@ def analyze_probe(db: Session, probe_id: int, mode: str | None = None) -> models
                 from PIL import Image
 
                 image = Image.open(image_path)
-                spores = detector.detect_spores(image, **params)
+                inside, _outside = count_opencv_contours(image, params)
                 width, height = image.size
-                photo_data.append((len(spores), width, height))
+                photo_data.append((len(inside), width, height))
             except Exception:
                 continue
 

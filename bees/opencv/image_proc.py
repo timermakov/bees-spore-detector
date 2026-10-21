@@ -16,6 +16,38 @@ from bees.analysis_zone import analysis_square_bounds
 # Configure logging
 logger = logging.getLogger(__name__)
 
+OPENCV_PARAM_KEYS = (
+    "canny_threshold1",
+    "canny_threshold2",
+    "min_contour_area",
+    "max_contour_area",
+    "min_ellipse_area",
+    "max_ellipse_area",
+    "min_spore_contour_length",
+    "intensity_threshold",
+    "min_ellipse_axis_ratio",
+    "max_ellipse_axis_ratio",
+    "min_ellipse_eccentricity",
+    "max_ellipse_eccentricity",
+    "min_center_distance",
+    "analysis_square_size",
+    "analysis_square_line_width",
+)
+
+
+def _param(params: dict, key: str):
+    """Return a detection setting. A missing key is named instead of replaced."""
+    if key not in params:
+        raise ValueError(f"OpenCV detection parameter '{key}' is required")
+    return params[key]
+
+
+def require_opencv_params(params: dict) -> None:
+    """Fail when a detection call omits a config.yaml setting."""
+    missing = [key for key in OPENCV_PARAM_KEYS if key not in params]
+    if missing:
+        raise ValueError("OpenCV detection parameter(s) required: " + ", ".join(missing))
+
 
 class ImagePreprocessor:
     """Handles image preprocessing operations for spore detection."""
@@ -197,7 +229,6 @@ class SporeDetector:
             debug_path: Optional path for saving debug images
         """
         self.debug_path = debug_path
-        self.min_center_distance = 6.0
     
     def detect_spores(self, 
                      image: np.ndarray,
@@ -265,12 +296,12 @@ class SporeDetector:
             True if contour is a valid spore
         """
         # Check contour length
-        if len(contour) < params.get('min_spore_contour_length', 5):
+        if len(contour) < _param(params, "min_spore_contour_length"):
             return False
         
         # Check contour area
         area = cv2.contourArea(contour)
-        if not (params.get('min_contour_area', 25) < area < params.get('max_contour_area', 500)):
+        if not (_param(params, "min_contour_area") < area < _param(params, "max_contour_area")):
             return False
         
         # Check if contour can fit an ellipse
@@ -287,15 +318,15 @@ class SporeDetector:
         
         # Check ellipse area
         ellipse_area = np.pi * (major_axis / 2.0) * (minor_axis / 2.0)
-        if not (params.get('min_ellipse_area', 25) < ellipse_area < params.get('max_ellipse_area', 500)):
+        if not (_param(params, "min_ellipse_area") < ellipse_area < _param(params, "max_ellipse_area")):
             return False
         
         # Check axis ratio and eccentricity
-        if not self._is_valid_ellipse_geometry(major_axis, minor_axis):
+        if not self._is_valid_ellipse_geometry(major_axis, minor_axis, params):
             return False
         
         # Check intensity characteristics
-        if not self._is_valid_intensity(image, ellipse, params.get('intensity_threshold', 50)):
+        if not self._is_valid_intensity(image, ellipse, _param(params, "intensity_threshold")):
             return False
         
         # Check edge support
@@ -303,19 +334,23 @@ class SporeDetector:
             return False
         
         # Check for duplicates
-        if self._is_duplicate_center((x, y), accepted_centers):
+        if self._is_duplicate_center((x, y), accepted_centers, _param(params, "min_center_distance")):
             return False
         
         return True
     
-    def _is_valid_ellipse_geometry(self, major_axis: float, minor_axis: float) -> bool:
+    def _is_valid_ellipse_geometry(self, major_axis: float, minor_axis: float, params: dict) -> bool:
         """Check if ellipse has valid geometric properties."""
         ratio = min(major_axis, minor_axis) / max(major_axis, minor_axis)
-        if ratio < 0.45 or ratio > 0.92:
+        if ratio < _param(params, "min_ellipse_axis_ratio") or ratio > _param(params, "max_ellipse_axis_ratio"):
             return False
         
         eccentricity = np.sqrt(1 - (min(major_axis, minor_axis) / max(major_axis, minor_axis))**2)
-        if not (0.45 < eccentricity < 0.95):
+        if not (
+            _param(params, "min_ellipse_eccentricity")
+            < eccentricity
+            < _param(params, "max_ellipse_eccentricity")
+        ):
             return False
         
         return True
@@ -375,11 +410,13 @@ class SporeDetector:
     
     def _is_duplicate_center(self, 
                             center: Tuple[float, float], 
-                            accepted_centers: List[Tuple[float, float]]) -> bool:
+                            accepted_centers: List[Tuple[float, float]],
+                            min_center_distance: float) -> bool:
         """Check if center is too close to already accepted centers."""
+        limit = float(min_center_distance) ** 2
         for accepted_center in accepted_centers:
             distance_squared = (center[0] - accepted_center[0])**2 + (center[1] - accepted_center[1])**2
-            if distance_squared < self.min_center_distance**2:
+            if distance_squared < limit:
                 return True
         return False
     
@@ -423,14 +460,15 @@ class SporeDetectionPipeline:
         Returns:
             List of detected spore contours
         """
+        require_opencv_params(params)
         # Preprocess image
         preprocessed = self.preprocessor.preprocess(image)
         
         # Detect and clean edges
         edges, edges_strong = self.edge_detector.detect_edges(
             preprocessed, 
-            params.get('canny_threshold1', 40),
-            params.get('canny_threshold2', 125)
+            _param(params, "canny_threshold1"),
+            _param(params, "canny_threshold2"),
         )
         cleaned_edges = self.edge_detector.clean_edges(edges)
         
@@ -450,17 +488,13 @@ def _save_analysis_overlay_if_enabled(preprocessed: np.ndarray,
     """Save colored overlay with analysis square when configured.
     Draws green square, red ellipses for spores inside, blue outside.
     """
-    try:
-        square_raw = params.get('analysis_square_size')
-        square_size = int(square_raw) if square_raw is not None else 0
-    except Exception:
-        square_size = 0
+    square_size = int(_param(params, "analysis_square_size"))
     if square_size <= 0:
         return
     overlay = cv2.cvtColor(preprocessed, cv2.COLOR_GRAY2BGR)
     h, w = preprocessed.shape[:2]
     x1, y1, x2, y2 = _compute_centered_square_bounds((w, h), square_size)
-    line_width = int(params.get('analysis_square_line_width', 2))
+    line_width = int(_param(params, "analysis_square_line_width"))
     cv2.rectangle(overlay, (x1, y1), (x2, y2), (0, 255, 0), line_width)
     for cnt in spores:
         if len(cnt) < 5:
