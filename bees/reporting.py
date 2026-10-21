@@ -19,6 +19,13 @@ from openpyxl.styles import Alignment, Font, PatternFill, Border, Side
 logger = logging.getLogger(__name__)
 
 
+def format_titer(value: Optional[float]) -> str:
+    """Titer text for Markdown. A missing Goryaev titer is not a zero."""
+    if value is None:
+        return "n/a"
+    return f"{float(value):.2f}"
+
+
 def apply_header_style(cells, wrap_text: bool = False) -> None:
     """Paint a header row with the shared report colors."""
     header_font = Font(bold=True, color="FFFFFF")
@@ -119,7 +126,7 @@ class MarkdownReporter:
 ## Results
 
 - **Spore Count:** {count}
-- **Titer:** {titer_value:.2f} million spores/ml
+- **Titer:** {format_titer(titer_value)} million spores/ml
 
 ## Analysis Parameters
 
@@ -183,7 +190,7 @@ class MarkdownReporter:
 ## Group Summary
 
 - **Total Spores:** {sum(image_counts)}
-- **Group Titer:** {group_titer:.2f} million spores/ml
+- **Group Titer:** {format_titer(group_titer)} million spores/ml
 - **Sample Count:** {len(image_counts)}
 
 ## Analysis Parameters

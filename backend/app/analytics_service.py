@@ -56,15 +56,17 @@ def analyze_probe(db: Session, probe_id: int, mode: str | None = None) -> models
                 from PIL import Image
 
                 image = Image.open(image_path)
-                inside, _outside = count_opencv_contours(image, params)
+                inside, outside = count_opencv_contours(image, params)
                 width, height = image.size
-                photo_data.append((len(inside), width, height))
+                count = len(inside) if titer_calculator.count_inside_square else len(inside) + len(outside)
+                photo_data.append((count, width, height))
             except Exception:
                 continue
 
         if photo_data:
             titer = titer_calculator.calculate_sample_titer(photo_data)
-            all_titers.append(float(titer))
+            if titer is not None:
+                all_titers.append(float(titer))
 
     if not all_titers:
         # Fallback keeps API stable even on empty/failed detections.

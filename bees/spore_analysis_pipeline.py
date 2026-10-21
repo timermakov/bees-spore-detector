@@ -98,35 +98,39 @@ class SporeAnalysisPipeline:
 
     def _process_image_yolo(self, image_path: str, image, metadata, debug_base: Path) -> Dict[str, Any]:
         """Process image using YOLO detector."""
-        counts, inside_detections, _outside = self.yolo_counter.count_with_detections(image_path)
-        count = counts["inside"]
+        counts, inside_detections, outside_detections = self.yolo_counter.count_with_detections(image_path)
+        inside_mode = self.titer_calculator.count_inside_square
+        counted = inside_detections if inside_mode else inside_detections + outside_detections
+        count = len(counted)
 
         # Save visualization
         vis_path = str(debug_base) + "_yolo_detections.jpg"
         self.yolo_counter.visualize(image_path, vis_path)
 
         # Convert detections to contour-like format for compatibility
-        spore_objects = self._detections_to_contours(inside_detections)
+        spore_objects = self._detections_to_contours(counted)
         self.morphology_rows.extend(
             measure_detections(
                 image,
-                inside_detections,
+                inside_detections + outside_detections,
                 self.morphology,
                 image_path=str(image_path),
                 class_names=self._morphology_class_names(),
             )
         )
 
-        return {
+        result = {
             'image': image,
             'spore_objects': spore_objects,
             'count': count,
             'metadata': metadata,
             'image_path': image_path,
             'debug_images': [vis_path] if Path(vis_path).exists() else [],
-            'count_outside_square': counts["outside"],
             'method': 'yolo'
         }
+        if inside_mode:
+            result['count_outside_square'] = counts["outside"]
+        return result
 
     def _process_image_opencv(self, image_path: str, image, metadata,
                               debug_base: Path, debug_prefix: Optional[str]) -> Dict[str, Any]:
@@ -136,12 +140,13 @@ class SporeAnalysisPipeline:
             self.get_parameters(),
             debug_path=str(debug_base),
         )
-        spore_objects = inside
-        count = len(inside)
+        inside_mode = self.titer_calculator.count_inside_square
+        spore_objects = inside if inside_mode else inside + outside
+        count = len(spore_objects)
         self.morphology_rows.extend(
             measure_opencv_contours(
                 image,
-                inside,
+                inside + outside,
                 self.morphology,
                 image_path=str(image_path),
             )
@@ -166,16 +171,18 @@ class SporeAnalysisPipeline:
         ]
         debug_images = [str(p) for p in map(Path, debug_candidates) if Path(p).exists()]
 
-        return {
+        result = {
             'image': image,
             'spore_objects': spore_objects,
             'count': count,
             'metadata': metadata,
             'image_path': image_path,
             'debug_images': debug_images,
-            'count_outside_square': len(outside),
             'method': 'opencv'
         }
+        if inside_mode:
+            result['count_outside_square'] = len(outside)
+        return result
 
     def _detections_to_contours(self, detections) -> List:
         """Convert YOLO detections to contour format for compatibility."""

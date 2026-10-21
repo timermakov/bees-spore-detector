@@ -1214,14 +1214,16 @@ class TestConfigManagerIntegration:
         _assert_int(intensity)
         _assert_int(calculator.square_size)
         _assert_number(calculator.volume_factor)
+        assert calculator.count_inside_square is False
 
     @pytest.mark.parametrize(
         ("key", "read"),
         [
             ("min_contour_area", lambda manager: manager.get_int_param("min_contour_area")),
             ("volume_factor", create_calculator_from_config),
+            ("count_inside_square", create_calculator_from_config),
         ],
-        ids=["min-contour-area", "volume-factor"],
+        ids=["min-contour-area", "volume-factor", "count-inside-square"],
     )
     def test_missing_opencv_and_titer_keys_are_named(self, tmp_path, key, read):
         """Dropped OpenCV and titer keys fail with the key name."""
@@ -1891,6 +1893,7 @@ class TestTrainCommandFlags:
         assert parsed.weights == "checkpoints/custom.pt"
         assert parsed.no_yolo is True
         assert parsed.morphology_confidence is None
+        assert parsed.inside_square is None
 
         overridden = parser.parse_args(
             [
@@ -1899,9 +1902,11 @@ class TestTrainCommandFlags:
                 "data",
                 "--morphology-confidence",
                 "0.8",
+                "--inside-square",
             ]
         )
         assert overridden.morphology_confidence == 0.8
+        assert overridden.inside_square is True
 
     def test_omitted_pseudo_and_cvat_flags_use_yaml(self):
         """Flags that are left off keep the config.yaml values."""
