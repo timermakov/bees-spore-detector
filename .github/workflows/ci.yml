@@ -42,7 +42,7 @@ jobs:
           pytest tests/test_yolo.py -v
       - name: Run integration tests
         run: |
-          pytest test_refactored.py -v
+          pytest tests/integration -v
 
   frontend-build:
     runs-on: ubuntu-latest

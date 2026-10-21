@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Checks for the public bees package API."""
+"""Integration checks for the public bees package API."""
 
 import sys
 from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).parent))
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(_REPO_ROOT))
 
 from bees import (
     CVATExporter,
@@ -31,7 +32,7 @@ from bees.grouping import find_images, scan_folder_with_metadata, scan_hierarchy
 
 
 def _repo_config_path() -> Path:
-    return Path(__file__).parent / "config.yaml"
+    return _REPO_ROOT / "config.yaml"
 
 
 def _write_image(path: Path, size=(20, 10)) -> None:
