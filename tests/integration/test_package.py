@@ -110,8 +110,13 @@ class TestConfiguration:
         # Act / Assert
         with pytest.raises(ConfigurationError):
             ConfigurationLoader(missing)
-        with pytest.raises(ConfigurationError):
+        with pytest.raises(ConfigurationError, match="Failed to parse YAML") as broken_error:
             ConfigurationLoader(broken).load_config()
+        with pytest.raises(ConfigurationError, match="Configuration validation failed") as invalid_error:
+            ConfigurationLoader(invalid).load_config()
+        assert "min_contour_area" in str(invalid_error.value)
+        assert str(invalid_error.value).startswith("Configuration validation failed")
+        assert "Failed to parse YAML" in str(broken_error.value)
         assert ConfigurationLoader(invalid).is_valid() is False
 
     def test_validator_names_bad_parameters(self):

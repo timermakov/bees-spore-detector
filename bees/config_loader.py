@@ -180,6 +180,8 @@ class ConfigurationLoader:
             error_msg = f"Failed to parse YAML configuration {self.config_path}: {e}"
             logger.error(error_msg)
             raise ConfigurationError(error_msg)
+        except ConfigurationError:
+            raise
         except Exception as e:
             error_msg = f"Failed to load configuration {self.config_path}: {e}"
             logger.error(error_msg)
