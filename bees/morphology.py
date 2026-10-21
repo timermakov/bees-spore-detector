@@ -880,12 +880,17 @@ def _write_spore_sheet(worksheet, measurements, settings, apply_header_style, ap
     for line in _population_lines(measurements, settings):
         worksheet.append([line])
     worksheet.append([])
-    header_row = worksheet.max_row + 1
+    from openpyxl.utils import get_column_letter
+
     worksheet.append([label for _key, label in fields])
+    header_row = worksheet.max_row
     apply_header_style(
         [worksheet.cell(row=header_row, column=column) for column in range(1, len(fields) + 1)],
         wrap_text=True,
     )
+    worksheet.row_dimensions[header_row].height = 36
+    for column, (_key, label) in enumerate(fields, 1):
+        worksheet.column_dimensions[get_column_letter(column)].width = min(28, max(12, len(label) + 2))
     for item in measurements:
         values = item.table_values(settings.microns_per_pixel)
         worksheet.append([values[key] for key, _label in fields])
@@ -903,20 +908,43 @@ def _write_summary_sheet(
         worksheet.append([line])
     worksheet.append([])
     metric_names = list(_summary_names(settings.microns_per_pixel))
-    headers = ["Уровень", "Тип", "Проба", "Образец", "Фото", "Измерено", "Запасные"]
+    identity = ["Уровень", "Тип", "Проба", "Образец", "Фото", "Измерено", "Запасные"]
+    stat_labels = ["среднее", "ст. откл.", *[f"p{percent}" for percent in PERCENTILES]]
+    top = list(identity)
+    bottom = [""] * len(identity)
     for name in metric_names:
-        label = METRIC_LABELS[name]
-        headers.extend([
-            f"{label} среднее",
-            f"{label} ст. откл.",
-            *[f"{label} p{percent}" for percent in PERCENTILES],
-        ])
-    header_row = worksheet.max_row + 1
-    worksheet.append(headers)
+        top.append(METRIC_LABELS[name])
+        top.extend([""] * (len(stat_labels) - 1))
+        bottom.extend(stat_labels)
+    worksheet.append(top)
+    header_row = worksheet.max_row
+    worksheet.append(bottom)
+    for column in range(1, len(identity) + 1):
+        worksheet.merge_cells(
+            start_row=header_row,
+            start_column=column,
+            end_row=header_row + 1,
+            end_column=column,
+        )
+    for index in range(len(metric_names)):
+        start = len(identity) + 1 + index * len(stat_labels)
+        worksheet.merge_cells(
+            start_row=header_row,
+            start_column=start,
+            end_row=header_row,
+            end_column=start + len(stat_labels) - 1,
+        )
+    column_count = len(top)
     apply_header_style(
-        [worksheet.cell(row=header_row, column=column) for column in range(1, len(headers) + 1)],
+        [
+            worksheet.cell(row=row, column=column)
+            for row in (header_row, header_row + 1)
+            for column in range(1, column_count + 1)
+        ],
         wrap_text=True,
     )
+    worksheet.row_dimensions[header_row].height = 22
+    worksheet.row_dimensions[header_row + 1].height = 18
     for group in summarize_groups(measurements, settings.microns_per_pixel):
         row = [
             LEVEL_LABELS[group.level],
@@ -936,10 +964,11 @@ def _write_summary_sheet(
             row.append(metric.std)
             row.extend(metric.percentiles[percent] for percent in PERCENTILES)
         worksheet.append(row)
-    last_row = max(header_row, worksheet.max_row)
-    apply_thin_borders(worksheet, header_row, last_row, 1, len(headers))
-    for column in range(1, len(headers) + 1):
-        worksheet.column_dimensions[get_column_letter(column)].width = 18
+    last_row = max(header_row + 1, worksheet.max_row)
+    apply_thin_borders(worksheet, header_row, last_row, 1, column_count)
+    for column in range(1, column_count + 1):
+        width = 14 if column <= len(identity) else 12
+        worksheet.column_dimensions[get_column_letter(column)].width = width
     for cell in worksheet[1]:
         cell.font = font(bold=True)
         cell.alignment = alignment(wrap_text=True)

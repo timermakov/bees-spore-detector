@@ -231,6 +231,13 @@ class TestReports:
         assert "major_um" not in header
         assert "area_um2" not in header
         assert any(cell.value and "Масштаб не задан" in str(cell.value) for row in sheet.iter_rows(max_row=6) for cell in row)
+        header_row = next(
+            cell.row for row in sheet.iter_rows(max_row=8) for cell in row if cell.value == "Уровень"
+        )
+        assert sheet.cell(row=header_row, column=8).value == "Большая ось, пикс."
+        assert sheet.cell(row=header_row + 1, column=8).value == "среднее"
+        assert sheet.cell(row=header_row + 1, column=12).value == "p50"
+        assert sheet.row_dimensions[header_row].height >= 18
         assert "Большая ось, пикс." in text
         assert "всего кадра" in text
         assert "мкм" not in text
