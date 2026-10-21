@@ -239,7 +239,7 @@ def _resolve_tiley_predict_config(config_manager, input_override: Optional[str],
 
 def _import_sahi_export_modules():
     try:
-        from bees.yolo.converter_coco import CVATToCocoConverter
+        from bees.yolo.cvat_to_coco import CVATToCocoConverter
         from bees.yolo.dataset_slicer import DatasetSlicer
         return CVATToCocoConverter, DatasetSlicer
     except ImportError as exc:

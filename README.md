@@ -404,8 +404,7 @@ The codebase follows these principles:
 ### Testing
 
 ```bash
-# Run tests (example)
-python test_refactored.py
+pytest tests/test_opencv.py tests/test_yolo.py tests/integration -v
 ```
 
 ## Contributing

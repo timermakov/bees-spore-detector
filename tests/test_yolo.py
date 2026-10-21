@@ -6,7 +6,7 @@ Tests cover:
 - Detection: detection data class
 - SporeDetector: YOLO model inference (mocked)
 - DatasetPreparer: dataset preparation
-- CVATToYOLOConverter: format conversion
+- CVATToYOLOConverter: CVAT XML to YOLO labels
 """
 
 import json
@@ -23,7 +23,23 @@ from bees.config_loader import ConfigurationError, ConfigurationManager, create_
 from bees.titer import create_calculator_from_config
 from bees.yolo import YOLOConfig
 from bees.yolo.config import TileyConfig, resolve_predict_weights
-from bees.yolo.data_discovery import discover_dataset_dirs, find_coco_annotation_candidates
+from bees.yolo.cvat import (
+    EllipseAnnotation,
+    ImageAnnotation,
+    clip_xyxy_to_image,
+    find_annotated_image,
+    read_cvat_xml,
+    xyxy_to_yolo_line,
+)
+from bees.yolo.cvat_to_yolo import convert_cvat_to_yolo
+from bees.yolo.data_discovery import (
+    collect_image_files,
+    discover_dataset_dirs,
+    find_coco_annotation_candidates,
+    find_xml_annotation_candidates,
+    resolve_images_root,
+)
+from bees.yolo.dataset import prepare_yolo_dataset
 
 
 def _repo_config_path() -> Path:
@@ -39,7 +55,7 @@ def _read_repo_config() -> str:
 def _set_yaml_key(text: str, key: str, raw_value: str) -> str:
     """Replace one top-level YAML value. raw_value is written as YAML text."""
     pattern = re.compile(rf"^({re.escape(key)}:\s*).*$", re.MULTILINE)
-    updated, count = pattern.subn(rf"\1{raw_value}", text, count=1)
+    updated, count = pattern.subn(lambda match: f"{match.group(1)}{raw_value}", text, count=1)
     if count != 1:
         raise AssertionError(f"{key} not found in config text")
     return updated
@@ -130,6 +146,42 @@ def _write_dummy_image(path: Path) -> None:
     """Write a tiny PNG header so an image path exists."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(b"\x89PNG\r\n\x1a\n")
+
+
+def _write_cvat_xml(
+    path: Path,
+    image_name: str = "img_1.png",
+    label: str = "spore",
+    width: int = 100,
+    height: int = 100,
+) -> None:
+    """Write one CVAT image with a single ellipse."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        (
+            "<annotations>\n"
+            f'  <image id="0" name="{image_name}" width="{width}" height="{height}">\n'
+            f'    <ellipse label="{label}" cx="50" cy="50" rx="10" ry="10"/>\n'
+            "  </image>\n"
+            "</annotations>\n"
+        ),
+        encoding="utf-8",
+    )
+
+
+def _make_portion_config(tmp_path: Path, datasets_root: Path, **overrides):
+    """YOLOConfig aimed at one dataset portion under tmp_path."""
+    values = {
+        "datasets_root": datasets_root,
+        "dataset_folder_pattern": "portion_01",
+        "annotations_format": "coco",
+        "annotations_relpath": None,
+        "images_subdir": "sliced/images",
+        "output_dir": tmp_path / "yolo_dataset",
+        "models_dir": tmp_path / "models",
+    }
+    values.update(overrides)
+    return _make_yolo_config(**values)
 
 
 def _resolve_tiley_export(manager: ConfigurationManager, images_dir, out):
@@ -469,6 +521,473 @@ class TestCVATToYOLOConverter:
         assert converter.class_names == ["spore"]
         assert converter.class_to_id == {"spore": 0}
 
+    def test_unknown_label_is_rejected(self):
+        """An unknown CVAT label fails instead of becoming class 0."""
+        from bees.yolo.cvat import EllipseAnnotation, ImageAnnotation
+
+        # Arrange
+        converter = CVATToYOLOConverter(["spore"])
+        annotation = ImageAnnotation(
+            image_id=0,
+            name="a.jpg",
+            width=100,
+            height=100,
+            ellipses=[EllipseAnnotation(cx=50, cy=50, rx=10, ry=10, label="debris")],
+        )
+
+        # Act
+        with pytest.raises(ValueError) as caught:
+            converter.convert_annotation(annotation)
+
+        # Assert
+        assert "Unknown label" in str(caught.value)
+        assert "debris" in str(caught.value)
+
+    def test_box_corners_are_clipped_before_conversion(self):
+        """A box past the image edge keeps only the visible part."""
+        from bees.yolo.cvat import EllipseAnnotation, ImageAnnotation
+
+        # Arrange
+        converter = CVATToYOLOConverter(["spore"])
+        annotation = ImageAnnotation(
+            image_id=0,
+            name="a.jpg",
+            width=100,
+            height=100,
+            ellipses=[EllipseAnnotation(cx=100, cy=105, rx=20, ry=15, label="spore")],
+        )
+
+        # Act
+        lines = converter.convert_annotation(annotation)
+
+        # Assert
+        assert lines == ["0 0.900000 0.950000 0.200000 0.100000"]
+
+    def test_zero_image_size_is_rejected(self):
+        """A zero image width fails with the image name."""
+        from bees.yolo.cvat import EllipseAnnotation, ImageAnnotation
+
+        # Arrange
+        converter = CVATToYOLOConverter(["spore"])
+        annotation = ImageAnnotation(
+            image_id=0,
+            name="a.jpg",
+            width=0,
+            height=100,
+            ellipses=[EllipseAnnotation(cx=15, cy=15, rx=5, ry=5, label="spore")],
+        )
+
+        # Act
+        with pytest.raises(ValueError) as caught:
+            converter.convert_annotation(annotation)
+
+        # Assert
+        assert "a.jpg" in str(caught.value)
+        assert "0x100" in str(caught.value)
+
+    def test_box_outside_the_image_is_skipped(self):
+        """A box with no visible area produces no label line."""
+        from bees.yolo.cvat import EllipseAnnotation, ImageAnnotation
+
+        # Arrange
+        converter = CVATToYOLOConverter(["spore"])
+        annotation = ImageAnnotation(
+            image_id=0,
+            name="a.jpg",
+            width=100,
+            height=100,
+            ellipses=[EllipseAnnotation(cx=200, cy=200, rx=5, ry=5, label="spore")],
+        )
+
+        # Act
+        lines = converter.convert_annotation(annotation)
+
+        # Assert
+        assert lines == []
+
+    def test_ellipse_to_bbox_rejects_a_box_outside_the_image(self):
+        """A shape with no visible area raises instead of writing a label."""
+        # Arrange
+        converter = CVATToYOLOConverter(["spore"])
+        ellipse = EllipseAnnotation(cx=200, cy=200, rx=5, ry=5)
+
+        # Act
+        with pytest.raises(ValueError, match="outside the image"):
+            converter.ellipse_to_bbox(ellipse, 100, 100)
+
+    def test_rotated_ellipse_uses_the_axis_aligned_box(self):
+        """Rotation grows the box around the ellipse."""
+        # Arrange
+        converter = CVATToYOLOConverter(["spore"])
+        ellipse = EllipseAnnotation(cx=50, cy=50, rx=20, ry=10, rotation=90)
+
+        # Act
+        x_center, y_center, width, height = converter.ellipse_to_bbox(ellipse, 100, 100)
+
+        # Assert
+        assert x_center == pytest.approx(0.5)
+        assert y_center == pytest.approx(0.5)
+        assert width == pytest.approx(0.2)
+        assert height == pytest.approx(0.4)
+
+    def test_read_cvat_xml_keeps_ellipses_and_boxes(self, tmp_path):
+        """Boxes are stored as axis-aligned ellipses next to real ellipses."""
+        # Arrange
+        xml_path = tmp_path / "annotations.xml"
+        xml_path.write_text(
+            (
+                "<annotations>\n"
+                '  <image id="2" name="nested/img.png" width="100" height="80">\n'
+                '    <ellipse label="spore" cx="10" cy="20" rx="4" ry="5" rotation="15"/>\n'
+                '    <box label="spore" xtl="10" ytl="20" xbr="30" ybr="40"/>\n'
+                "  </image>\n"
+                "</annotations>\n"
+            ),
+            encoding="utf-8",
+        )
+        converter = CVATToYOLOConverter(["spore"])
+
+        # Act
+        annotations = converter.parse_cvat_xml(xml_path)
+        direct = read_cvat_xml(xml_path)
+
+        # Assert
+        assert len(annotations) == 1
+        assert annotations[0].image_id == 2
+        assert annotations[0].name == "nested/img.png"
+        assert len(annotations[0].ellipses) == 2
+        box = annotations[0].ellipses[1]
+        assert box.cx == pytest.approx(20)
+        assert box.cy == pytest.approx(30)
+        assert box.rx == pytest.approx(10)
+        assert box.ry == pytest.approx(10)
+        assert direct[0].ellipses[0].rotation == pytest.approx(15)
+
+    def test_find_annotated_image_checks_name_then_parent(self, tmp_path):
+        """The image may sit beside the XML, under its CVAT name, or one folder up."""
+        # Arrange
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        _write_dummy_image(images_dir / "flat.png")
+        _write_dummy_image(images_dir / "nested" / "deep.png")
+        _write_dummy_image(tmp_path / "nested" / "parent.png")
+        flat = ImageAnnotation(0, "flat.png", 10, 10, [])
+        nested = ImageAnnotation(1, "nested/deep.png", 10, 10, [])
+        parent = ImageAnnotation(2, "nested/parent.png", 10, 10, [])
+        missing = ImageAnnotation(3, "missing.png", 10, 10, [])
+
+        # Act
+        found_flat = find_annotated_image(flat, images_dir)
+        found_nested = find_annotated_image(nested, images_dir)
+        found_parent = find_annotated_image(parent, images_dir)
+        found_missing = find_annotated_image(missing, images_dir)
+
+        # Assert
+        assert found_flat == images_dir / "flat.png"
+        assert found_nested == images_dir / "nested" / "deep.png"
+        assert found_parent == tmp_path / "nested" / "parent.png"
+        assert found_missing is None
+
+    def test_geometry_helpers_reject_empty_and_invisible_boxes(self):
+        """A non-positive image size fails, and a box fully outside becomes no line."""
+        # Act
+        with pytest.raises(ValueError, match="0x10"):
+            clip_xyxy_to_image(0, 0, 1, 1, 0, 10)
+        line = xyxy_to_yolo_line(200, 200, 210, 210, 100, 100, 0)
+
+        # Assert
+        assert line is None
+
+    def test_convert_and_save_writes_labels_and_skips_missing_images(self, tmp_path):
+        """Found images are copied with a label file. Missing images are counted."""
+        # Arrange
+        images_root = tmp_path / "images"
+        _write_dummy_image(images_root / "img_1.png")
+        xml_path = tmp_path / "annotations.xml"
+        xml_path.write_text(
+            (
+                "<annotations>\n"
+                '  <image id="0" name="img_1.png" width="100" height="100">\n'
+                '    <ellipse label="spore" cx="50" cy="50" rx="10" ry="10"/>\n'
+                "  </image>\n"
+                '  <image id="1" name="missing.png" width="100" height="100">\n'
+                '    <ellipse label="spore" cx="50" cy="50" rx="10" ry="10"/>\n'
+                "  </image>\n"
+                "</annotations>\n"
+            ),
+            encoding="utf-8",
+        )
+        output_dir = tmp_path / "yolo"
+        converter = CVATToYOLOConverter(["spore"])
+
+        # Act
+        stats = converter.convert_and_save(xml_path, images_root, output_dir, copy_images=True)
+        skipped = converter.convert_and_save(xml_path, images_root, output_dir, copy_images=False)
+
+        # Assert
+        label = (output_dir / "labels" / "img_1.txt").read_text(encoding="utf-8")
+        assert stats == {"images": 1, "annotations": 1, "skipped_images": 1}
+        assert skipped["images"] == 1
+        assert label == "0 0.500000 0.500000 0.200000 0.200000"
+        assert (output_dir / "images" / "img_1.png").is_file()
+
+    def test_convert_cvat_to_yolo_uses_the_default_class(self, tmp_path):
+        """The module helper writes one YOLO folder from a CVAT file."""
+        # Arrange
+        images_root = tmp_path / "images"
+        _write_dummy_image(images_root / "img_1.png")
+        xml_path = tmp_path / "annotations.xml"
+        _write_cvat_xml(xml_path)
+
+        # Act
+        stats = convert_cvat_to_yolo(str(xml_path), str(images_root), str(tmp_path / "out"))
+
+        # Assert
+        assert stats["images"] == 1
+        assert stats["annotations"] == 1
+        assert (tmp_path / "out" / "labels" / "img_1.txt").is_file()
+
+
+class _FakeCoco:
+    def __init__(self):
+        self.categories = []
+        self.images = []
+
+    def add_category(self, category):
+        self.categories.append(category)
+
+    def add_image(self, image):
+        self.images.append(image)
+
+    @property
+    def json(self):
+        return {
+            "categories": [category.name for category in self.categories],
+            "images": [
+                {
+                    "file_name": image.file_name,
+                    "annotations": [annotation.bbox for annotation in image.annotations],
+                }
+                for image in self.images
+            ],
+        }
+
+
+class _FakeCocoImage:
+    def __init__(self, file_name, height, width):
+        self.file_name = file_name
+        self.height = height
+        self.width = width
+        self.annotations = []
+
+    def add_annotation(self, annotation):
+        self.annotations.append(annotation)
+
+
+class _FakeCocoCategory:
+    def __init__(self, id, name):
+        self.id = id
+        self.name = name
+
+
+class _FakeCocoAnnotation:
+    reject_area = False
+
+    def __init__(self, bbox, category_id, category_name, area=None):
+        if self.reject_area and area is not None:
+            raise TypeError("area is not supported")
+        self.bbox = bbox
+        self.category_id = category_id
+        self.category_name = category_name
+        self.area = area
+
+
+def _fake_sahi_coco():
+    def save_json(payload, path):
+        Path(path).write_text(json.dumps(payload), encoding="utf-8")
+
+    return _FakeCoco, _FakeCocoAnnotation, _FakeCocoCategory, _FakeCocoImage, save_json
+
+
+class TestCVATToCocoConverter:
+    """COCO writing shares the CVAT reader. SAHI objects are supplied by the test."""
+
+    def test_sahi_is_required_to_build_coco(self):
+        """Building COCO names the missing package."""
+        import importlib.util
+
+        from bees.yolo.cvat_to_coco import _sahi_coco
+
+        if importlib.util.find_spec("sahi") is not None:
+            pytest.skip("sahi is installed")
+
+        # Act
+        with pytest.raises(ImportError, match="sahi package required"):
+            _sahi_coco()
+
+    def test_export_before_parse_is_rejected(self):
+        """Saving JSON before a parse says which method to call first."""
+        from bees.yolo.cvat_to_coco import CVATToCocoConverter
+
+        # Arrange
+        converter = CVATToCocoConverter(["spore"])
+
+        # Act
+        with pytest.raises(RuntimeError, match="parse_cvat_to_coco"):
+            converter.export_to_coco_json(Path("out.json"))
+
+    def test_parse_cvat_xml_reads_shapes(self, tmp_path):
+        """The COCO converter reads the same CVAT file as the YOLO converter."""
+        from bees.yolo.cvat_to_coco import CVATToCocoConverter
+
+        # Arrange
+        xml_path = tmp_path / "annotations.xml"
+        _write_cvat_xml(xml_path)
+        converter = CVATToCocoConverter(["spore"])
+
+        # Act
+        annotations = converter.parse_cvat_xml(xml_path)
+
+        # Assert
+        assert annotations[0].name == "img_1.png"
+        assert annotations[0].ellipses[0].label == "spore"
+
+    def test_parse_and_export_coco(self, tmp_path, monkeypatch):
+        """Visible boxes become COCO annotations. Missing and unknown shapes stop or skip."""
+        from bees.yolo import cvat_to_coco
+
+        # Arrange
+        monkeypatch.setattr(cvat_to_coco, "_sahi_coco", _fake_sahi_coco)
+        images_dir = tmp_path / "images"
+        _write_dummy_image(images_dir / "img_1.png")
+        _write_dummy_image(tmp_path / "nested" / "parent.png")
+        xml_path = tmp_path / "annotations.xml"
+        xml_path.write_text(
+            (
+                "<annotations>\n"
+                '  <image id="0" name="img_1.png" width="100" height="100">\n'
+                '    <ellipse label="spore" cx="50" cy="50" rx="10" ry="10"/>\n'
+                '    <ellipse label="spore" cx="200" cy="200" rx="5" ry="5"/>\n'
+                "  </image>\n"
+                '  <image id="1" name="missing.png" width="100" height="100"/>\n'
+                '  <image id="2" name="nested/parent.png" width="100" height="80">\n'
+                '    <box label="spore" xtl="0" ytl="0" xbr="10" ybr="20"/>\n'
+                "  </image>\n"
+                '  <image id="3" name="img_1.png" width="0" height="100"/>\n'
+                "</annotations>\n"
+            ),
+            encoding="utf-8",
+        )
+        converter = cvat_to_coco.CVATToCocoConverter(["spore"])
+
+        # Act
+        with pytest.raises(ValueError, match="img_1.png"):
+            converter.parse_cvat_to_coco(xml_path, images_dir)
+
+    def test_parse_exports_visible_boxes(self, tmp_path, monkeypatch):
+        """A found image is exported with its visible box."""
+        from bees.yolo import cvat_to_coco
+
+        # Arrange
+        monkeypatch.setattr(cvat_to_coco, "_sahi_coco", _fake_sahi_coco)
+        images_dir = tmp_path / "images"
+        _write_dummy_image(images_dir / "nested" / "img_1.png")
+        xml_path = tmp_path / "annotations.xml"
+        xml_path.write_text(
+            (
+                "<annotations>\n"
+                '  <image id="0" name="nested/img_1.png" width="100" height="100">\n'
+                '    <ellipse label="spore" cx="50" cy="50" rx="10" ry="10"/>\n'
+                '    <ellipse label="spore" cx="200" cy="200" rx="5" ry="5"/>\n'
+                "  </image>\n"
+                '  <image id="1" name="missing.png" width="100" height="100"/>\n'
+                "</annotations>\n"
+            ),
+            encoding="utf-8",
+        )
+        converter = cvat_to_coco.CVATToCocoConverter(["spore"])
+
+        # Act
+        coco = converter.parse_cvat_to_coco(xml_path, images_dir)
+        exported = converter.export_to_coco_json(tmp_path / "out" / "coco.json")
+
+        # Assert
+        assert coco.categories[0].name == "spore"
+        assert coco.images[0].file_name == "nested/img_1.png"
+        assert len(coco.images[0].annotations) == 1
+        assert coco.images[0].annotations[0].area == pytest.approx(400)
+        payload = json.loads(exported.read_text(encoding="utf-8"))
+        assert payload["images"][0]["file_name"] == "nested/img_1.png"
+
+    def test_parent_image_uses_its_file_name(self, tmp_path, monkeypatch):
+        """An image found above the images folder keeps its own file name."""
+        from bees.yolo import cvat_to_coco
+
+        # Arrange
+        monkeypatch.setattr(cvat_to_coco, "_sahi_coco", _fake_sahi_coco)
+        images_dir = tmp_path / "images"
+        images_dir.mkdir()
+        _write_dummy_image(tmp_path / "nested" / "parent.png")
+        xml_path = tmp_path / "annotations.xml"
+        xml_path.write_text(
+            (
+                "<annotations>\n"
+                '  <image id="0" name="nested/parent.png" width="100" height="80">\n'
+                '    <box label="spore" xtl="0" ytl="0" xbr="10" ybr="20"/>\n'
+                "  </image>\n"
+                "</annotations>\n"
+            ),
+            encoding="utf-8",
+        )
+        converter = cvat_to_coco.CVATToCocoConverter(["spore"])
+
+        # Act
+        coco = converter.parse_cvat_to_coco(xml_path, images_dir)
+
+        # Assert
+        assert coco.images[0].file_name == "parent.png"
+        assert coco.images[0].annotations[0].bbox[2] == pytest.approx(10)
+        assert coco.images[0].annotations[0].bbox[3] == pytest.approx(20)
+
+    def test_unknown_label_is_rejected(self, tmp_path, monkeypatch):
+        """An unknown CVAT label is rejected while building COCO."""
+        from bees.yolo import cvat_to_coco
+
+        # Arrange
+        monkeypatch.setattr(cvat_to_coco, "_sahi_coco", _fake_sahi_coco)
+        images_dir = tmp_path / "images"
+        _write_dummy_image(images_dir / "img_1.png")
+        xml_path = tmp_path / "annotations.xml"
+        _write_cvat_xml(xml_path, label="debris")
+        converter = cvat_to_coco.CVATToCocoConverter(["spore"])
+
+        # Act
+        with pytest.raises(ValueError, match="debris"):
+            converter.parse_cvat_to_coco(xml_path, images_dir)
+
+    def test_annotation_without_area_is_still_recorded(self, tmp_path, monkeypatch):
+        """A SAHI build that rejects area falls back to a box without it."""
+        from bees.yolo import cvat_to_coco
+
+        # Arrange
+        _FakeCocoAnnotation.reject_area = True
+        monkeypatch.setattr(cvat_to_coco, "_sahi_coco", _fake_sahi_coco)
+        images_dir = tmp_path / "images"
+        _write_dummy_image(images_dir / "img_1.png")
+        xml_path = tmp_path / "annotations.xml"
+        _write_cvat_xml(xml_path)
+        converter = cvat_to_coco.CVATToCocoConverter()
+
+        # Act
+        try:
+            coco = converter.parse_cvat_to_coco(xml_path, images_dir)
+        finally:
+            _FakeCocoAnnotation.reject_area = False
+
+        # Assert
+        assert coco.images[0].annotations[0].area is None
+        assert coco.images[0].annotations[0].category_name == "spore"
+
 
 @pytest.mark.skipif(not PANDAS_AVAILABLE, reason="pandas not installed")
 class TestDatasetPreparer:
@@ -484,6 +1003,31 @@ class TestDatasetPreparer:
 
         # Assert
         assert preparer.config == config
+
+    def test_get_augmentation_config_copies_training_settings(self):
+        """Augmentation settings come from the YOLO config fields."""
+        # Arrange
+        config = _make_yolo_config(mosaic=0.4, mixup=0.2, degrees=12.0)
+        preparer = DatasetPreparer(config)
+
+        # Act
+        augmentation = preparer.get_augmentation_config()
+
+        # Assert
+        assert augmentation["mosaic"] == 0.4
+        assert augmentation["mixup"] == 0.2
+        assert augmentation["degrees"] == 12.0
+        assert set(augmentation) == {
+            "mosaic",
+            "mixup",
+            "hsv_h",
+            "hsv_s",
+            "hsv_v",
+            "degrees",
+            "scale",
+            "fliplr",
+            "flipud",
+        }
 
 
 class TestConfigManagerIntegration:
@@ -603,6 +1147,29 @@ class TestConfigManagerIntegration:
         # Assert
         _assert_error_names(caught.value, key)
 
+    @pytest.mark.parametrize(
+        ("key", "raw_value"),
+        [
+            ("yolo_image_extensions", "jpg"),
+            ("yolo_class_names", '[""]'),
+            ("yolo_device", "1"),
+            ("yolo_annotations_relpath", '""'),
+        ],
+        ids=["extensions", "class-names", "device", "relpath"],
+    )
+    def test_yolo_list_and_text_fields_are_rejected(self, tmp_path, key, raw_value):
+        """Extensions, class names, device, and the annotation path must match their type."""
+        # Arrange
+        text = _set_yaml_key(_read_repo_config(), key, raw_value)
+        manager = _load_config_text(tmp_path, text)
+
+        # Act
+        with pytest.raises(ConfigurationError) as caught:
+            YOLOConfig.from_config_manager(manager)
+
+        # Assert
+        _assert_error_names(caught.value, key)
+
     def test_opencv_and_titer_require_yaml_values(self):
         """OpenCV and titer read config.yaml and do not fill Python defaults."""
         # Arrange
@@ -658,6 +1225,21 @@ class TestDatasetPreparerCOCO:
         # Assert
         assert line == "0 0.250000 0.200000 0.300000 0.200000"
 
+    def test_coco_bbox_clips_corners_before_conversion(self):
+        """A COCO box past the image edge keeps only the visible part."""
+        # Arrange
+        bbox = [80, 90, 40, 30]
+
+        # Act
+        line = DatasetPreparer._coco_bbox_to_yolo_line(bbox, width=100, height=100, class_id=0)
+        empty = DatasetPreparer._coco_bbox_to_yolo_line([10, 10, 0, 5], 100, 100, 0)
+        outside = DatasetPreparer._coco_bbox_to_yolo_line([200, 200, 10, 10], 100, 100, 0)
+
+        # Assert
+        assert line == "0 0.900000 0.950000 0.200000 0.100000"
+        assert empty is None
+        assert outside is None
+
     def test_prepare_dataset_from_coco(self, tmp_path):
         """A COCO portion is split into train and val images."""
         # Arrange
@@ -700,6 +1282,34 @@ class TestDatasetPreparerCOCO:
         train_images = list((config.output_dir / "train" / "images").glob("*"))
         val_images = list((config.output_dir / "val" / "images").glob("*"))
         assert len(train_images) + len(val_images) == 2
+
+    def test_prepare_yolo_dataset_returns_the_data_yaml(self, tmp_path):
+        """The module helper prepares the same split as DatasetPreparer."""
+        # Arrange
+        datasets_root = tmp_path / "dataset_train"
+        portion_dir = datasets_root / "portion_01"
+        _write_dummy_image(portion_dir / "img_1.png")
+        _write_coco_json(
+            portion_dir / "labels.json",
+            {
+                "images": [{"id": 1, "file_name": "img_1.png", "width": 100, "height": 100}],
+                "annotations": [{"id": 1, "image_id": 1, "category_id": 1, "bbox": [10, 10, 20, 20]}],
+                "categories": [{"id": 1, "name": "spore"}],
+            },
+        )
+        config = _make_portion_config(
+            tmp_path,
+            datasets_root,
+            annotations_relpath="labels.json",
+            images_subdir=".",
+        )
+
+        # Act
+        data_yaml = prepare_yolo_dataset(config, val_split=0.0)
+
+        # Assert
+        assert data_yaml == config.output_dir / "data.yaml"
+        assert data_yaml.exists()
 
     def test_prepare_dataset_from_coco_fails_on_unknown_category(self, tmp_path):
         """An unknown COCO category is rejected."""
@@ -765,6 +1375,207 @@ class TestDatasetPreparerCOCO:
         # Assert
         assert "Missing" in str(caught.value)
 
+    def test_prepare_replaces_stale_files_after_success(self, tmp_path):
+        """A finished prepare replaces train, val, and data.yaml, and drops stale files."""
+        # Arrange
+        datasets_root = tmp_path / "dataset_train"
+        portion_dir = datasets_root / "portion_01"
+        images_dir = portion_dir / "sliced" / "images"
+        _write_dummy_image(images_dir / "img_1.png")
+        _write_dummy_image(images_dir / "img_2.png")
+        _write_coco_json(
+            portion_dir / "sliced" / "coco_annotations.json",
+            {
+                "images": [
+                    {"id": 1, "file_name": "img_1.png", "width": 100, "height": 100},
+                    {"id": 2, "file_name": "img_2.png", "width": 100, "height": 100},
+                ],
+                "annotations": [
+                    {"id": 1, "image_id": 1, "category_id": 1, "bbox": [10, 10, 20, 20]},
+                ],
+                "categories": [{"id": 1, "name": "spore"}],
+            },
+        )
+        config = _make_portion_config(
+            tmp_path,
+            datasets_root,
+            annotations_relpath="sliced/coco_annotations.json",
+        )
+        preparer = DatasetPreparer(config)
+        preparer.prepare_dataset(val_split=0.5, seed=1)
+        stale_image = config.output_dir / "train" / "images" / "stale.png"
+        stale_label = config.output_dir / "train" / "labels" / "stale.txt"
+        _write_dummy_image(stale_image)
+        stale_label.write_text("0 0.100000 0.100000 0.100000 0.100000", encoding="utf-8")
+        notes = config.output_dir / "notes.txt"
+        notes.write_text("keep", encoding="utf-8")
+
+        # Act
+        data_yaml = preparer.prepare_dataset(val_split=0.5, seed=1)
+
+        # Assert
+        assert data_yaml == config.output_dir / "data.yaml"
+        assert not stale_image.exists()
+        assert not stale_label.exists()
+        assert notes.read_text(encoding="utf-8") == "keep"
+        image_names = {path.name for path in (config.output_dir / "train" / "images").glob("*")}
+        image_names.update(path.name for path in (config.output_dir / "val" / "images").glob("*"))
+        assert image_names == {"portion_01__img_1.png", "portion_01__img_2.png"}
+        assert not list(tmp_path.glob(".yolo-prepare-*"))
+        saved = data_yaml.read_text(encoding="utf-8")
+        assert ".yolo-prepare-" not in saved
+        assert "train/images" in saved or "train\\images" in saved
+
+    def test_failed_prepare_leaves_the_previous_split(self, tmp_path):
+        """A failed rebuild leaves the previous train, val, and data.yaml in place."""
+        # Arrange
+        datasets_root = tmp_path / "dataset_train"
+        portion_dir = datasets_root / "portion_01"
+        images_dir = portion_dir / "sliced" / "images"
+        _write_dummy_image(images_dir / "img_1.png")
+        coco_path = portion_dir / "sliced" / "coco_annotations.json"
+        _write_coco_json(
+            coco_path,
+            {
+                "images": [{"id": 1, "file_name": "img_1.png", "width": 100, "height": 100}],
+                "annotations": [],
+                "categories": [{"id": 1, "name": "spore"}],
+            },
+        )
+        config = _make_portion_config(
+            tmp_path,
+            datasets_root,
+            annotations_relpath="sliced/coco_annotations.json",
+        )
+        preparer = DatasetPreparer(config)
+        preparer.prepare_dataset(val_split=0.5, seed=1)
+        kept_image = config.output_dir / "val" / "images" / "portion_01__img_1.png"
+        stale_image = config.output_dir / "train" / "images" / "stale.png"
+        _write_dummy_image(stale_image)
+        _write_coco_json(
+            coco_path,
+            {
+                "images": [{"id": 1, "file_name": "img_1.png", "width": 100, "height": 100}],
+                "annotations": [{"id": 1, "image_id": 1, "category_id": 5, "bbox": [1, 1, 5, 5]}],
+                "categories": [{"id": 5, "name": "debris"}],
+            },
+        )
+
+        # Act
+        with pytest.raises(ValueError) as caught:
+            preparer.prepare_dataset()
+
+        # Assert
+        assert "Unknown COCO category" in str(caught.value)
+        assert stale_image.exists()
+        assert kept_image.exists()
+        assert (config.output_dir / "data.yaml").exists()
+        assert not list(tmp_path.glob(".yolo-prepare-*"))
+
+    def test_multiple_coco_files_require_relpath(self, tmp_path):
+        """Two COCO files in one portion fail until yolo_annotations_relpath is set."""
+        # Arrange
+        datasets_root = tmp_path / "dataset_train"
+        portion_dir = datasets_root / "portion_01"
+        _write_dummy_image(portion_dir / "sliced" / "images" / "img_1.png")
+        payload = {
+            "images": [{"id": 1, "file_name": "img_1.png", "width": 100, "height": 100}],
+            "annotations": [],
+            "categories": [{"id": 1, "name": "spore"}],
+        }
+        _write_coco_json(portion_dir / "sliced" / "a_coco.json", payload)
+        _write_coco_json(portion_dir / "sliced" / "b_coco.json", payload)
+        config = _make_portion_config(tmp_path, datasets_root, annotations_format="coco")
+        preparer = DatasetPreparer(config)
+
+        # Act
+        with pytest.raises(ValueError) as caught:
+            preparer.prepare_dataset()
+
+        # Assert
+        assert "yolo_annotations_relpath" in str(caught.value)
+        assert "a_coco.json" in str(caught.value)
+        assert "b_coco.json" in str(caught.value)
+        assert not config.output_dir.exists()
+
+    def test_annotations_relpath_selects_one_coco_file(self, tmp_path):
+        """yolo_annotations_relpath prepares the chosen COCO file."""
+        # Arrange
+        datasets_root = tmp_path / "dataset_train"
+        portion_dir = datasets_root / "portion_01"
+        _write_dummy_image(portion_dir / "sliced" / "images" / "img_1.png")
+        payload = {
+            "images": [{"id": 1, "file_name": "img_1.png", "width": 100, "height": 100}],
+            "annotations": [],
+            "categories": [{"id": 1, "name": "spore"}],
+        }
+        _write_coco_json(portion_dir / "sliced" / "a_coco.json", payload)
+        _write_coco_json(portion_dir / "sliced" / "b_coco.json", payload)
+        config = _make_portion_config(
+            tmp_path,
+            datasets_root,
+            annotations_format="coco",
+            annotations_relpath="sliced/a_coco.json",
+        )
+        preparer = DatasetPreparer(config)
+
+        # Act
+        data_yaml = preparer.prepare_dataset(val_split=0.5, seed=1)
+
+        # Assert
+        assert data_yaml.exists()
+        assert (config.output_dir / "val" / "images" / "portion_01__img_1.png").exists()
+
+    def test_multiple_xml_files_require_relpath(self, tmp_path):
+        """Two XML files in one portion fail until yolo_annotations_relpath is set."""
+        # Arrange
+        datasets_root = tmp_path / "dataset_train"
+        portion_dir = datasets_root / "portion_01"
+        _write_dummy_image(portion_dir / "img_1.png")
+        _write_cvat_xml(portion_dir / "annotations.xml")
+        _write_cvat_xml(portion_dir / "review" / "annotations.xml")
+        config = _make_portion_config(
+            tmp_path,
+            datasets_root,
+            annotations_format="xml",
+            images_subdir=".",
+        )
+        preparer = DatasetPreparer(config)
+
+        # Act
+        with pytest.raises(ValueError) as caught:
+            preparer.prepare_dataset()
+
+        # Assert
+        assert "yolo_annotations_relpath" in str(caught.value)
+        assert "review/annotations.xml" in str(caught.value)
+        assert not config.output_dir.exists()
+
+    def test_annotations_relpath_selects_one_xml_file(self, tmp_path):
+        """yolo_annotations_relpath prepares the chosen XML file."""
+        # Arrange
+        datasets_root = tmp_path / "dataset_train"
+        portion_dir = datasets_root / "portion_01"
+        _write_dummy_image(portion_dir / "img_1.png")
+        _write_cvat_xml(portion_dir / "annotations.xml")
+        _write_cvat_xml(portion_dir / "review" / "annotations.xml")
+        config = _make_portion_config(
+            tmp_path,
+            datasets_root,
+            annotations_format="xml",
+            annotations_relpath="review/annotations.xml",
+            images_subdir=".",
+        )
+        preparer = DatasetPreparer(config)
+
+        # Act
+        data_yaml = preparer.prepare_dataset(val_split=0.5, seed=1)
+
+        # Assert
+        assert data_yaml.exists()
+        label = config.output_dir / "val" / "labels" / "portion_01__img_1.txt"
+        assert label.read_text(encoding="utf-8") == "0 0.500000 0.500000 0.200000 0.200000"
+
 
 class TestDataDiscovery:
     """Tests for dataset folder and annotation discovery."""
@@ -809,6 +1620,83 @@ class TestDataDiscovery:
 
         # Assert
         assert found == [coco]
+
+    def test_discover_dataset_dirs_missing_root_is_empty(self, tmp_path):
+        """A missing datasets root has no portions."""
+        # Act
+        found = discover_dataset_dirs(tmp_path / "missing", "*")
+
+        # Assert
+        assert found == []
+
+    def test_collect_image_files_filters_extensions_and_depth(self, tmp_path):
+        """Only matching suffixes are collected, and recursion is optional."""
+        # Arrange
+        _write_dummy_image(tmp_path / "a.PNG")
+        _write_dummy_image(tmp_path / "nested" / "b.png")
+        (tmp_path / "notes.txt").write_text("skip", encoding="utf-8")
+
+        # Act
+        recursive = collect_image_files(tmp_path, [".png"])
+        flat = collect_image_files(tmp_path, [".png"], recursive=False)
+        missing = collect_image_files(tmp_path / "missing", [".png"])
+
+        # Assert
+        assert recursive == [tmp_path / "a.PNG", tmp_path / "nested" / "b.png"]
+        assert flat == [tmp_path / "a.PNG"]
+        assert missing == []
+
+    def test_find_xml_annotation_candidates(self, tmp_path):
+        """A relative path selects one XML file. Without it, every XML file is listed."""
+        # Arrange
+        (tmp_path / "annotations.xml").write_text("<annotations/>", encoding="utf-8")
+        (tmp_path / "review").mkdir()
+        (tmp_path / "review" / "annotations.xml").write_text("<annotations/>", encoding="utf-8")
+        (tmp_path / "notes.json").write_text("{}", encoding="utf-8")
+
+        # Act
+        selected = find_xml_annotation_candidates(tmp_path, "review/annotations.xml")
+        missing = find_xml_annotation_candidates(tmp_path, "missing.xml")
+        not_xml = find_xml_annotation_candidates(tmp_path, "notes.json")
+        all_xml = find_xml_annotation_candidates(tmp_path)
+
+        # Assert
+        assert selected == [tmp_path / "review" / "annotations.xml"]
+        assert missing == []
+        assert not_xml == []
+        assert all_xml == [
+            tmp_path / "annotations.xml",
+            tmp_path / "review" / "annotations.xml",
+        ]
+
+    def test_coco_name_is_preferred_and_broken_json_is_skipped(self, tmp_path):
+        """A *coco*.json file wins. JSON that cannot be parsed is ignored."""
+        # Arrange
+        coco = tmp_path / "export_coco.json"
+        coco.write_text("{}", encoding="utf-8")
+        (tmp_path / "other.json").write_text(
+            '{"images": [], "annotations": [], "categories": []}',
+            encoding="utf-8",
+        )
+        (tmp_path / "broken.json").write_text("{", encoding="utf-8")
+
+        # Act
+        found = find_coco_annotation_candidates(tmp_path)
+        selected = find_coco_annotation_candidates(tmp_path, "other.json")
+        missing = find_coco_annotation_candidates(tmp_path, "missing.json")
+
+        # Assert
+        assert found == [coco]
+        assert selected == [tmp_path / "other.json"]
+        assert missing == []
+
+    def test_resolve_images_root(self, tmp_path):
+        """The image root is the dataset folder plus the configured subfolder."""
+        # Act
+        root = resolve_images_root(tmp_path, "sliced/images")
+
+        # Assert
+        assert root == (tmp_path / "sliced" / "images").resolve()
 
 
 class TestTileyConfig:

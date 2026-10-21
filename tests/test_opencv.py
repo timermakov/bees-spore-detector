@@ -275,6 +275,11 @@ class TestSporesFunctions:
         result = filter_spores_by_area([], 0, 1000)
         assert result == []
 
+    def test_filter_spores_by_area_rejects_reversed_bounds(self):
+        """min_area must be smaller than max_area."""
+        with pytest.raises(ValueError):
+            filter_spores_by_area([], 10, 10)
+
     def test_filter_spores_by_area(self):
         """Test filtering spores by area range."""
         # Create contours with different areas
@@ -295,6 +300,44 @@ class TestSporesFunctions:
         assert result['valid_count'] == 0
         assert result['invalid_count'] == 0
         assert result['validation_errors'] == []
+
+    def test_validate_spore_contours_rejects_short_and_flat_shapes(self):
+        """Too few points and a zero-area contour are invalid."""
+        short = np.array([[0, 0], [1, 0], [1, 1]], dtype=np.float32)
+        flat = np.array([[0, 0], [1, 0], [2, 0], [3, 0], [4, 0]], dtype=np.float32)
+
+        result = validate_spore_contours([short, flat])
+
+        assert result['valid_count'] == 0
+        assert result['invalid_count'] == 2
+        assert any("Insufficient points" in error for error in result['validation_errors'])
+        assert any("Invalid area" in error for error in result['validation_errors'])
+
+    def test_validate_spore_contours_accepts_an_ellipse(self):
+        """A closed contour with enough points is valid."""
+        angles = np.linspace(0, 2 * np.pi, 16, endpoint=False)
+        contour = np.stack(
+            [20 + 8 * np.cos(angles), 20 + 6 * np.sin(angles)],
+            axis=1,
+        ).astype(np.float32)
+
+        result = validate_spore_contours([contour])
+
+        assert result['valid_count'] == 1
+        assert result['invalid_count'] == 0
+        assert result['validation_errors'] == []
+
+    def test_save_debug_image_writes_a_jpeg(self, tmp_path):
+        """A contour overlay is written next to the requested path."""
+        from bees.opencv.image_proc import save_debug_image
+
+        image = np.zeros((20, 20), dtype=np.uint8)
+        contour = np.array([[2, 2], [10, 2], [10, 10], [2, 10]], dtype=np.int32)
+        out_path = tmp_path / "overlay"
+
+        save_debug_image(image, [contour], str(out_path))
+
+        assert (tmp_path / "overlay.jpg").is_file()
 
 
 if __name__ == "__main__":
