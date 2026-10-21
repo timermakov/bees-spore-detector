@@ -133,6 +133,15 @@ def _make_yolo_config(**overrides) -> YOLOConfig:
         "verbose": True,
         "analysis_square_size": 780,
         "class_names": ["spore"],
+        "pseudo_source": "dataset_test",
+        "pseudo_output": "pseudo_labels",
+        "pseudo_confidence": 0.5,
+        "pseudo_max_det": 1000,
+        "cvat_source": "dataset_test",
+        "cvat_output": "results",
+        "cvat_task": "yolo_auto_annotations",
+        "cvat_max_det": 1000,
+        "cvat_shape": "box",
     }
     values.update(overrides)
     return YOLOConfig(**values)
@@ -299,6 +308,15 @@ yolo_show_conf: false
 yolo_pretrained: true
 yolo_verbose: true
 yolo_class_names: [spore]
+yolo_pseudo_source: dataset_test
+yolo_pseudo_output: pseudo_labels
+yolo_pseudo_confidence: 0.5
+yolo_pseudo_max_det: 1000
+yolo_cvat_source: dataset_test
+yolo_cvat_output: results
+yolo_cvat_task: yolo_auto_annotations
+yolo_cvat_max_det: 1000
+yolo_cvat_shape: box
 """
 
 
@@ -350,6 +368,13 @@ class TestYOLOConfig:
         _assert_bool(config.cache)
         _assert_bool(config.pretrained)
         _assert_path(config.models_dir)
+        _assert_nonempty_text(config.pseudo_source)
+        _assert_nonempty_text(config.pseudo_output)
+        _assert_number(config.pseudo_confidence)
+        _assert_int(config.pseudo_max_det)
+        _assert_nonempty_text(config.cvat_source)
+        _assert_nonempty_text(config.cvat_task)
+        assert config.cvat_shape in {"box", "ellipse"}
 
     def test_config_with_custom_values(self):
         """Test creating config with custom values."""
@@ -1865,6 +1890,63 @@ class TestTrainCommandFlags:
         assert parsed.use_sahi is True
         assert parsed.weights == "checkpoints/custom.pt"
         assert parsed.no_yolo is True
+
+    def test_omitted_pseudo_and_cvat_flags_use_yaml(self):
+        """Flags that are left off keep the config.yaml values."""
+        from bees.main import resolve_pseudo_settings, resolve_yolo_cvat_settings
+
+        # Arrange
+        config = _make_yolo_config(
+            pseudo_source="photos",
+            pseudo_output="labels_out",
+            pseudo_confidence=0.2,
+            pseudo_max_det=10,
+            cvat_source="incoming",
+            cvat_output="cvat_out",
+            cvat_task="task_a",
+            cvat_max_det=20,
+            cvat_shape="ellipse",
+            confidence_threshold=0.25,
+        )
+        parser = _build_parser()
+
+        # Act
+        parsed = parser.parse_args(["--pseudo-label"])
+        pseudo = resolve_pseudo_settings(
+            config, parsed.pseudo_source, parsed.pseudo_output, parsed.pseudo_conf, parsed.pseudo_max_det
+        )
+        overridden = resolve_pseudo_settings(config, "other", None, 0.9, None)
+        cvat = resolve_yolo_cvat_settings(
+            config, None, None, None, None, None, None
+        )
+
+        # Assert
+        assert parsed.pseudo_source is None
+        assert pseudo == {
+            "source": "photos",
+            "output": "labels_out",
+            "confidence": 0.2,
+            "max_det": 10,
+        }
+        assert overridden["source"] == "other"
+        assert overridden["confidence"] == 0.9
+        assert overridden["max_det"] == 10
+        assert cvat["source"] == "incoming"
+        assert cvat["shape"] == "ellipse"
+        assert cvat["confidence"] == 0.25
+
+    def test_cvat_shape_must_be_box_or_ellipse(self, tmp_path):
+        """yolo_cvat_shape rejects any other word."""
+        # Arrange
+        text = _set_yaml_key(_read_repo_config(), "yolo_cvat_shape", "circle")
+        manager = _load_config_text(tmp_path, text)
+
+        # Act
+        with pytest.raises(ConfigurationError) as caught:
+            YOLOConfig.from_config_manager(manager)
+
+        # Assert
+        _assert_error_names(caught.value, "yolo_cvat_shape")
 
 
 class TestPseudoLabelLines:
