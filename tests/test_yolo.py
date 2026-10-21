@@ -6,7 +6,7 @@ Tests cover:
 - Detection: detection data class
 - SporeDetector: YOLO model inference (mocked)
 - DatasetPreparer: dataset preparation
-- CVATToYOLOConverter: format conversion
+- CVATToYOLOConverter: CVAT XML to YOLO labels
 """
 
 import json
@@ -507,7 +507,7 @@ class TestCVATToYOLOConverter:
 
     def test_unknown_label_is_rejected(self):
         """An unknown CVAT label fails instead of becoming class 0."""
-        from bees.yolo.converter import EllipseAnnotation, ImageAnnotation
+        from bees.yolo.cvat import EllipseAnnotation, ImageAnnotation
 
         # Arrange
         converter = CVATToYOLOConverter(["spore"])
@@ -529,7 +529,7 @@ class TestCVATToYOLOConverter:
 
     def test_box_corners_are_clipped_before_conversion(self):
         """A box past the image edge keeps only the visible part."""
-        from bees.yolo.converter import EllipseAnnotation, ImageAnnotation
+        from bees.yolo.cvat import EllipseAnnotation, ImageAnnotation
 
         # Arrange
         converter = CVATToYOLOConverter(["spore"])
@@ -549,7 +549,7 @@ class TestCVATToYOLOConverter:
 
     def test_zero_image_size_is_rejected(self):
         """A zero image width fails with the image name."""
-        from bees.yolo.converter import EllipseAnnotation, ImageAnnotation
+        from bees.yolo.cvat import EllipseAnnotation, ImageAnnotation
 
         # Arrange
         converter = CVATToYOLOConverter(["spore"])
@@ -571,7 +571,7 @@ class TestCVATToYOLOConverter:
 
     def test_box_outside_the_image_is_skipped(self):
         """A box with no visible area produces no label line."""
-        from bees.yolo.converter import EllipseAnnotation, ImageAnnotation
+        from bees.yolo.cvat import EllipseAnnotation, ImageAnnotation
 
         # Arrange
         converter = CVATToYOLOConverter(["spore"])

@@ -17,7 +17,8 @@ from typing import Dict, List, Optional, Tuple
 import yaml
 
 from .config import YOLOConfig
-from .converter import CVATToYOLOConverter, xyxy_to_yolo_line
+from .cvat import xyxy_to_yolo_line
+from .cvat_to_yolo import CVATToYOLOConverter
 from .data_discovery import (
     collect_image_files,
     discover_dataset_dirs,

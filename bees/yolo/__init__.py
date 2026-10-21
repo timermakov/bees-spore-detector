@@ -6,7 +6,7 @@ using PyTorch with CUDA support.
 """
 
 from .config import YOLOConfig
-from .converter import CVATToYOLOConverter
+from .cvat_to_yolo import CVATToYOLOConverter
 from .dataset import DatasetPreparer
 from .trainer import SporeTrainer
 from .detector import SporeDetector
@@ -25,7 +25,7 @@ __all__ = [
 ]
 
 try:
-    from .converter_coco import CVATToCocoConverter
+    from .cvat_to_coco import CVATToCocoConverter
     from .sahi_inference import SAHIDetector, run_sliced_inference_folder
     from .dataset_slicer import DatasetSlicer, SlicedDatasetStats
 
