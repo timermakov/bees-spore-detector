@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional, Any
 
 from bees import io_utils
+from bees.analysis_zone import split_by_analysis_square
 from bees.opencv import SporeDetectionPipeline
 from bees.titer import create_calculator_from_config
 
@@ -100,15 +101,15 @@ class SporeAnalysisPipeline:
 
     def _process_image_yolo(self, image_path: str, image, metadata, debug_base: Path) -> Dict[str, Any]:
         """Process image using YOLO detector."""
-        detections = self.yolo_counter.detector.detect(image_path)  # получаем все детекции
-        count = len(detections)
+        counts, inside_detections, _outside = self.yolo_counter.count_with_detections(image_path)
+        count = counts["inside"]
 
         # Save visualization
         vis_path = str(debug_base) + "_yolo_detections.jpg"
         self.yolo_counter.visualize(image_path, vis_path)
 
         # Convert detections to contour-like format for compatibility
-        spore_objects = self._detections_to_contours(detections)
+        spore_objects = self._detections_to_contours(inside_detections)
 
         return {
             'image': image,
@@ -117,7 +118,7 @@ class SporeAnalysisPipeline:
             'metadata': metadata,
             'image_path': image_path,
             'debug_images': [vis_path] if Path(vis_path).exists() else [],
-            'count_outside_square': 0,
+            'count_outside_square': counts["outside"],
             'method': 'yolo'
         }
 
@@ -128,7 +129,17 @@ class SporeAnalysisPipeline:
         detection_pipeline = SporeDetectionPipeline(debug_path=str(debug_base))
         spore_objects = detection_pipeline.detect_spores(image, **params)
 
-        count = len(spore_objects)
+        square_size = params["analysis_square_size"]
+        centers = [_contour_center(contour) for contour in spore_objects]
+        inside, outside = split_by_analysis_square(
+            spore_objects,
+            centers,
+            image.size[0],
+            image.size[1],
+            square_size,
+        )
+        spore_objects = inside
+        count = len(inside)
 
         if debug_prefix:
             debug_path = str(debug_prefix) + '_debug'
@@ -154,6 +165,7 @@ class SporeAnalysisPipeline:
             'metadata': metadata,
             'image_path': image_path,
             'debug_images': debug_images,
+            'count_outside_square': len(outside),
             'method': 'opencv'
         }
 
@@ -228,3 +240,22 @@ class SporeAnalysisPipeline:
         self.group_results = {'all_images': all_results}
 
         return groups_results
+
+
+def _contour_center(contour) -> Tuple[float, float]:
+    """Center used to decide whether a contour is inside the analysis square."""
+    import cv2
+    import numpy as np
+
+    points = np.asarray(contour)
+    if len(points) >= 5:
+        try:
+            (x, y), _, _ = cv2.fitEllipse(points)
+            return float(x), float(y)
+        except cv2.error:
+            pass
+    moments = cv2.moments(points)
+    if moments["m00"]:
+        return float(moments["m10"] / moments["m00"]), float(moments["m01"] / moments["m00"])
+    x, y, width, height = cv2.boundingRect(points)
+    return float(x + width / 2.0), float(y + height / 2.0)

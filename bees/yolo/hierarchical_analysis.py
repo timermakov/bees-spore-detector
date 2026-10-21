@@ -40,6 +40,7 @@ from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass, field
 import numpy as np
 
+from ..analysis_zone import split_by_analysis_square
 from ..titer import TiterCalculator, create_calculator_from_config
 from ..config_loader import create_config_manager
 from .data_discovery import collect_image_files
@@ -50,6 +51,21 @@ except ImportError:
     SAHI_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
+
+
+def _detection_center(detection) -> Tuple[float, float]:
+    """Center of a YOLO Detection or a SAHI detection dict."""
+    if isinstance(detection, dict):
+        x1, y1, x2, y2 = detection["bbox"]
+        return (float(x1) + float(x2)) / 2.0, (float(y1) + float(y2)) / 2.0
+    return detection.center
+
+
+def _inside_detection_count(detections, width: int, height: int, square_size: int) -> int:
+    """How many detections have their center inside the analysis square."""
+    centers = [_detection_center(detection) for detection in detections]
+    inside, _outside = split_by_analysis_square(detections, centers, width, height, square_size)
+    return len(inside)
 
 
 @dataclass
@@ -251,10 +267,14 @@ class HierarchicalAnalyzer:
                             overlap_height_ratio=self.overlap_height_ratio,
                             overlap_width_ratio=self.overlap_width_ratio
                         )
-                        count = len(detections)
+                        count = _inside_detection_count(
+                            detections, img_width, img_height, self.titer_calculator.square_size
+                        )
                     else:
                         detections = self.detector.detect(str(image_path))
-                        count = len(detections)
+                        count = _inside_detection_count(
+                            detections, img_width, img_height, self.titer_calculator.square_size
+                        )
 
                 photo_data.append((count, img_width, img_height))
 

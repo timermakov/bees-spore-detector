@@ -11,6 +11,8 @@ import numpy as np
 from PIL import Image
 import cv2
 
+from bees.analysis_zone import analysis_square_bounds
+
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -476,11 +478,7 @@ def _save_analysis_overlay_if_enabled(preprocessed: np.ndarray,
 def _compute_centered_square_bounds(image_size: Tuple[int, int], square_size: int) -> Tuple[int, int, int, int]:
     """Compute bounds (x1,y1,x2,y2) of a centered square for given image size (w,h)."""
     width, height = image_size
-    cx, cy = width // 2, height // 2
-    half = square_size // 2
-    x1, y1 = max(0, cx - half), max(0, cy - half)
-    x2, y2 = min(width - 1, cx + half), min(height - 1, cy + half)
-    return x1, y1, x2, y2
+    return analysis_square_bounds(width, height, square_size)
 
 def _is_point_inside(bounds: Tuple[int, int, int, int], x: float, y: float) -> bool:
     x1, y1, x2, y2 = bounds
