@@ -97,6 +97,7 @@ class MorphologySettings:
     canny_threshold1: int
     canny_threshold2: int
     analysis_square_size: int
+    count_inside_square: bool = False
 
 
 @dataclass
@@ -185,8 +186,12 @@ class GroupSummary:
     metrics: Dict[str, MetricSummary]
 
 
-def morphology_settings(config_manager, confidence: Optional[float] = None) -> MorphologySettings:
-    """Read morphology settings. A passed confidence replaces the yaml value."""
+def morphology_settings(
+    config_manager,
+    confidence: Optional[float] = None,
+    count_inside_square: Optional[bool] = None,
+) -> MorphologySettings:
+    """Read morphology settings. A passed confidence or square mode replaces yaml."""
     chosen = (
         config_manager.get_float_param("morphology_confidence")
         if confidence is None
@@ -212,6 +217,9 @@ def morphology_settings(config_manager, confidence: Optional[float] = None) -> M
         raise ConfigurationError(
             "config.yaml 'morphology_montage_columns' must be an integer >= 1"
         )
+    square_size = config_manager.get_int_param("analysis_square_size")
+    if count_inside_square is None:
+        count_inside_square = config_manager.get_bool_param("count_inside_square")
     return MorphologySettings(
         confidence=chosen,
         padding_ratio=float(padding_ratio),
@@ -219,7 +227,8 @@ def morphology_settings(config_manager, confidence: Optional[float] = None) -> M
         microns_per_pixel=scale,
         canny_threshold1=config_manager.get_int_param("canny_threshold1"),
         canny_threshold2=config_manager.get_int_param("canny_threshold2"),
-        analysis_square_size=config_manager.get_int_param("analysis_square_size"),
+        analysis_square_size=square_size,
+        count_inside_square=bool(count_inside_square) and square_size > 0,
     )
 
 
@@ -283,7 +292,7 @@ def measure_detections(
     class_names: Optional[Sequence[str]] = None,
     population: str = "yolo",
 ) -> List[SporeMeasurement]:
-    """Measure YOLO or SAHI boxes whose center is inside the analysis square."""
+    """Measure accepted YOLO or SAHI boxes. The square filter is optional."""
     accepted_names = set(class_names or ["spore"])
     width, height = image.size
     measured: List[SporeMeasurement] = []
@@ -295,9 +304,7 @@ def measure_detections(
             continue
         center_x = (bbox[0] + bbox[2]) / 2.0
         center_y = (bbox[1] + bbox[3]) / 2.0
-        if not point_inside_analysis_square(
-            center_x, center_y, width, height, settings.analysis_square_size
-        ):
+        if not _keeps_center(center_x, center_y, width, height, settings):
             continue
         measured.append(
             _measure_box(
@@ -326,7 +333,7 @@ def measure_opencv_contours(
     probe_name: str = "",
     sample_name: str = "",
 ) -> List[SporeMeasurement]:
-    """Measure contours the OpenCV detector already accepted inside the square."""
+    """Measure contours the OpenCV detector already accepted."""
     width, height = image.size
     gray = np.array(image.convert("L"))
     measured: List[SporeMeasurement] = []
@@ -335,12 +342,12 @@ def measure_opencv_contours(
             geometry = measurement_from_contour(contour)
         except (cv2.error, ValueError):
             continue
-        if not point_inside_analysis_square(
+        if not _keeps_center(
             geometry["center_x"],
             geometry["center_y"],
             width,
             height,
-            settings.analysis_square_size,
+            settings,
         ):
             continue
         bounds = cv2.boundingRect(np.asarray(contour))
@@ -832,10 +839,29 @@ def _write_excel(measurements, path: Path, settings: MorphologySettings) -> Path
     return path
 
 
+def _keeps_center(
+    center_x: float,
+    center_y: float,
+    width: int,
+    height: int,
+    settings: MorphologySettings,
+) -> bool:
+    """The whole frame is measured unless the inside-square mode is on."""
+    if not settings.count_inside_square or settings.analysis_square_size <= 0:
+        return True
+    return point_inside_analysis_square(
+        center_x, center_y, width, height, settings.analysis_square_size
+    )
+
+
 def _population_lines(measurements, settings: MorphologySettings) -> List[str]:
     populations = sorted({item.population for item in measurements}) or ["yolo"]
+    if settings.count_inside_square and settings.analysis_square_size > 0:
+        scope = "Перцентили посчитаны по спорам внутри квадрата анализа."
+    else:
+        scope = "Перцентили посчитаны по спорам всего кадра."
     lines = [
-        "Перцентили посчитаны по спорам внутри квадрата анализа.",
+        scope,
         "Источник: " + ", ".join(populations) + ".",
     ]
     if "opencv_accepted" in populations:

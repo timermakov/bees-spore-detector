@@ -27,10 +27,15 @@ max_ellipse_eccentricity: 0.95
 min_center_distance: 6.0
 
 # Analysis zone parameters (green square)
-# Square size in pixels. 0 counts and measures every spore on the photo.
+# Side of one Goryaev big square in pixels. The default count uses the whole frame:
+# N_sq = Σ (width * height) / analysis_square_size².
+# 0 skips the Goryaev titer and the square columns.
 analysis_square_size: 780
+# Count only centers inside the centered square. Ignored when analysis_square_size is 0.
+# A square that fits the photo then contributes exactly 1 to N_sq.
+count_inside_square: false
 # Volume coefficient for titer calculation (million spores/ml)
-# Formula: titer = N_spores_on_photo / (volume_factor * (S_photo / S_analysis_square²) * N_photos)
+# titer = N_spores / (volume_factor * N_sq)
 volume_factor: 4.0
 # Square line width in pixels (to see square on UI for user)
 analysis_square_line_width: 2

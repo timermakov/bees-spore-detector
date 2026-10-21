@@ -1,15 +1,18 @@
 """
 Titer calculation module for bee spore analysis.
 
-Titer = Σ_spores / (volume_factor * Σ(S_photo / square_size²))
-Each photo contributes its own area.
+Whole frame: titer = Σ spores / (volume_factor * Σ (S_photo / square_size²))
+Inside square: titer = Σ spores / (volume_factor * Σ N_sq), N_sq = 1 when the square fits.
+Square size 0 does not produce a Goryaev titer.
 """
 
 import logging
-from typing import Union, List, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 from scipy import stats
+
+from bees.analysis_zone import goryaev_squares
 
 logger = logging.getLogger(__name__)
 
@@ -20,38 +23,44 @@ class TiterCalculator:
     ANALYSIS_SQUARE_SIZE = 780
     VOLUME_FACTOR = 4.0
 
-    def __init__(self, square_size: int = ANALYSIS_SQUARE_SIZE, volume_factor: float = VOLUME_FACTOR):
+    def __init__(
+        self,
+        square_size: int = ANALYSIS_SQUARE_SIZE,
+        volume_factor: float = VOLUME_FACTOR,
+        count_inside_square: bool = False,
+    ):
         if volume_factor <= 0:
             raise ValueError("volume_factor must be positive")
 
         self.square_size = int(square_size)
         self.volume_factor = float(volume_factor)
-        # 0 and below mean the analysis zone is the whole photo.
+        self.count_inside_square = bool(count_inside_square) and self.square_size > 0
         self.square_area = None if self.square_size <= 0 else self.square_size ** 2
 
-        logger.debug(f"TiterCalculator: square={square_size}, volume_factor={volume_factor}")
+        logger.debug(
+            "TiterCalculator: square=%s, volume_factor=%s, inside_square=%s",
+            square_size,
+            volume_factor,
+            self.count_inside_square,
+        )
 
     # ==================== NEW METHODS (hierarchical) ====================
 
-    def calculate_sample_titer(self, photo_data: List[Tuple[int, int, int]]) -> float:
+    def calculate_sample_titer(self, photo_data: List[Tuple[int, int, int]]) -> Optional[float]:
         """
-        Calculate titer for a complete sample folder (NEW).
+        Titer in million spores/ml.
 
-        Formula: total_spores / (volume_factor * (photo_area / square_area) * n_photos).
-        A square size of 0 uses each whole photo as the analysis zone.
-
-        Args:
-            photo_data: List of (count, width, height) for each photo.
-                       All photos should be the same size.
-
-        Returns:
-            Titer value in million spores/ml
+        The count in photo_data is the population for this mode: every spore on
+        the frame, or only spores inside the square. A square size of 0 returns
+        None because the Goryaev conversion has no reference area.
         """
         if not photo_data:
             logger.warning("Empty photo_data, returning 0.0")
             return 0.0
 
         total_spores, total_squares = self._totals(photo_data)
+        if total_squares is None:
+            return None
         denominator = self.volume_factor * total_squares
         titer = total_spores / denominator
 
@@ -62,7 +71,7 @@ class TiterCalculator:
 
         return titer
 
-    def calculate_sample_titer_safe(self, photo_data: List[Tuple[int, int, int]]) -> Tuple[float, dict]:
+    def calculate_sample_titer_safe(self, photo_data: List[Tuple[int, int, int]]) -> Tuple[Optional[float], dict]:
         """Safe version with detailed breakdown for debugging."""
         if not photo_data:
             return 0.0, {
@@ -75,6 +84,22 @@ class TiterCalculator:
         n_photos = len(photo_data)
         _, w, h = photo_data[0]
         photo_area = w * h
+        if total_squares is None:
+            return None, {
+                'total_spores': total_spores,
+                'n_photos': n_photos,
+                'photo_width': w,
+                'photo_height': h,
+                'photo_area': photo_area,
+                'square_size': self.square_size,
+                'square_area': None,
+                'squares_per_photo': None,
+                'total_squares': None,
+                'volume_factor': self.volume_factor,
+                'denominator': None,
+                'titer': None,
+                'error': 'No analysis square',
+            }
         squares_per_photo = total_squares / n_photos
         denominator = self.volume_factor * total_squares
         titer = total_spores / denominator
@@ -121,18 +146,21 @@ class TiterCalculator:
 
     # ==================== UTILITY ====================
 
-    def _totals(self, photo_data: List[Tuple[int, int, int]]) -> Tuple[int, float]:
-        """Sum spores and the analysis squares contributed by each photo."""
+    def _totals(self, photo_data: List[Tuple[int, int, int]]) -> Tuple[int, Optional[float]]:
+        """Sum spores and the Goryaev squares contributed by each photo."""
         total_spores = 0
         total_squares = 0.0
+        has_square = self.square_size > 0
         for count, width, height in photo_data:
             if width <= 0 or height <= 0:
                 raise ValueError(f"Photo size must be positive, got {width}x{height}")
             total_spores += count
-            if self.square_area is None:
-                total_squares += 1.0
-            else:
-                total_squares += (width * height) / self.square_area
+            if not has_square:
+                continue
+            squares = goryaev_squares(width, height, self.square_size, self.count_inside_square)
+            total_squares += squares
+        if not has_square:
+            return total_spores, None
         return total_spores, total_squares
 
     def get_square_size(self) -> int:
@@ -141,9 +169,17 @@ class TiterCalculator:
     def set_square_size(self, square_size: int) -> None:
         self.square_size = int(square_size)
         self.square_area = None if self.square_size <= 0 else self.square_size ** 2
+        if self.square_size <= 0:
+            self.count_inside_square = False
 
-def create_calculator_from_config(config_manager) -> TiterCalculator:
+def create_calculator_from_config(config_manager, count_inside_square: Optional[bool] = None) -> TiterCalculator:
     """Factory: create TiterCalculator from config.yaml values."""
     square_size = config_manager.get_int_param('analysis_square_size')
     volume_factor = config_manager.get_float_param('volume_factor')
-    return TiterCalculator(square_size=square_size, volume_factor=volume_factor)
+    if count_inside_square is None:
+        count_inside_square = config_manager.get_bool_param('count_inside_square')
+    return TiterCalculator(
+        square_size=square_size,
+        volume_factor=volume_factor,
+        count_inside_square=bool(count_inside_square),
+    )

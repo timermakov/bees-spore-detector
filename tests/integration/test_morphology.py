@@ -148,7 +148,7 @@ class TestDetectionCrop:
     def test_low_confidence_and_outside_square_are_omitted(self):
         # Arrange
         image = Image.new("RGB", (100, 100), color="white")
-        settings = _settings(analysis_square_size=40, confidence=0.7)
+        settings = _settings(analysis_square_size=40, confidence=0.7, count_inside_square=True)
         detections = [
             Detection((40, 40, 60, 60), confidence=0.9),
             Detection((40, 40, 60, 60), confidence=0.6),
@@ -171,6 +171,22 @@ class TestDetectionCrop:
         assert measured[0].source == BBOX_SOURCE
         assert measured[0].major_px == pytest.approx(20)
         assert measured[0].area_px == pytest.approx(math.pi * 10 * 10)
+
+    def test_outside_spore_stays_in_the_whole_frame(self):
+        # Arrange
+        image = Image.new("RGB", (100, 100), color="white")
+        settings = _settings(analysis_square_size=40, confidence=0.7)
+        detections = [
+            Detection((40, 40, 60, 60), confidence=0.9),
+            Detection((0, 0, 4, 4), confidence=0.95),
+            Detection((40, 40, 60, 60), confidence=0.6),
+        ]
+
+        # Act
+        measured = measure_detections(image, detections, settings, image_path="photo.png")
+
+        # Assert
+        assert [row.confidence for row in measured] == pytest.approx([0.9, 0.95])
 
     def test_drawn_ellipse_is_measured_from_its_contour(self):
         # Arrange
@@ -216,6 +232,7 @@ class TestReports:
         assert "area_um2" not in header
         assert any(cell.value and "Масштаб не задан" in str(cell.value) for row in sheet.iter_rows(max_row=6) for cell in row)
         assert "Большая ось, пикс." in text
+        assert "всего кадра" in text
         assert "мкм" not in text
 
     def test_positive_scale_converts_axis_and_area(self, tmp_path):
@@ -315,3 +332,59 @@ class TestMorphologyConfig:
         assert settings.padding_ratio >= 0
         assert settings.montage_columns >= 1
         assert settings.microns_per_pixel is None or settings.microns_per_pixel > 0
+        assert settings.count_inside_square is False
+
+    def test_missing_square_mode_is_named(self, tmp_path):
+        # Arrange
+        path = _yaml(
+            tmp_path,
+            "\n".join(
+                [
+                    "data_dir: data",
+                    "results_dir: results",
+                    "canny_threshold1: 20",
+                    "canny_threshold2: 40",
+                    "analysis_square_size: 30",
+                    "morphology_confidence: 0.7",
+                    "morphology_padding_ratio: 0.1",
+                    "morphology_montage_columns: 3",
+                    "microns_per_pixel: null",
+                ]
+            )
+            + "\n",
+        )
+
+        # Act
+        with pytest.raises(ConfigurationError) as caught:
+            morphology_settings(create_config_manager(path))
+
+        # Assert
+        assert "count_inside_square" in str(caught.value)
+
+    def test_zero_square_turns_the_inside_mode_off(self, tmp_path):
+        # Arrange
+        path = _yaml(
+            tmp_path,
+            "\n".join(
+                [
+                    "data_dir: data",
+                    "results_dir: results",
+                    "canny_threshold1: 20",
+                    "canny_threshold2: 40",
+                    "analysis_square_size: 0",
+                    "count_inside_square: true",
+                    "morphology_confidence: 0.7",
+                    "morphology_padding_ratio: 0.1",
+                    "morphology_montage_columns: 3",
+                    "microns_per_pixel: null",
+                ]
+            )
+            + "\n",
+        )
+
+        # Act
+        settings = morphology_settings(create_config_manager(path))
+
+        # Assert
+        assert settings.analysis_square_size == 0
+        assert settings.count_inside_square is False

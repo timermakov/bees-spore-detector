@@ -511,6 +511,8 @@ def build_parser() -> argparse.ArgumentParser:
                                   help='Path to a YOLO checkpoint (.pt)')
     hierarchy_parser.add_argument('--morphology-confidence', type=float, default=None,
                                   help='Override morphology_confidence')
+    hierarchy_parser.add_argument('--inside-square', action='store_true', default=None,
+                                  help='Count only spore centers inside the analysis square')
 
     return parser
 
@@ -551,6 +553,7 @@ def main() -> int:
                 weights_path=args.weights,
                 use_sahi=args.use_sahi,
                 morphology_confidence=args.morphology_confidence,
+                count_inside_square=args.inside_square,
             )
 
             reports = analyzer.run_complete_analysis(
