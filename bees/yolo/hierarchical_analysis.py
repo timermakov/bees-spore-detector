@@ -165,7 +165,10 @@ class HierarchicalAnalyzer:
     """Analyzes spore images in nested folder structures."""
 
     def __init__(self, config_path: str = "config.yaml", use_yolo: bool = True,
-                 weights_path: Optional[str] = None, use_sahi: bool = False):
+                 weights_path: Optional[str] = None, use_sahi: bool = False,
+                 morphology_confidence: Optional[float] = None):
+        from bees.morphology import morphology_settings
+
         self.config_manager = create_config_manager(config_path)
         self.use_yolo = use_yolo
         self.weights_path = weights_path
@@ -174,6 +177,9 @@ class HierarchicalAnalyzer:
         self.use_sahi = use_sahi and SAHI_AVAILABLE
         self.detector = None
         self.titer_calculator = create_calculator_from_config(self.config_manager)
+        self.morphology = morphology_settings(self.config_manager, morphology_confidence)
+        self.morphology_rows = []
+        self.spore_class_names = ["spore"]
         self._initialize_detector()
 
     def _initialize_detector(self):
@@ -203,6 +209,11 @@ class HierarchicalAnalyzer:
             self.overlap_height_ratio = tiley.predict_overlap_height_ratio
             self.overlap_width_ratio = tiley.predict_overlap_width_ratio
 
+            from bees.yolo.config import YOLOConfig
+
+            self.spore_class_names = list(
+                YOLOConfig.from_config_manager(self.config_manager).class_names
+            )
             self.detector = SAHIDetector(
                 model_path=model_path,
                 model_type=model_type,
@@ -213,6 +224,7 @@ class HierarchicalAnalyzer:
         else:
             from bees.yolo import YOLOConfig, SporeDetector
             yolo_config = YOLOConfig.from_config_manager(self.config_manager)
+            self.spore_class_names = list(yolo_config.class_names)
             self.detector = SporeDetector(yolo_config)
             if self.weights_path:
                 self.detector.load_weights(self.weights_path)
@@ -269,11 +281,17 @@ class HierarchicalAnalyzer:
                         count = _inside_detection_count(
                             detections, img_width, img_height, self.titer_calculator.square_size
                         )
+                        self._record_detection_morphology(
+                            img, detections, image_path, probe_name, type_name, sample_path.name
+                        )
                     else:
                         from bees.spore_analysis_pipeline import count_opencv_contours
 
                         inside, _outside = count_opencv_contours(img, self.opencv_params)
                         count = len(inside)
+                        self._record_contour_morphology(
+                            img, inside, image_path, probe_name, type_name, sample_path.name
+                        )
 
                 photo_data.append((count, img_width, img_height))
 
@@ -297,6 +315,43 @@ class HierarchicalAnalyzer:
             _, sample_result.breakdown = self.titer_calculator.calculate_sample_titer_safe(photo_data)
 
         return sample_result
+
+    def _record_detection_morphology(self, image, detections, image_path, probe_name, type_name, sample_name):
+        """Measure confident boxes from the detections this sample already produced."""
+        if getattr(self, "morphology", None) is None:
+            return
+        from bees.morphology import measure_detections
+
+        self.morphology_rows.extend(
+            measure_detections(
+                image,
+                detections,
+                self.morphology,
+                image_path=str(image_path),
+                type_name=type_name,
+                probe_name=probe_name,
+                sample_name=sample_name,
+                class_names=getattr(self, "spore_class_names", ["spore"]),
+            )
+        )
+
+    def _record_contour_morphology(self, image, contours, image_path, probe_name, type_name, sample_name):
+        """Measure OpenCV contours that already passed the detector and the square."""
+        if getattr(self, "morphology", None) is None:
+            return
+        from bees.morphology import measure_opencv_contours
+
+        self.morphology_rows.extend(
+            measure_opencv_contours(
+                image,
+                contours,
+                self.morphology,
+                image_path=str(image_path),
+                type_name=type_name,
+                probe_name=probe_name,
+                sample_name=sample_name,
+            )
+        )
 
     def analyze_probe(self, probe_path: Path, type_name: str) -> ProbeResult:
         """Analyze all samples (repetitions) within a probe."""
@@ -509,6 +564,15 @@ class HierarchicalAnalyzer:
 
         md_path = self.generate_markdown_summary(results, output_dir, markdown_filename)
         reports['markdown'] = md_path
+
+        if getattr(self, "morphology", None) is not None:
+            from bees.morphology import write_morphology_reports
+
+            reports.update(write_morphology_reports(
+                getattr(self, "morphology_rows", []),
+                output_dir,
+                self.morphology,
+            ))
 
         logger.info("✓ All reports generated successfully")
         return reports

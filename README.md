@@ -194,7 +194,8 @@ python -m bees.main hierarchy-analyze \
 ```bash
 python -m bees.main --config my_config.yaml hierarchy-analyze \
   --input-dir dataset_test \
-  --output-dir analysis_output
+  --output-dir analysis_output \
+  --morphology-confidence 0.7
 ```
 
 ### Output Files
@@ -211,6 +212,10 @@ The pipeline generates:
    - P-value - Statistical significance from one-sample t-test
 
 2. **analysis_summary.md** - Markdown summary of results
+3. **morphology_spores.csv** - One row per measured spore
+4. **morphology_summary.xlsx** - Percentiles of size and shape inside the analysis square
+5. **morphology_summary.md** - Median and p5–p95 for each probe
+6. **montages/\<photo\>_spores.jpg** - Spore crops in their original pixel size
 
 ### Statistical Analysis
 

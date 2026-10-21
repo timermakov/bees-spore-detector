@@ -509,6 +509,8 @@ def build_parser() -> argparse.ArgumentParser:
                                   help='Use SAHI sliced inference (tiling comes from config.yaml)')
     hierarchy_parser.add_argument('--weights', type=str, default=None,
                                   help='Path to a YOLO checkpoint (.pt)')
+    hierarchy_parser.add_argument('--morphology-confidence', type=float, default=None,
+                                  help='Override morphology_confidence')
 
     return parser
 
@@ -548,6 +550,7 @@ def main() -> int:
                 use_yolo=not args.no_yolo,
                 weights_path=args.weights,
                 use_sahi=args.use_sahi,
+                morphology_confidence=args.morphology_confidence,
             )
 
             reports = analyzer.run_complete_analysis(
